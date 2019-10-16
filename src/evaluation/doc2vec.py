@@ -61,10 +61,10 @@ class Doc2Vec_IR(IR_Method):
 
         # Determine similarities
         def cosine_similarity(a, b):
-            return dot(a, b) / (norm(a) * norm(b))
+            return  (norm(a) * norm(b)) / dot(a, b)
 
         def euclidian_similarity(a, b):
-            return 1 / norm(a - b)
+            return norm(a - b)
 
         if parameters['similarity_metric'] == 'cosine':
             similarity_metric = cosine_similarity
