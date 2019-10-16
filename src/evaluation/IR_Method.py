@@ -47,7 +47,7 @@ class IR_Method:
 
     def __init__(self, corpus, only_alphnum=False, only_alph=True,
         split_camel_case=True, split_snake_case=True, remove_stop_words=True,
-        stem=True, relationship_type=0):
+        stem=True, only_common_vocab=True, relationship_type=0):
         """
         Attributes:
             corpus (Corpus): The corpus object that this IR object will evaluate
@@ -72,6 +72,9 @@ class IR_Method:
             stem (bool, optional): If true(default), words will be stemmed to
                 their base meaning (cats -> cat)
 
+            only_common_vocab (bool, optional): If true(default), words that do not
+                appear in both the source and target artifacts will be ignored
+
         """
 
         self._corpus = corpus
@@ -95,6 +98,8 @@ class IR_Method:
             non_default_arguments['remove_stop_words'] = remove_stop_words
         if stem != True:
             non_default_arguments['stemming'] = stem
+        if only_common_vocab != True:
+            non_default_arguments['only_common_vocab'] = only_common_vocab
         self._non_default_parameters = non_default_arguments
 
         self._only_alphnum = only_alphnum
@@ -103,6 +108,7 @@ class IR_Method:
         self._split_snake_case = split_snake_case
         self._remove_stop_words = remove_stop_words
         self._stem = stem
+        self._only_common_vocab = only_common_vocab
 
         for method in IR_Method.EXISTING_METHODS:
             if self.has_same_preprocessing_params(method):
@@ -147,8 +153,8 @@ class IR_Method:
 
         self._common_vocab = self._source_vocab.intersection(self._target_vocab)
 
-        self._processed_sources = [' '.join([x for x in source_artifact if x in self._common_vocab]) for source_artifact in tokenized_processed_sources]
-        self._processed_targets = [' '.join([x for x in target_artifact if x in self._common_vocab]) for target_artifact in tokenized_processed_targets]
+        self._processed_sources = [[x for x in source_artifact if (not self._only_common_vocab or x in self._common_vocab)] for source_artifact in tokenized_processed_sources]
+        self._processed_targets = [[x for x in target_artifact if (not self._only_common_vocab or x in self._common_vocab)] for target_artifact in tokenized_processed_targets]
 
     def _split_camel_case_token(self, token):
         return re.sub('([a-z])([A-Z])', r'\1 \2', token).split()
@@ -250,6 +256,7 @@ class IR_Method:
         return model
 
     def generate_model(self, parameters=None):
+        raise NotImplementedError
         print("No child class implementation. You should not see this.")
 
     def has_same_preprocessing_params(self, other):

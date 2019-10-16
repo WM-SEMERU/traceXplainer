@@ -164,23 +164,6 @@ class Evaluator:
         else:
             plt.show()
 
-        #Saving Y values for Wilcoxon analysis
-        #danaderp
-        ax = plt.gca() # get axis handle
-        #IR_median_
-        line1 = ax.lines[1] # get the first line, there might be more
-        e1 = line1.get_ydata()
-
-        #Model
-        line2 = ax.lines[2] # get the first line, there might be more
-        e2 = line2.get_ydata()
-
-        df = pd.DataFrame({'median':e1, 'model':e2})
-        df.to_csv('XX.csv', sep='\t')
-
-        plt.gcf().clear()
-        #plt.clf()
-
     def precision_recall_variance(self, variance_models, show_parameters=False, output_values=False):
 
         model_values = []
