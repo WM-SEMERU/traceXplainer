@@ -24,7 +24,7 @@ class Doc2Vec_IR(IR_Method):
                 computing doc2vec similarity. If no parameter dictionary is given, default
                 values will be used. Below are the doc2vec specific parameters.
 
-                'similarity_metric' (str) : 'cosine' (default) or 'euclidian'
+                'similarity_metric' (str) : 'wm' (default)
                 'vector_size' (int) : the number of dimensions of the output vector (default: 50)
                 'min_count' (int) : (default: 2)
                 'epochs' (int) : (default: 40)
@@ -37,8 +37,8 @@ class Doc2Vec_IR(IR_Method):
 
 
         default_parameters = dict()
-        default_parameters['similarity_metric'] = 'euclidian'
-        default_parameters['vector_size'] = 50
+        default_parameters['similarity_metric'] = 'wm'
+        default_parameters['vector_size'] = 100
         default_parameters['min_count'] = 2
         default_parameters['epochs'] = 40
 
@@ -58,31 +58,28 @@ class Doc2Vec_IR(IR_Method):
         doc2vec_model.build_vocab(train_corpus)
         print("Training doc2vec model")
         doc2vec_model.train(train_corpus, total_examples=doc2vec_model.corpus_count, epochs=doc2vec_model.epochs)
+        print("Done training")
 
-        # Determine similarities
-        def cosine_similarity(a, b):
-            return  (norm(a) * norm(b)) / dot(a, b)
+        def wm_similarity(doc_a, doc_b):
+            return 1 / doc2vec_model.wmdistance(doc_a, doc_b)
 
-        def euclidian_similarity(a, b):
-            return norm(a - b)
-
-        if parameters['similarity_metric'] == 'cosine':
-            similarity_metric = cosine_similarity
-        else: # similarity_metric == 'e'
-            similarity_metric = euclidian_similarity
+        if parameters['similarity_metric'] == 'wm':
+            similarity_metric = wm_similarity
+            print("Found similarity metric: wm")
+        else:
+            raise ValueError
 
         sources = trace_model.get_source_names()
         targets = trace_model.get_target_names()
 
-        source_matrix = [doc2vec_model.infer_vector(train_corpus[doc_id].words) for doc_id in range(len(sources))]
-        target_matrix = [doc2vec_model.infer_vector(train_corpus[doc_id].words) for doc_id in range(len(sources), len(sources) + len(targets))]
-
-        for i in range(len(source_matrix)):
-            for j in range(len(target_matrix)):
+        print("Populating trace models")
+        for i in range(len(sources)):
+            for j in range(len(targets)):
                 source = sources[i]
                 target = targets[j]
 
-                similarity = similarity_metric(source_matrix[i], target_matrix[j])
+                similarity = similarity_metric(self._processed_sources[i], self._processed_targets[j])
+                print("{} - {} : {}".format(source, target, similarity))
 
                 trace_model.set_value(source, target, similarity)
 
