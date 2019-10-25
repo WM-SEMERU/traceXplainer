@@ -7,6 +7,7 @@ October 2019
 from .IR_Method import IR_Method
 import gensim
 import collections
+import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
@@ -54,18 +55,48 @@ class Doc2Vec_IR(IR_Method):
         trace_model = self._new_model("doc2vec", parameters=parameters)
 
         train_corpus = list(self.tag_artifacts(self._processed_sources, self._processed_targets))
-        doc2vec_model = gensim.models.doc2vec.Doc2Vec(vector_size=parameters['vector_size'], min_count=parameters['min_count'], epochs=parameters['epochs'])
+        doc2vec_model = gensim.models.doc2vec.Doc2Vec(
+            vector_size=parameters['vector_size'],
+            min_count=parameters['min_count'],
+            epochs=parameters['epochs']
+        )
         doc2vec_model.build_vocab(train_corpus)
         print("Training doc2vec model")
-        doc2vec_model.train(train_corpus, total_examples=doc2vec_model.corpus_count, epochs=doc2vec_model.epochs)
+        doc2vec_model.train(
+            train_corpus,
+            total_examples=doc2vec_model.corpus_count,
+            epochs=doc2vec_model.epochs
+        )
         print("Done training")
 
         def wm_similarity(doc_a, doc_b):
             return 1 / doc2vec_model.wmdistance(doc_a, doc_b)
 
+        similarity_matrix = [None for i in range(len(self._processed_sources))]
+        def most_similar(doc_a_index, doc_b_index):
+            return similarity_matrix[doc_a_index][doc_b_index]
+
         if parameters['similarity_metric'] == 'wm':
             similarity_metric = wm_similarity
             print("Found similarity metric: wm")
+        elif parameters['similarity_metric'] == 'most_similar':
+            similarity_metric = most_similar
+
+            source_embedding_matrix = [doc2vec_model.infer_vector(doc) for doc in self._processed_sources]
+            target_embedding_matrix = [doc2vec_model.infer_vector(doc) for doc in self._processed_targets]
+            for source_index in range(len(source_embedding_matrix)):
+                source_vector = source_embedding_matrix[source_index]
+                most_similar_docs = doc2vec_model.docvecs.most_similar(
+                    positive=[source_vector],
+                    #negative=source_embedding_matrix[:source_index] + source_embedding_matrix[source_index+1:],
+                    topn=len(doc2vec_model.docvecs),
+                )
+                similarity_matrix[source_index] = [-np.inf for k in range(len(self._processed_targets))]
+                for doc_index, sim in most_similar_docs:
+                    if doc_index >= len(self._processed_sources):
+                        target_index = doc_index - len(self._processed_sources) - 1
+                        similarity_matrix[source_index][target_index] = sim
+
         else:
             raise ValueError
 
@@ -78,8 +109,9 @@ class Doc2Vec_IR(IR_Method):
                 source = sources[i]
                 target = targets[j]
 
-                similarity = similarity_metric(self._processed_sources[i], self._processed_targets[j])
-                print("{} - {} : {}".format(source, target, similarity))
+                #similarity = similarity_metric(self._processed_sources[i], self._processed_targets[j])
+                similarity = similarity_metric(i, j)
+                #print("{} - {} : {}".format(source, target, similarity))
 
                 trace_model.set_value(source, target, similarity)
 
