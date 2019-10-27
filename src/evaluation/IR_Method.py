@@ -45,9 +45,15 @@ class IR_Method:
 
     EXISTING_METHODS = []
 
-    def __init__(self, corpus, only_alphnum=False, only_alph=True,
-        split_camel_case=True, split_snake_case=True, remove_stop_words=True,
-        stem=True, only_common_vocab=True, relationship_type=0):
+    def __init__(self, corpus,
+        only_alphnum=False,
+        only_alph=True,
+        split_camel_case=True,
+        split_snake_case=True,
+        remove_stop_words=True,
+        stem=True,
+        only_common_vocab=True,
+        relationship_type=0):
         """
         Attributes:
             corpus (Corpus): The corpus object that this IR object will evaluate
@@ -87,7 +93,7 @@ class IR_Method:
 
         non_default_arguments = dict()
         if only_alphnum != False:
-            non_default_arguments['only_alphanum'] = only_alphanum
+            non_default_arguments['only_alphanum'] = only_alphnum
         if only_alph != True:
             non_default_arguments['only_alph'] = only_alph
         if split_camel_case != True:

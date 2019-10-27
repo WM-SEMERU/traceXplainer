@@ -1,4 +1,9 @@
 '''
+    NOT IMPLEMENTED YET!!! DO NOT USE!!!!
+'''
+
+
+'''
 Daniel McCrystal
 October 2019
 
@@ -11,21 +16,22 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
-class Doc2Vec_IR(IR_Method):
+class Word2Vec_IR(IR_Method):
     """
-    Implementation of doc2vec as an IR method
+    Implementation of word2vec as an IR method
     """
 
     def generate_model(self, parameters=None):
         """
-        Computes the similarity values using the doc2vec.
+        Computes the similarity values using the word2vec.
 
         Arguments:
             parameters (dict of str:obj, optional): Optional parameter dictionary for
                 computing doc2vec similarity. If no parameter dictionary is given, default
                 values will be used. Below are the doc2vec specific parameters.
 
-                'similarity_metric' (str) : 'most_similar' (default), 'cosine'
+                'similarity_metric' (str) : 'wm' (default)
+                'embedding_method' (str) : 'skipgram' (default)
                 'vector_size' (int) : the number of dimensions of the output vector (default: 50)
                 'min_count' (int) : (default: 2)
                 'epochs' (int) : (default: 40)
@@ -38,7 +44,7 @@ class Doc2Vec_IR(IR_Method):
 
 
         default_parameters = dict()
-        default_parameters['similarity_metric'] = 'most_similar'
+        default_parameters['similarity_metric'] = 'cosine'
         default_parameters['vector_size'] = 100
         default_parameters['min_count'] = 2
         default_parameters['epochs'] = 40
@@ -53,7 +59,7 @@ class Doc2Vec_IR(IR_Method):
         parameters = default_parameters
 
         trace_model = self._new_model("doc2vec", parameters=parameters)
-        self.doc_index_map = {}
+
         train_corpus = list(self.tag_artifacts(self._processed_sources, self._processed_targets))
         doc2vec_model = gensim.models.doc2vec.Doc2Vec(
             vector_size=parameters['vector_size'],
@@ -69,19 +75,21 @@ class Doc2Vec_IR(IR_Method):
         )
         print("Done training")
 
+        def wm_similarity(doc_a, doc_b):
+            return 1 / doc2vec_model.wmdistance(doc_a, doc_b)
 
         similarity_matrix = [None for i in range(len(self._processed_sources))]
-        
         def most_similar(doc_a_index, doc_b_index):
             return similarity_matrix[doc_a_index][doc_b_index]
 
-        if parameters['similarity_metric'] == 'cosine':
-            raise ValueError
+        if parameters['similarity_metric'] == 'wm':
+            similarity_metric = wm_similarity
+            print("Found similarity metric: wm")
         elif parameters['similarity_metric'] == 'most_similar':
             similarity_metric = most_similar
 
             source_embedding_matrix = [doc2vec_model.infer_vector(doc) for doc in self._processed_sources]
-            target_names = self._corpus.get_target_names()
+            target_embedding_matrix = [doc2vec_model.infer_vector(doc) for doc in self._processed_targets]
             for source_index in range(len(source_embedding_matrix)):
                 source_vector = source_embedding_matrix[source_index]
                 most_similar_docs = doc2vec_model.docvecs.most_similar(
@@ -92,8 +100,7 @@ class Doc2Vec_IR(IR_Method):
                 similarity_matrix[source_index] = [-np.inf for k in range(len(self._processed_targets))]
                 for doc_index, sim in most_similar_docs:
                     if doc_index >= len(self._processed_sources):
-                        target_index = doc_index - len(self._processed_sources)
-                        #print("{} - {}".format(target_names[target_index], self.doc_index_map[doc_index]))
+                        target_index = doc_index - len(self._processed_sources) - 1
                         similarity_matrix[source_index][target_index] = sim
 
         else:
@@ -120,12 +127,6 @@ class Doc2Vec_IR(IR_Method):
 
     # Function to get the corpus in the format that doc2vec accepts
     def tag_artifacts(self, source_artifacts, target_artifacts):
-        source_names = self._corpus.get_source_names()
-        target_names = self._corpus.get_target_names()
         for i, artifact in enumerate(source_artifacts + target_artifacts):
             # For training data, add tags
-            if i < len(source_names):
-                self.doc_index_map[i] = source_names[i]
-            else:
-                self.doc_index_map[i] = target_names[i-len(source_names)]
             yield gensim.models.doc2vec.TaggedDocument(artifact, [i])

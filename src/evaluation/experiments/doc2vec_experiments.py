@@ -1,9 +1,12 @@
+import sys
+sys.path.append('../..')
+
 from evaluation.Corpus import Corpus
 from evaluation.doc2vec import Doc2Vec_IR
 from evaluation.Evaluator import Evaluator
 from evaluation.VSM import VSM
 
-corpus = Corpus.get_preset_corpus('2_0')
+corpus = Corpus.get_preset_corpus('0_1')
 vsm_generator = VSM(corpus)
 vsm_model = vsm_generator.generate_model()
 
@@ -47,5 +50,5 @@ def simple_test():
 simple_test()
 #vector_size_test()
 #epochs_test()
-shared_vocab_test()
+#shared_vocab_test()
 #similarity_metric_test()
