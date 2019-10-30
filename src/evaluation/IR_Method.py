@@ -18,19 +18,15 @@ class IR_Method:
     Attributes:
         _corpus (Corpus): The corpus object that this IR object will evaluate
 
-        processed_sources (list(str)): A list of source artifacts that have been
+        processed_sources (list(list(str))): A list of source artifacts that have been
             preprocessed according to the given hyperparameters
-        processed_targets (list(str)): A list of target artifacts that have been
+        processed_targets (list(list(str))): A list of target artifacts that have been
             preprocessed according to the given hyperparameters
 
         _source_vocab (set): Set of all unique words that appear in the source corpus
         _target_vocab (set): Set of all unique words that appear in the target corpus
         _common_vocab (set): Set of all unique words that appear in both source
             and target corpus
-
-        _model (dict of str:(dict of str:float)): Holds the similarity values between
-            source and target artifacts in the range [0, 1]. Gets compared to the
-            truth dictionary in the corpus
 
         # Hyperparameters:
         # See __init__ documentation for descriptions
