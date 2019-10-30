@@ -65,6 +65,26 @@ def use_negative_test():
         [vsm_model, doc2vec_model_0, doc2ved_model_1], corpus)
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
+def preprocessing_test():
+    doc2vec_generator0 = Doc2Vec_IR(corpus, only_alphnum=False,
+        only_alph=False,
+        split_camel_case=False,
+        split_snake_case=False,
+        remove_stop_words=False,
+        stem=False)
+    doc2vec_generator1 = Doc2Vec_IR(corpus, only_alphnum=True,
+        split_camel_case=True,
+        split_snake_case=True,
+        remove_stop_words=True,
+        stem=True)
+    doc2vec_model_0 = doc2vec_generator0.generate_model()
+    doc2vec_model_1 = doc2vec_generator1.generate_model()
+    evaluator = Evaluator(
+        [vsm_model, doc2vec_model_0, doc2vec_model_1], corpus)
+    evaluator.precision_recall(show_parameters=False, show_random_model=True)
+
+    
+
 
 def simple_test():
     doc2vec_generator = Doc2Vec_IR(corpus)
@@ -75,7 +95,8 @@ def simple_test():
 
 
 # simple_test()
-use_negative_test()
+#use_negative_test()
+preprocessing_test()
 # vector_size_test()
 # epochs_test()
 # shared_vocab_test()
