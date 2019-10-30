@@ -4,7 +4,7 @@ October 2019
 
 '''
 
-from .IR_Method import IR_Method
+from IR_Method import IR_Method
 import gensim
 import collections
 import numpy as np
