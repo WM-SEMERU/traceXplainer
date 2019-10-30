@@ -11,6 +11,7 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 
+
 class Doc2Vec_IR(IR_Method):
     """
     Implementation of doc2vec as an IR method
@@ -26,9 +27,10 @@ class Doc2Vec_IR(IR_Method):
                 values will be used. Below are the doc2vec specific parameters.
 
                 'similarity_metric' (str) : 'most_similar' (default), 'cosine'
-                'vector_size' (int) : the number of dimensions of the output vector (default: 50)
+                'vector_size' (int) : the number of dimensions of the output vector (default: 100)
                 'min_count' (int) : (default: 2)
                 'epochs' (int) : (default: 40)
+                'use_negatives' (bool) : (default: false)
 
         Returns:
             Trace_Model: A new IR model containing the generated similarity values
@@ -36,25 +38,28 @@ class Doc2Vec_IR(IR_Method):
 
         print("Generating new doc2vec model")
 
-
         default_parameters = dict()
         default_parameters['similarity_metric'] = 'most_similar'
         default_parameters['vector_size'] = 100
         default_parameters['min_count'] = 2
         default_parameters['epochs'] = 40
+        default_parameters['use_negatives'] = False
 
         if parameters is not None:
             for key in parameters:
                 if key in default_parameters:
                     default_parameters[key] = parameters[key]
                 else:
-                    print("Ignoring unrecognized doc2vec parameter [" + str(key) + "]")
+                    print(
+                        "Ignoring unrecognized doc2vec parameter [" + str(key) + "]")
 
         parameters = default_parameters
 
         trace_model = self._new_model("doc2vec", parameters=parameters)
+
         self.doc_index_map = {}
-        train_corpus = list(self.tag_artifacts(self._processed_sources, self._processed_targets))
+        train_corpus = list(self.tag_artifacts(
+            self._processed_sources, self._processed_targets))
         doc2vec_model = gensim.models.doc2vec.Doc2Vec(
             vector_size=parameters['vector_size'],
             min_count=parameters['min_count'],
@@ -69,9 +74,8 @@ class Doc2Vec_IR(IR_Method):
         )
         print("Done training")
 
-
         similarity_matrix = [None for i in range(len(self._processed_sources))]
-        
+
         def most_similar(doc_a_index, doc_b_index):
             return similarity_matrix[doc_a_index][doc_b_index]
 
@@ -80,16 +84,19 @@ class Doc2Vec_IR(IR_Method):
         elif parameters['similarity_metric'] == 'most_similar':
             similarity_metric = most_similar
 
-            source_embedding_matrix = [doc2vec_model.infer_vector(doc) for doc in self._processed_sources]
-            target_names = self._corpus.get_target_names()
+            source_embedding_matrix = [doc2vec_model.infer_vector(
+                doc) for doc in self._processed_sources]
             for source_index in range(len(source_embedding_matrix)):
                 source_vector = source_embedding_matrix[source_index]
                 most_similar_docs = doc2vec_model.docvecs.most_similar(
                     positive=[source_vector],
-                    #negative=source_embedding_matrix[:source_index] + source_embedding_matrix[source_index+1:],
+                    negative=source_embedding_matrix[:source_index] +
+                    source_embedding_matrix[source_index +
+                                            1:] if parameters['use_negatives'] else [],
                     topn=len(doc2vec_model.docvecs),
                 )
-                similarity_matrix[source_index] = [-np.inf for k in range(len(self._processed_targets))]
+                similarity_matrix[source_index] = [
+                    -np.inf for k in range(len(self._processed_targets))]
                 for doc_index, sim in most_similar_docs:
                     if doc_index >= len(self._processed_sources):
                         target_index = doc_index - len(self._processed_sources)
