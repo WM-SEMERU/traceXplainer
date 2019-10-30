@@ -3,6 +3,8 @@ Daniel McCrystal
 June 2018
 
 '''
+import sys
+sys.path.append('../..')
 
 from .IR_Method import IR_Method
 

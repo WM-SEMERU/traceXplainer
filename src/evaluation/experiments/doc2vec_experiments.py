@@ -8,7 +8,7 @@ from evaluation.Corpus import Corpus
 
 
 
-corpus = Corpus.get_preset_corpus('0_1')
+corpus = Corpus.get_preset_corpus('1_1')
 vsm_generator = VSM(corpus)
 vsm_model = vsm_generator.generate_model()
 
@@ -83,7 +83,7 @@ def preprocessing_test():
         [vsm_model, doc2vec_model_0, doc2vec_model_1], corpus)
     evaluator.precision_recall(show_parameters=False, show_random_model=True)
 
-    
+
 
 
 def simple_test():
@@ -95,7 +95,7 @@ def simple_test():
 
 
 # simple_test()
-#use_negative_test()
+use_negative_test()
 preprocessing_test()
 # vector_size_test()
 # epochs_test()

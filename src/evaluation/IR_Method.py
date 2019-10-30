@@ -3,9 +3,12 @@ Daniel McCrystal
 June 2018
 
 '''
+import sys
+sys.path.append('../..')
+
 import os.path
 
-from .Trace_Model import Trace_Model
+from evaluation.Trace_Model import Trace_Model
 
 import re
 
