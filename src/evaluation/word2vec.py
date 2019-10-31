@@ -48,7 +48,7 @@ class Word2Vec_IR(IR_Method):
 
         sources = trace_model.get_source_names()
         targets = trace_model.get_target_names()
-        print("hi :", len(targets))
+        #print("hi :", len(targets))
         instance = WmdSimilarity(self._processed_targets, word2vec_model, num_best=len(targets))
 
         print("Populating trace models")
@@ -59,7 +59,7 @@ class Word2Vec_IR(IR_Method):
                 j, similarity_score = target_sim
                 source = sources[i]
                 target = targets[j]
-                print("{} - {} : {}".format(source, target, similarity_score))
+                #print("{} - {} : {}".format(source, target, similarity_score))
                 trace_model.set_value(source, target, similarity_score)
 
 
