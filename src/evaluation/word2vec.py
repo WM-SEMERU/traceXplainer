@@ -29,7 +29,7 @@ class Word2Vec_IR(IR_Method):
         default_parameters['sg'] = 1
         default_parameters['size'] = 100
         default_parameters['min_count'] = 2
-        default_parameters['iter'] = 40
+        default_parameters['epochs'] = 40
 
         if parameters is not None:
             for key in parameters:
@@ -44,7 +44,7 @@ class Word2Vec_IR(IR_Method):
 
         w2v_corpus = self._processed_sources + self._processed_targets
         word2vec_model = Word2Vec(w2v_corpus, sg = parameters['sg'], size = parameters['size'],
-                         min_count = parameters['min_count'],iter = parameters['iter'])
+                         min_count = parameters['min_count'],iter = parameters['epochs'])
 
         sources = trace_model.get_source_names()
         targets = trace_model.get_target_names()
