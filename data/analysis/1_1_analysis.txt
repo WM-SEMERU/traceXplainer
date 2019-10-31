@@ -1,0 +1,71 @@
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/EBT_semeru_format/requirements.txt
+Getting artifacts by line from file
+Read 41 artifacts from file
+
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/EBT_semeru_format/source_code
+Getting artifacts by file from directory
+Read 50 artifacts from directory
+
+Found stop words file: english_stop_words.txt
+Detected natural language: [english], generating stemmer
+====================================
+Corpus analysis for: EBT (1_1)
+
+Total num documents:	91
+Num source documents:	41
+Num target documents:	50
+
+Total num trace links:	2050
+
+Total vocabulary size:	662
+Source vocabulary size:	106
+Target vocabulary size:	619
+Shared vocabulary size:	63
+
+Avg num tokens per document:	17
+Avg num tokens per source doc:	5
+Avg num tokens per target doc:	27
+
+Most frequent tokens:
+	event : 241
+	valu : 132
+	new : 123
+	requir : 107
+	model : 83
+
+Least frequent tokens:
+	push : 2
+	come : 2
+	trigger : 2
+	exist : 2
+	specif : 2
+
+Most frequent source tokens:
+	event : 30
+	requir : 19
+	manag : 19
+	subscrib : 18
+	eventserv : 13
+
+Least frequent source tokens:
+	door : 1
+	clear : 1
+	case : 1
+	place : 1
+	push : 1
+
+Most frequent target tokens:
+	event : 211
+	valu : 129
+	new : 122
+	requir : 88
+	driver : 80
+
+Least frequent target tokens:
+	come : 1
+	trigger : 1
+	order : 1
+	push : 1
+	exist : 1
+
+====================================

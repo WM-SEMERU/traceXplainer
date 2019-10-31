@@ -1,0 +1,73 @@
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/LibEST_semeru_format/requirements
+Getting artifacts by file from directory
+Read 52 artifacts from directory
+
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/LibEST_semeru_format/source_code
+Getting artifacts by file from directory
+Read 14 artifacts from directory
+
+Found stop words file: english_stop_words.txt
+Detected natural language: [english], generating stemmer
+Found stop words file: C_stop_words.txt
+No natural language stemmer detected for language: [C]
+====================================
+Corpus analysis for: LibEST (0_1)
+
+Total num documents:	66
+Num source documents:	52
+Num target documents:	14
+
+Total num trace links:	728
+
+Total vocabulary size:	3518
+Source vocabulary size:	2461
+Target vocabulary size:	1565
+Shared vocabulary size:	508
+
+Avg num tokens per document:	568
+Avg num tokens per source doc:	133
+Avg num tokens per target doc:	2186
+
+Most frequent tokens:
+	est : 4082
+	http : 1065
+	client : 1046
+	`` : 1005
+	server : 794
+
+Least frequent tokens:
+	compli : 2
+	simplifi : 2
+	lack : 2
+	basi : 2
+	flexibl : 2
+
+Most frequent source tokens:
+	client : 291
+	est : 280
+	certif : 253
+	server : 231
+	use : 195
+
+Least frequent source tokens:
+	problem : 1
+	log : 1
+	event : 1
+	simpli : 1
+	close : 1
+
+Most frequent target tokens:
+	est : 3802
+	http : 955
+	`` : 876
+	client : 755
+	log : 653
+
+Least frequent target tokens:
+	offer : 1
+	intend : 1
+	regardless : 1
+	submit : 1
+	simplifi : 1
+
+====================================
