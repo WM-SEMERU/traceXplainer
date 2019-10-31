@@ -10,7 +10,7 @@ from evaluation.Corpus import Corpus
 
 corpus = Corpus.get_preset_corpus('1_1')
 vsm_generator = VSM(corpus)
-vsm_model = vsm_generator.generate_model()
+vsm_model = vsm_ghenerator.generate_model()
 
 
 def vector_size_test():
