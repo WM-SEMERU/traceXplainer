@@ -1,0 +1,73 @@
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/SMOS_semeru_format/use_cases
+Getting artifacts by file from directory
+Read 67 artifacts from directory
+
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/SMOS_semeru_format/source_code
+Getting artifacts by file from directory
+Read 100 artifacts from directory
+
+Found stop words file: italian_stop_words.txt
+Detected natural language: [italian], generating stemmer
+Found stop words file: java_stop_words.txt
+No natural language stemmer detected for language: [java]
+====================================
+Corpus analysis for: SMOS (5_0)
+
+Total num documents:	167
+Num source documents:	67
+Num target documents:	100
+
+Total num trace links:	6700
+
+Total vocabulary size:	1213
+Source vocabulary size:	294
+Target vocabulary size:	1095
+Shared vocabulary size:	176
+
+Avg num tokens per document:	69
+Avg num tokens per source doc:	59
+Avg num tokens per target doc:	75
+
+Most frequent tokens:
+	error : 1416
+	smos : 769
+	not : 750
+	pag : 588
+	dat : 522
+
+Least frequent tokens:
+	precedent : 2
+	button : 2
+	divers : 2
+	aggiunt : 2
+	avut : 2
+
+Most frequent source tokens:
+	utent : 248
+	l : 245
+	sistem : 228
+	visualizz : 226
+	amministr : 126
+
+Least frequent source tokens:
+	precedent : 1
+	tabell : 1
+	stabil : 1
+	recuper : 1
+	semestr : 1
+
+Most frequent target tokens:
+	error : 1403
+	not : 712
+	smos : 704
+	pag : 587
+	dat : 443
+
+Least frequent target tokens:
+	part : 1
+	cerc : 1
+	gest : 1
+	digital : 1
+	avut : 1
+
+====================================

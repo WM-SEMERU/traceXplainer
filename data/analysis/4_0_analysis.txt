@@ -1,0 +1,73 @@
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/Albergate_semeru_format/requirements
+Getting artifacts by file from directory
+Read 17 artifacts from directory
+
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/Albergate_semeru_format/source_code
+Getting artifacts by file from directory
+Read 55 artifacts from directory
+
+Found stop words file: italian_stop_words.txt
+Detected natural language: [italian], generating stemmer
+Found stop words file: java_stop_words.txt
+No natural language stemmer detected for language: [java]
+====================================
+Corpus analysis for: Albergate (4_0)
+
+Total num documents:	72
+Num source documents:	17
+Num target documents:	55
+
+Total num trace links:	935
+
+Total vocabulary size:	1132
+Source vocabulary size:	552
+Target vocabulary size:	797
+Shared vocabulary size:	217
+
+Avg num tokens per document:	166
+Avg num tokens per source doc:	100
+Avg num tokens per target doc:	187
+
+Most frequent tokens:
+	`` : 1356
+	dat : 730
+	stanz : 670
+	i : 490
+	non : 484
+
+Least frequent tokens:
+	evit : 2
+	almen : 2
+	camp : 2
+	ripet : 2
+	durant : 2
+
+Most frequent source tokens:
+	stanz : 80
+	dat : 65
+	client : 55
+	in : 54
+	f : 50
+
+Least frequent source tokens:
+	parametr : 1
+	riduzion : 1
+	massim : 1
+	rest : 1
+	maggior : 1
+
+Most frequent target tokens:
+	`` : 1355
+	dat : 665
+	stanz : 590
+	non : 462
+	i : 461
+
+Least frequent target tokens:
+	era : 1
+	agli : 1
+	cert : 1
+	tabell : 1
+	richiest : 1
+
+====================================
