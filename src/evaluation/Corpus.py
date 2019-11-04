@@ -425,6 +425,17 @@ class Corpus:
         else:
             print("No corpus code found for: " + self.get_corpus_name())
 
+    def get_raw_string(self):
+        output = ''
+        for doc in self._sources + self._targets:
+            output += doc + '\n'
+        return output
+
+    def generate_raw_file(self, output_filename=None):
+        if output_filename is None:
+            output_filename = self._corpus_root + self._corpus_code + '_raw_corpus.txt'
+        with open(output_filename, 'w+') as output_file:
+            output_file.write(self.get_raw_string())
 
     def verify_datastore(self, datastore_manager):
         sources = self.get_source_names()
