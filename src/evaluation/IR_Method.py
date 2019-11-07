@@ -170,8 +170,8 @@ class IR_Method:
             self._processed_targets = self._bpe_processed_artifacts(
                 sp_bpe, sources=False)
 
-            print(self._processed_sources)
-            print(self._processed_targets)
+            # print(self._processed_sources)
+            # print(self._processed_targets)
 
         else:
 
@@ -214,10 +214,8 @@ class IR_Method:
             artifacts = self._corpus.get_targets()
 
         for artifact in artifacts:
-            split_artifact = artifact.split('\n')
-            for line in split_artifact:
-                encoded = bpe_model.encode_as_pieces(line)
-                out.append(encoded)
+            encoded = bpe_model.encode_as_pieces(artifact)
+            out.append(encoded)
 
         return out
 
