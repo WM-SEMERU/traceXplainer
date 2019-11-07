@@ -154,19 +154,14 @@ class IR_Method:
         """
 
         if self._bpe:
+            corpus_root = self._corpus.get_corpus_root()
+            corpus_code = self._corpus.get_corpus_code()
 
-            corpus_code_list = self._corpus.get_corpus_code().split(' ')
-            corpus_code = corpus_code_list[-1].strip('(').strip(')')
+            corpus_path = corpus_root + corpus_code + '_raw_corpus.txt'
 
-            corpus_name_list = self._corpus.get_corpus_name().split(' ')
-            corpus_name = corpus_name_list[0]
+            param_str = '--input={} --model_prefix=m_bpe --vocab_size={} --model_type=bpe'.format(
+                corpus_path, self._bpe_vocab_size)
 
-            file_path = os.path.dirname(os.path.abspath(__file__))
-            corpus_path = file_path + '/../../data/raw/' + corpus_name + \
-                '_semeru_format/' + corpus_code + '_raw_corpus.txt'
-
-            param_str = '--input=' + corpus_path + ' --model_prefix=m_bpe --vocab_size=' + \
-                str(self._bpe_vocab_size) + ' --model_type=bpe'
             spm.SentencePieceTrainer.train(param_str)
             sp_bpe = spm.SentencePieceProcessor()
 

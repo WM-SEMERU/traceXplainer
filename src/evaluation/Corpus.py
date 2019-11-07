@@ -425,6 +425,9 @@ class Corpus:
         else:
             print("No corpus code found for: " + self.get_corpus_name())
 
+    def get_corpus_root(self):
+        return self._corpus_root
+
     def get_raw_string(self):
         output = ''
         for doc in self._sources + self._targets:
