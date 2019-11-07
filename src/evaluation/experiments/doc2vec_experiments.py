@@ -93,10 +93,17 @@ def simple_test():
     evaluator = Evaluator([vsm_model, doc2vec_model], corpus)
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
+def simple_test_bpe():
+    doc2vec_generator = Doc2Vec_IR(corpus, bpe=True, bpe_vocab_size=2000)
+    doc2vec_model = doc2vec_generator.generate_model()
 
+    # evaluator = Evaluator([vsm_model, doc2vec_model], corpus)
+    # evaluator.precision_recall(show_parameters=True, show_random_model=True)
+
+simple_test_bpe()
 # simple_test()
-use_negative_test()
-preprocessing_test()
+# use_negative_test()
+# preprocessing_test()
 # vector_size_test()
 # epochs_test()
 # shared_vocab_test()
