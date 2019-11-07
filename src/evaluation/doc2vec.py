@@ -4,7 +4,7 @@ October 2019
 
 '''
 
-from IR_Method import IR_Method
+from .IR_Method import IR_Method
 import gensim
 import collections
 import numpy as np
@@ -129,7 +129,15 @@ class Doc2Vec_IR(IR_Method):
     def tag_artifacts(self, source_artifacts, target_artifacts):
         source_names = self._corpus.get_source_names()
         target_names = self._corpus.get_target_names()
+
+        print("len source names: {}".format(len(source_names)))
+        print("len source artifacts: {}".format(len(source_artifacts)))
+
+        print("len target names: {}".format(len(target_names)))
+        print("len target artifacts: {}".format(len(target_artifacts)))
+
         for i, artifact in enumerate(source_artifacts + target_artifacts):
+
             # For training data, add tags
             if i < len(source_names):
                 self.doc_index_map[i] = source_names[i]
