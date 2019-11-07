@@ -158,6 +158,7 @@ class IR_Method:
             corpus_code = self._corpus.get_corpus_code()
 
             corpus_path = corpus_root + corpus_code + '_raw_corpus.txt'
+            print(corpus_path)
 
             param_str = '--input={} --model_prefix=m_bpe --vocab_size={} --model_type=bpe'.format(
                 corpus_path, self._bpe_vocab_size)
@@ -316,7 +317,6 @@ class IR_Method:
 
     def generate_model(self, parameters=None):
         raise NotImplementedError
-        print("No child class implementation. You should not see this.")
 
     def has_same_preprocessing_params(self, other):
         return self._only_alphnum == other._only_alphnum and \
@@ -324,7 +324,8 @@ class IR_Method:
             self._split_camel_case == other._split_camel_case and \
             self._split_snake_case == other._split_snake_case and \
             self._remove_stop_words == other._remove_stop_words and \
-            self._stem == other._stem and self._corpus == other._corpus
+            self._stem == other._stem and self._corpus == other._corpus and \
+            self._bpe == other._bpe and self._bpe_vocab_size == other._bpe_vocab_size
 
     def get_corpus(self):
         return self._corpus
