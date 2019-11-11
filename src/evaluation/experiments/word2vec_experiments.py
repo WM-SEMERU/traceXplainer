@@ -121,11 +121,28 @@ def preprocessing_test_cbow():
         [vsm_model, word2vec_model_0, word2vec_model_1], corpus)
     evaluator.precision_recall(show_parameters=False, show_random_model=True)
 
-simple_test_sg()
-simple_test_cbow()
-vector_size_test_sg()
-vector_size_test_cbow()
-iter_test_sg()
-iter_test_cbow()
-preprocessing_test_sb()
-preprocessing_test_cbow()
+def simple_test_sg_bpe():
+    word2vec_generator = Word2Vec_IR(corpus, bpe=True, bpe_vocab_size=2000)
+    word2vec_model = word2vec_generator.generate_model()
+
+    evaluator = Evaluator([vsm_model, word2vec_model], corpus)
+    evaluator.precision_recall(show_parameters=True, show_random_model=True)
+
+def simple_test_cbow_bpe():
+    word2vec_generator = Word2Vec_IR(corpus, bpe=True, bpe_vocab_size=2000)
+    word2vec_model = word2vec_generator.generate_model(
+        parameters={'sg': 0})
+
+    evaluator = Evaluator([vsm_model, word2vec_model], corpus)
+    evaluator.precision_recall(show_parameters=True, show_random_model=True)
+
+# simple_test_sg()
+# simple_test_cbow()
+# vector_size_test_sg()
+# vector_size_test_cbow()
+# iter_test_sg()
+# iter_test_cbow()
+# preprocessing_test_sb()
+# preprocessing_test_cbow()
+simple_test_sg_bpe()
+# simple_test_cbow_bpe()
