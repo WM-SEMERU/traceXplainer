@@ -50,7 +50,7 @@ for file_name in os.listdir('raw/'):
                         output_file = open(
                             'partitions/{}_{}.txt'.format(output_base_name, current_partition_name), 'w+')
 
-                    output_file.write(' '.join(tokenized_line))
+                    output_file.write(' '.join(tokenized_line) + '\n')
             except:
                 pass
             
