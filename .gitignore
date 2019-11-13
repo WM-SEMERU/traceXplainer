@@ -1,2 +1,4 @@
 *.pyc
 .DS_Store
+data/training/code/java/raw/*
+data/training/code/java/partitions/*
