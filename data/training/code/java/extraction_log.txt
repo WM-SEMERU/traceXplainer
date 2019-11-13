@@ -1,0 +1,12 @@
+Found 3051500 total tokens
+Finished assigning documents to bpe
+Finished assigning documents to validation
+Finished assigning documents to test
+Finished assigning documents to train
+
+============= Validate Ratios =============
+bpe: 305257 / 3051500 => 0.10003506472226774
+validation: 305321 / 3051500 => 0.10005603801409144
+test: 305172 / 3051500 => 0.10000720956906439
+train: 2135750 / 3051500 => 0.6999016876945764
+===========================================
