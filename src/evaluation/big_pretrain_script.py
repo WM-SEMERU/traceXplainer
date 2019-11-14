@@ -107,6 +107,6 @@ for i in range(3):
             vec_size = 300
 
         generate_model(w2v_input, vocab_size=vocab_size, vector_size=vec_size, model_type='sg')
-        #generate_model(w2v_input, vocab_size=vocab_size, vector_size=vec_size, model_type='cbow')
+        generate_model(w2v_input, vocab_size=vocab_size, vector_size=vec_size, model_type='cbow')
 
         generate_model(d2v_input, vocab_size=vocab_size, vector_size=vec_size, model_type='doc2vec')
