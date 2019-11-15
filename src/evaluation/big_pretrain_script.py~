@@ -42,8 +42,7 @@ def generate_model(corpus, vocab_size, vector_size=100, min_count=2, epochs=50, 
             size = vector_size, min_count = min_count, iter = epochs)
         print("Finished training Skip-Gram word2vec model\n")
 
-        # add code to save model here 
-        word2vec_model.save("w2v_sg_vectorSize{}_minCount{}_BPEvocabSize{}".format(vector_size, min_count, vocab_size))
+        # add code to save model here
 
     elif model_type == 'cbow':
         # CBOW word2vec here
@@ -52,8 +51,7 @@ def generate_model(corpus, vocab_size, vector_size=100, min_count=2, epochs=50, 
             size = vector_size, min_count = min_count, iter = epochs)
         print("Finished training CBOW word2vec model\n")
 
-        # add code to save model here 
-        word2vec_model.save("w2v_cbow_vectorSize{}_minCount{}_BPEvocabSize{}".format(vector_size, min_count, vocab_size))
+        # add code to save model here
 
     elif model_type == 'doc2vec':
         # doc2vec here
@@ -71,8 +69,7 @@ def generate_model(corpus, vocab_size, vector_size=100, min_count=2, epochs=50, 
         )
         print("Finished training doc2vec model\n")
 
-        # add code to save model here 
-        doc2vec_model.save("d2v_vectorSize{}_minCount{}_BPEvocabSize{}".format(vector_size, min_count, vocab_size))
+        # add code to save model here
 
     else:
         print("Invalid model type. Valid model types: sg, cbow, doc2vec")
