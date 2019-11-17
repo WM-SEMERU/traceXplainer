@@ -1,3 +1,6 @@
 *.pyc
 .DS_Store
-data/training/*
+data/training/code/java/raw/*
+data/training/code/java/partitions/*
+data/training/natural_language/wiki103/raw/*
+data/training/natural_language/wiki103/partitions/*
