@@ -6,9 +6,7 @@ from evaluation.word2vec import Word2Vec_IR
 from evaluation.Evaluator import Evaluator
 from evaluation.VSM import VSM
 
-corpus = Corpus.get_preset_corpus('1_1')
-vsm_generator = VSM(corpus)
-vsm_model = vsm_generator.generate_model(subtitle="baseline")
+
 
 def test_w2v_sg_bpe2000():
     w2v_generator = Word2Vec_IR(corpus, bpe=True, bpe_vocab_size=2000)
@@ -164,9 +162,14 @@ def test_w2v_cbow_bpe10000():
     print("=========================")
 
 
-test_w2v_sg_bpe2000()
-test_w2v_cbow_bpe2000()
-test_w2v_sg_bpe5000()
-test_w2v_cbow_bpe5000()
-test_w2v_sg_bpe10000()
-test_w2v_cbow_bpe10000()
+for corpus in Corpus.get_all_preset_corpora():
+    print("START TESTS FOR {}".format(corpus.get_corpus_name()))
+    vsm_generator = VSM(corpus)
+    vsm_model = vsm_generator.generate_model(subtitle="baseline")
+    test_w2v_sg_bpe2000()
+    test_w2v_cbow_bpe2000()
+    test_w2v_sg_bpe5000()
+    test_w2v_cbow_bpe5000()
+    test_w2v_sg_bpe10000()
+    test_w2v_cbow_bpe10000()
+    print("END TESTS FOR {}".format(corpus.get_corpus_name()))
