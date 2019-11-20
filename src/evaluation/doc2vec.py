@@ -17,7 +17,7 @@ class Doc2Vec_IR(IR_Method):
     Implementation of doc2vec as an IR method
     """
 
-    def generate_model(self, parameters=None):
+    def generate_model(self, parameters=None, subtitle=None):
         """
         Computes the similarity values using the doc2vec.
 
@@ -54,8 +54,8 @@ class Doc2Vec_IR(IR_Method):
                         "Ignoring unrecognized doc2vec parameter [" + str(key) + "]")
 
         parameters = default_parameters
-
-        trace_model = self._new_model("doc2vec", parameters=parameters)
+        
+        trace_model = self._new_model("doc2vec: " + subtitle, parameters=parameters)
 
         self.doc_index_map = {}
         train_corpus = list(self.tag_artifacts(
