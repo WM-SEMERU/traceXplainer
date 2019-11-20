@@ -18,7 +18,7 @@ class VSM(IR_Method):
     Implementation of Vector Space Model IR method
     """
 
-    def generate_model(self, parameters=None):
+    def generate_model(self, parameters=None, subtitle=None):
         """
         Computes the similarity values using the VSM IR method.
 
@@ -50,7 +50,7 @@ class VSM(IR_Method):
 
         parameters = default_parameters
 
-        model = self._new_model("VSM", parameters=parameters)
+        model = self._new_model("VSM" + (": {}".format(subtitle) if subtitle is not None else ""), parameters=parameters)
 
         vectorizer = TfidfVectorizer(smooth_idf=parameters['smooth'])
 
