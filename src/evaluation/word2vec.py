@@ -17,7 +17,7 @@ class Word2Vec_IR(IR_Method):
     Implementation of word2vec as an IR method
     """
 
-    def generate_model(self, parameters=None):
+    def generate_model(self, parameters=None, subtitle=None):
 
         print("Generating new word2vec model")
 
@@ -36,7 +36,7 @@ class Word2Vec_IR(IR_Method):
 
         parameters = default_parameters
 
-        trace_model = self._new_model("word2vec", parameters=parameters)
+        trace_model = self._new_model("word2vec: " + subtitle, parameters=parameters)
 
         w2v_corpus = self._processed_sources + self._processed_targets
         word2vec_model = Word2Vec(w2v_corpus, sg = parameters['sg'], size = parameters['size'],
