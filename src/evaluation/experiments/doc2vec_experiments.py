@@ -116,8 +116,17 @@ def bpe_vocab_test():
     evaluator = Evaluator([vsm_model, doc2vec_model0, doc2vec_model1, doc2vec_model2, doc2vec_model3, doc2vec_model4], corpus)
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
+def pretrained_test():
+    doc2vec_generator = Doc2Vec_IR(corpus, bpe=True)
+    doc2vec_model = doc2vec_generator.generate_model(parameters={'use_negatives': False})
+    doc2vec_model2 = doc2vec_generator.generate_model(parameters={'use_negatives': True})
+
+    evaluator = Evaluator([vsm_model, doc2vec_model, doc2vec_model2], corpus)
+    evaluator.precision_recall(show_parameters=True, show_random_model=True)
+
+pretrained_test()
 #simple_test_bpe()
-bpe_vocab_test()
+# bpe_vocab_test()
 # simple_test()
 # use_negative_test()
 # preprocessing_test()

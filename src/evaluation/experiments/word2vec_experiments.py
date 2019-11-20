@@ -8,7 +8,7 @@ from evaluation.Corpus import Corpus
 
 
 
-corpus = Corpus.get_preset_corpus('1_1')
+corpus = Corpus.get_preset_corpus('0_1')
 vsm_generator = VSM(corpus)
 vsm_model = vsm_generator.generate_model()
 
@@ -136,6 +136,13 @@ def simple_test_cbow_bpe():
     evaluator = Evaluator([vsm_model, word2vec_model], corpus)
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
+def pretrained_test_sg_bpe():
+    word2vec_generator = Word2Vec_IR(corpus, bpe=True)
+    word2vec_model = word2vec_generator.generate_model()
+
+    evaluator = Evaluator([vsm_model, word2vec_model], corpus)
+    evaluator.precision_recall(show_parameters=True, show_random_model=True)
+
 # simple_test_sg()
 # simple_test_cbow()
 # vector_size_test_sg()
@@ -144,5 +151,6 @@ def simple_test_cbow_bpe():
 # iter_test_cbow()
 # preprocessing_test_sb()
 # preprocessing_test_cbow()
-simple_test_sg_bpe()
+# simple_test_sg_bpe()
 # simple_test_cbow_bpe()
+pretrained_test_sg_bpe()

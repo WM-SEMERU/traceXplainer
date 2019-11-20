@@ -160,11 +160,8 @@ class IR_Method:
             corpus_path = corpus_root + corpus_code + '_raw_corpus.txt'
             print(corpus_path)
 
-            param_str = '--input={} --model_prefix=m_bpe --vocab_size={} --model_type=bpe'.format(
-                corpus_path, self._bpe_vocab_size)
-
-            spm.SentencePieceTrainer.train(param_str)
             sp_bpe = spm.SentencePieceProcessor()
+            sp_bpe.load('../../../data/pretrained_models/bpe_models/big_bpe_2000.model')
 
             self._processed_sources = self._bpe_processed_artifacts(
                 sp_bpe, sources=True)
