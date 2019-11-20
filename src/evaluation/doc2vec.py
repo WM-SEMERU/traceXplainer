@@ -55,7 +55,8 @@ class Doc2Vec_IR(IR_Method):
 
         parameters = default_parameters
         
-        trace_model = self._new_model("doc2vec: " + subtitle, parameters=parameters)
+        trace_model = self._new_model(
+            "doc2vec" + (": {}".format(subtitle) if subtitle is not None else ""), parameters=parameters)
 
         self.doc_index_map = {}
         train_corpus = list(self.tag_artifacts(

@@ -104,6 +104,10 @@ class Evaluator:
     def get_average_precision(self, model):
         return average_precision_score(self._y_true, self._get_y_scores(model))
 
+    def print_average_precision_report(self):
+        for model in self._models + [self._random_model]:
+            print("AP: {} -> {}".format(self.get_average_precision(model), model.get_name()))
+
     def get_auc(self, model):
         return roc_auc_score(self._y_true, self._get_y_scores(model))
 
@@ -111,7 +115,7 @@ class Evaluator:
         return np.array([model.get_value(source, target) for source, target in self._link_order])
         
 
-    def precision_recall(self, show_parameters=False, keys=None, show_random_model=False, filename=None, existing_handles=None, title=None):
+    def precision_recall(self, show_parameters=False, keys=None, show_random_model=False, filename=None, existing_handles=None, subtitle=None):
         """
         Generates and displays a precision-recall curve for the models.
 
@@ -158,10 +162,10 @@ class Evaluator:
         plt.ylim([0.0, 1.05])
         plt.xlim([0.0, 1.0])
         
-        if title is None:
-            plt.title('2-class Precision-Recall Curve for \'' + self._corpus.get_corpus_name() + '\'')
-        else:
-            plt.title('{}'.format(title))
+  
+        plt.suptitle('2-class Precision-Recall Curve for \'' + self._corpus.get_corpus_name() + '\'')
+        if subtitle is not None:
+            plt.title('{}'.format(subtitle))
 
 
         plt.legend(handles=handles)
