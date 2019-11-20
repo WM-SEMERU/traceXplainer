@@ -38,9 +38,8 @@ class Word2Vec_IR(IR_Method):
 
         trace_model = self._new_model("word2vec: " + subtitle, parameters=parameters)
 
-        w2v_corpus = self._processed_sources + self._processed_targets
-        word2vec_model = Word2Vec(w2v_corpus, sg = parameters['sg'], size = parameters['size'],
-                         min_count = parameters['min_count'],iter = parameters['epochs'])
+        word2vec_model = Word2Vec.load(
+            '../../../data/pretrained_models/word2vec/w2v_sg_vectorSize300_minCount2_BPEvocabSize2000')
 
         sources = trace_model.get_source_names()
         targets = trace_model.get_target_names()
@@ -55,7 +54,7 @@ class Word2Vec_IR(IR_Method):
                 j, similarity_score = target_sim
                 source = sources[i]
                 target = targets[j]
-                #print("{} - {} : {}".format(source, target, similarity_score))
+                print("{} - {} : {}".format(source, target, similarity_score))
                 trace_model.set_value(source, target, similarity_score)
 
 
