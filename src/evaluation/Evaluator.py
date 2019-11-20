@@ -62,6 +62,8 @@ class Evaluator:
 
         self._models = models
         self._corpus = corpus
+        
+       
 
         if self._corpus.get_truth_dict() is None:
             raise ValueError("Cannot create evaluator object with corpus with no ground truth.")
@@ -107,8 +109,9 @@ class Evaluator:
 
     def _get_y_scores(self, model):
         return np.array([model.get_value(source, target) for source, target in self._link_order])
+        
 
-    def precision_recall(self, show_parameters=False, keys=None, show_random_model=False, filename=None, existing_handles=None):
+    def precision_recall(self, show_parameters=False, keys=None, show_random_model=False, filename=None, existing_handles=None, title=None):
         """
         Generates and displays a precision-recall curve for the models.
 
@@ -117,6 +120,7 @@ class Evaluator:
         """
 
         corpus_name = self._corpus.get_corpus_name()
+        
 
         print("Generating precision-recall curve for models derived from \'" + corpus_name + "\'")
 
@@ -153,7 +157,12 @@ class Evaluator:
         plt.ylabel('Precision')
         plt.ylim([0.0, 1.05])
         plt.xlim([0.0, 1.0])
-        plt.title('2-class Precision-Recall Curve for \'' + self._corpus.get_corpus_name() + '\'')
+        
+        if title is None:
+            plt.title('2-class Precision-Recall Curve for \'' + self._corpus.get_corpus_name() + '\'')
+        else:
+            plt.title('{}'.format(title))
+
 
         plt.legend(handles=handles)
         fig = plt.gcf()
