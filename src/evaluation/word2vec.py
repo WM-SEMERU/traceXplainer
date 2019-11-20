@@ -86,7 +86,7 @@ class Word2Vec_IR(IR_Method):
                 j, similarity_score = target_sim
                 source = sources[i]
                 target = targets[j]
-                print("{} - {} : {}".format(source, target, similarity_score))
+                # print("{} - {} : {}".format(source, target, similarity_score))
                 trace_model.set_value(source, target, similarity_score)
 
         trace_model.set_default_threshold_technique('link_est')
