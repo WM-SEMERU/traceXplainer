@@ -53,7 +53,7 @@ def test_w2v_cbow_bpe2000():
 
     evaluator = Evaluator([vsm_model, w2v_corpus_trained,
                            w2v_pretrained, w2v_fine_tuned], corpus)
-    print("=== w2v-sg, bpe: 2000 ===")
+    print("=== w2v-cbow, bpe: 2000 ===")
     evaluator.print_average_precision_report()
     print("=========================")
 
@@ -79,12 +79,12 @@ def test_w2v_sg_bpe5000():
 
     evaluator = Evaluator([vsm_model, w2v_corpus_trained,
                            w2v_pretrained, w2v_fine_tuned], corpus)
-    print("=== w2v-sg, bpe: 2000 ===")
+    print("=== w2v-sg, bpe: 5000 ===")
     evaluator.print_average_precision_report()
     print("=========================")
 
 def test_w2v_cbow_bpe5000():
-    w2v_generator = Word2Vec_IR(corpus, bpe=True, bpe_vocab_size=5000)
+    w2v_generator = Word2Vec_IR(corpus)
 
     w2v_corpus_trained = w2v_generator.generate_model(
         parameters={'use_pretrained_model': False, 'train_type': 'cbow'},
@@ -105,7 +105,7 @@ def test_w2v_cbow_bpe5000():
 
     evaluator = Evaluator([vsm_model, w2v_corpus_trained,
                            w2v_pretrained, w2v_fine_tuned], corpus)
-    print("=== w2v-sg, bpe: 2000 ===")
+    print("=== w2v-cbow, bpe: 5000 ===")
     evaluator.print_average_precision_report()
     print("=========================")
 
@@ -131,7 +131,7 @@ def test_w2v_sg_bpe10000():
 
     evaluator = Evaluator([vsm_model, w2v_corpus_trained,
                            w2v_pretrained, w2v_fine_tuned], corpus)
-    print("=== w2v-sg, bpe: 2000 ===")
+    print("=== w2v-sg, bpe: 10000 ===")
     evaluator.print_average_precision_report()
     print("=========================")
 
@@ -157,7 +157,7 @@ def test_w2v_cbow_bpe10000():
 
     evaluator = Evaluator([vsm_model, w2v_corpus_trained,
                            w2v_pretrained, w2v_fine_tuned], corpus)
-    print("=== w2v-sg, bpe: 2000 ===")
+    print("=== w2v-cbow, bpe: 10000 ===")
     evaluator.print_average_precision_report()
     print("=========================")
 
