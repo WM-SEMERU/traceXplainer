@@ -62,9 +62,10 @@ class Doc2Vec_IR(IR_Method):
         train_corpus = list(self.tag_artifacts(
             self._processed_sources, self._processed_targets))
 
-        doc2vec_model = gensim.models.doc2vec.Doc2Vec.load(
-            '../../../data/pretrained_models/doc2vec/d2v_vectorSize100_minCount2_BPEvocabSize2000')
-        #doc2vec_model.build_vocab(train_corpus)
+        doc2vec_model = gensim.models.Doc2Vec()
+        #doc2vec_model = gensim.models.doc2vec.Doc2Vec.load(
+        #    '../../../data/pretrained_models/doc2vec/d2v_vectorSize100_minCount2_BPEvocabSize2000')
+        doc2vec_model.build_vocab(train_corpus)
         print("Fine tuning Training doc2vec model")
         doc2vec_model.train(
             train_corpus,
@@ -96,11 +97,11 @@ class Doc2Vec_IR(IR_Method):
                 )
                 similarity_matrix[source_index] = [
                     -np.inf for k in range(len(self._processed_targets))]
-                print(most_similar_docs)
+                #print(most_similar_docs)
                 for doc_index, sim in most_similar_docs:
                     if doc_index >= len(self._processed_sources):
                         target_index = doc_index - len(self._processed_sources)
-                        print("s: {} - t: {}".format(source_index, target_index))
+                        #print("s: {} - t: {}".format(source_index, target_index))
                         #print("{} - {}".format(target_names[target_index], self.doc_index_map[doc_index]))
                         similarity_matrix[source_index][target_index] = sim
 
@@ -118,7 +119,7 @@ class Doc2Vec_IR(IR_Method):
 
                 #similarity = similarity_metric(self._processed_sources[i], self._processed_targets[j])
                 similarity = similarity_metric(i, j)
-                print("{} - {} : {}".format(source, target, similarity))
+                # print("{} - {} : {}".format(source, target, similarity))
 
                 trace_model.set_value(source, target, similarity)
 

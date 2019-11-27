@@ -153,8 +153,11 @@ class Evaluator:
             ap = '{0:0.2f}'.format(average_precision)
 
             name = model.get_name()
+
+            
             if show_parameters:
-                name += ' ' + model.get_parameters(keys=keys)
+                print("show_parameters is being deprecated: create a custom title wth subtitle instead")
+                #name += ' ' + model.get_parameters(keys=keys)
             handles.append(mpatches.Patch(color=colors[i], label=name+" [AP="+ap+"]"))
 
         plt.xlabel('Recall')
