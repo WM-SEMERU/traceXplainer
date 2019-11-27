@@ -54,8 +54,8 @@ class VSM(IR_Method):
 
         vectorizer = TfidfVectorizer(smooth_idf=parameters['smooth'])
 
-        processed_sources = [' '.join(source) for source in self._processed_sources]
-        processed_targets = [' '.join(target) for target in self._processed_targets]
+        processed_sources = [' '.join([token for token in source if token in self._common_vocab]) for source in self._processed_sources]
+        processed_targets = [' '.join([token for token in target if token in self._common_vocab]) for target in self._processed_targets]
 
         source_matrix = vectorizer.fit_transform(processed_sources).toarray()
         target_matrix = vectorizer.fit_transform(processed_targets).toarray()

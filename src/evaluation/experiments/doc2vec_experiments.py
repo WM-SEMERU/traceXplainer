@@ -5,11 +5,12 @@ from evaluation.Corpus import Corpus
 from evaluation.doc2vec import Doc2Vec_IR
 from evaluation.Evaluator import Evaluator
 from evaluation.VSM import VSM
+from evaluation.Preprocessor import Preprocessor
 
 
-
-corpus = Corpus.get_preset_corpus('1_1')
-vsm_generator = VSM(corpus)
+corpus = Corpus.get_preset_corpus('0_1')
+preprocessor = Preprocessor.get_default_preprocessor_instance()
+vsm_generator = VSM(corpus, preprocessor)
 vsm_model = vsm_generator.generate_model()
 
 
@@ -86,7 +87,7 @@ def preprocessing_test():
 
 
 def simple_test():
-    doc2vec_generator = Doc2Vec_IR(corpus)
+    doc2vec_generator = Doc2Vec_IR(corpus, preprocessor)
     doc2vec_model = doc2vec_generator.generate_model()
 
     evaluator = Evaluator([vsm_model, doc2vec_model], corpus)
@@ -124,10 +125,10 @@ def pretrained_test():
     evaluator = Evaluator([vsm_model, doc2vec_model, doc2vec_model2], corpus)
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
-pretrained_test()
+# pretrained_test()
 #simple_test_bpe()
 # bpe_vocab_test()
-# simple_test()
+simple_test()
 # use_negative_test()
 # preprocessing_test()
 # vector_size_test()

@@ -6,6 +6,7 @@ Nov 2019
 from typing import List, Set, Callable, Tuple, Dict, Optional
 import re
 from Corpus import Corpus
+import sentencepiece as spm
 from nltk.stem.snowball import SnowballStemmer
 
 
@@ -16,13 +17,16 @@ class PreprocessorResult:
         self.source_vocab = source_vocab
         self.target_vocab = target_vocab
 
+
 # Define types
 RawArtifacts = List[str]
 TokenizedArtifacts = List[List[str]]
 PreprocessorStageOutput = Tuple[TokenizedArtifacts, TokenizedArtifacts]
-PreprocessorStageFunctionArgs = Optional[Dict[str, any]]
+PreprocessorStageFunctionArgs = Dict[str, any]
 PreprocessorStageFunction = Callable[[
     TokenizedArtifacts, PreprocessorStageFunctionArgs], TokenizedArtifacts]
+PreprocessorUniversalStageFunction = Callable[[
+    TokenizedArtifacts, TokenizedArtifacts, PreprocessorStageFunctionArgs], Tuple[TokenizedArtifacts, TokenizedArtifacts]]
 
 
 class Preprocessor:
@@ -35,7 +39,8 @@ class Preprocessor:
 
         # Functions that determine how the tokens are modified.
         # Must take List[List[str]] as input and return List[List[str]]
-        self.__source_token_modifier_functions: List[PreprocessorStageFunction] = []
+        self.__source_token_modifier_functions: List[PreprocessorStageFunction] = [
+        ]
         self.__target_token_modifier_functions: List[PreprocessorStageFunction] = [
         ]
 
@@ -51,16 +56,22 @@ class Preprocessor:
 
         # Function that retokenizes after other preprocessing
         # Must take List[str]] as input and return List[List[str]]
-        self.__source_posttokenizer_functions: List[PreprocessorStageFunction] = []
-        self.__target_posttokenizer_functions: List[PreprocessorStageFunction] = []
+        self.__source_posttokenizer_functions: List[PreprocessorStageFunction] = [
+        ]
+        self.__target_posttokenizer_functions: List[PreprocessorStageFunction] = [
+        ]
 
         self.__prepocess_pipeline_stages = [
             (self.__source_tokenizer_functions, self.__target_tokenizer_functions),
-            (self.__source_token_modifier_functions, self.__target_token_modifier_functions),
+            (self.__source_token_modifier_functions,
+             self.__target_token_modifier_functions),
             (self.__source_filter_functions, self.__target_filter_functions),
-            #self.__universal_filter_functions,
-            (self.__source_posttokenizer_functions, self.__target_posttokenizer_functions),
+            # self.__universal_filter_functions,
+            (self.__source_posttokenizer_functions,
+             self.__target_posttokenizer_functions),
         ]
+
+        self.__corpus_caches: Dict[str, PreprocessorResult] = {}
 
     @classmethod
     def get_default_preprocessor_instance(cls):
@@ -83,10 +94,40 @@ class Preprocessor:
             cls.TokenFilters.NUMBERS
         ).add_filter_function(
             cls.TokenFilters.SYMBOLS
+        ).add_filter_function(
+            cls.TokenFilters.STOP_WORDS
         )
+        
+
+    def get_preprocess_stages(self) -> Dict:
+        stages = {}
+        stage_names = ['tokenize', 'modify', 'filter', 'posttokenize']
+        for name, functions in zip(stage_names, self.__preprocess_pipeline_stages):
+            source_functions, target_functions = functions
+            # TODO: Finish writing this function
+        raise NotImplementedError
 
     def process_corpus(self, corpus: Corpus) -> PreprocessorResult:
-        return self.process(corpus.get_sources(), corpus.get_targets())
+        corpus_name = corpus.get_corpus_name()
+        if corpus_name in self.__corpus_caches:
+            print("Found cached tokens for: {}".format(corpus_name))
+            return self.__corpus_caches[corpus_name]
+
+        self.add_universal_argument('currently_processing_corpus', corpus)
+        result = self.process(corpus.get_sources(), corpus.get_targets())
+        self.__corpus_caches[corpus_name] = result
+        return result
+
+    def add_universal_argument(self, arg_name: str, arg_value: any):
+        for stage in self.__prepocess_pipeline_stages:
+            source_functions, target_functions = stage
+
+            for func_arg_pair in source_functions + target_functions:
+                func, args = func_arg_pair
+                args[arg_name] = arg_value
+
+    def reset_corpus_cache(self):
+        self.__corpus_caches = {}
 
     def process(self, sources: RawArtifacts, targets: RawArtifacts) -> PreprocessorResult:
         print("Starting processing")
@@ -94,7 +135,8 @@ class Preprocessor:
         targets = [[doc] for doc in targets]
 
         for stage in self.__prepocess_pipeline_stages:
-            sources, targets = self.execute_preprocess_pipeline_stage(stage, sources, targets)
+            sources, targets = self.execute_preprocess_pipeline_stage(
+                stage, sources, targets)
 
         # Build final vocabulary
         source_vocab = {
@@ -105,13 +147,12 @@ class Preprocessor:
         }
         print("Finished")
         return PreprocessorResult(sources, targets, source_vocab, target_vocab)
-        
 
-    def execute_preprocess_pipeline_stage(self, 
-        stage_functions: Tuple[List[PreprocessorStageFunction], List[PreprocessorStageFunction]], 
-        sources: TokenizedArtifacts, 
-        targets: TokenizedArtifacts) -> PreprocessorStageOutput:
-        
+    def execute_preprocess_pipeline_stage(self,
+                                          stage_functions: Tuple[List[PreprocessorStageFunction], List[PreprocessorStageFunction]],
+                                          sources: TokenizedArtifacts,
+                                          targets: TokenizedArtifacts) -> PreprocessorStageOutput:
+
         source_stage_functions, target_stage_functions = stage_functions
 
         processed_sources = sources
@@ -126,41 +167,50 @@ class Preprocessor:
 
     def add_tokenize_function(self, func, args=None, sources=True, targets=True):
         if sources:
-            self.__source_tokenizer_functions.append((func, args))
+            self.__source_tokenizer_functions.append((func, {} if args is None else args))
 
         if targets:
-            self.__target_tokenizer_functions.append((func, args))
+            self.__target_tokenizer_functions.append(
+                (func, {} if args is None else args))
 
+        self.reset_corpus_cache()
         return self
 
     def add_token_modifier_function(self, func, args=None, sources=True, targets=True):
         if sources:
-            self.__source_token_modifier_functions.append((func, args))
+            self.__source_token_modifier_functions.append(
+                (func, {} if args is None else args))
 
         if targets:
-            self.__target_token_modifier_functions.append((func, args))
+            self.__target_token_modifier_functions.append(
+                (func, {} if args is None else args))
 
+        self.reset_corpus_cache()
         return self
 
     def add_filter_function(self, func, args=None, sources=True, targets=True):
         if sources:
-            self.__source_filter_functions.append((func, args))
+            self.__source_filter_functions.append(
+                (func, {} if args is None else args))
 
         if targets:
-            self.__target_filter_functions.append((func, args))
+            self.__target_filter_functions.append(
+                (func, {} if args is None else args))
 
+        self.reset_corpus_cache()
         return self
-
 
     def add_posttokenize_function(self, func, args=None, sources=True, targets=True):
         if sources:
-            self.__source_posttokenizer_functions.append((func, args))
+            self.__source_posttokenizer_functions.append(
+                (func, {} if args is None else args))
 
         if targets:
-            self.__target_posttokenizer_functions.append((func, args))
+            self.__target_posttokenizer_functions.append(
+                (func, {} if args is None else args))
 
+        self.reset_corpus_cache()
         return self
-
 
     class Tokenizers:
         @classmethod
@@ -227,9 +277,9 @@ class Preprocessor:
         # }
         @classmethod
         def STEM(cls, artifacts: TokenizedArtifacts, args: PreprocessorStageFunctionArgs) -> TokenizedArtifacts:
-            if args and 'stemmers' in args:
+            if 'stemmers' in args:
                 stemmers = args['stemmers']
-            else:  
+            else:
                 print("Using default English stemmer")
                 stemmers = [SnowballStemmer('english')]
 
@@ -244,26 +294,35 @@ class Preprocessor:
                             new_artifact[i] = stemmed
                             break
                 stemmed_artifacts.append(new_artifact)
-            
+
             return stemmed_artifacts
-                
 
     class TokenFilters:
 
         # args: {
-        #   stop_words: List[str]
+        #   stop_words: List[str],
+        #   stop_words_path
         # }
         @classmethod
         def STOP_WORDS(cls, artifacts: TokenizedArtifacts, args: PreprocessorStageFunctionArgs) -> TokenizedArtifacts:
             filtered_artifacts = []
-            if args and 'stop_words' in args:
+
+
+            if 'stop_words' in args:
                 stop_words = set(args['stop_words'])
+            elif 'stop_words_path' in args:
+                # TODO: Implement getting stop words from file
+                raise NotImplementedError
+            elif 'currently_processing_corpus' in args:
+                stop_words = args['currently_processing_corpus'].get_stop_words()
+                print("Success!")
             else:
                 return artifacts
 
             for artifact in artifacts:
-                filtered_artifacts.append([token for token in artifact if token not in stop_words])
-                
+                filtered_artifacts.append(
+                    [token for token in artifact if token not in stop_words])
+
             return filtered_artifacts
 
         @classmethod
@@ -294,11 +353,29 @@ class Preprocessor:
 
     class Posttokeniers:
 
-
+        # args: {
+        #   use_pretrained_model: bool,
+        #   pretrained_model_path: str,
+        #   
+        #   vocab_size: int
+        # }
         @classmethod
         def BPE(cls, artifacts: TokenizedArtifacts, args: PreprocessorStageFunctionArgs) -> TokenizedArtifacts:
-            # TODO
-            pass
+            artifacts = [' '.join(artifact) for artifact in artifacts]
+            
+            if args.get('use_pretrained_model', False):
+                pretrained_model_path = args.get('pretrained_model_path', None)
+                if not pretrained_model_path:
+                    raise AttributeError
+
+                bpe_model = spm.SentencePieceProcessor()
+                bpe_model.load(pretrained_model_path)
+
+                return [bpe_model.encode_as_pieces(artifact) for artifact in artifacts]
+            else:
+                # Train on corpus
+                raise NotImplementedError
+
 
 Preprocessor.PIPELINE_STAGE_NAMES = {
     'default': 'CUSTOM_FUNCTION',
@@ -319,13 +396,14 @@ Preprocessor.PIPELINE_STAGE_NAMES = {
 }
 
 
-
 if __name__ == '__main__':
     preprocessor = Preprocessor.get_default_preprocessor_instance()
-    sources = ["helloThere", "my fri_end isGood I am going to be hearing what you wrote", "texa123s isF0RU"]
+    sources = ["helloThere",
+               "my fri_end isGood I am going to be hearing what you wrote", "texa123s isF0RU"]
     targets = ["how are you?", "pretty good"]
 
     corpus = Corpus.get_preset_corpus('0_1')
     result = preprocessor.process_corpus(corpus)
 
+    print(corpus.get_source_names()[0])
     print(result.processed_sources[0])
