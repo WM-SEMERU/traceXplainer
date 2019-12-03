@@ -47,7 +47,7 @@ class Word2Vec_IR(IR_Method):
                     parameters['train_type'],
                     parameters['vector_size'],
                     parameters['min_count'],
-                    self._bpe_vocab_size
+                    2000
                 )
             )
             print("Done loading pretrained word2vec model")
@@ -82,12 +82,13 @@ class Word2Vec_IR(IR_Method):
         for i in range(len(sources)):
             doc = self._processed_sources[i]
             similarity = instance[doc]
+            print("Populating traces for source {}/{}".format(i+1, len(sources)))
             for target_sim in similarity:
                 j, similarity_score = target_sim
                 source = sources[i]
                 target = targets[j]
                 # print("{} - {} : {}".format(source, target, similarity_score))
-                trace_model.set_value(source, target, similarity_score)
+                trace_model.set_value(source, target, similarity_score / len(targets))
 
         trace_model.set_default_threshold_technique('link_est')
         print("Done generating word2vec model")

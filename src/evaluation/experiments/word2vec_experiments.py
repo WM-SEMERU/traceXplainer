@@ -5,11 +5,12 @@ from evaluation.VSM import VSM
 from evaluation.Evaluator import Evaluator
 from evaluation.word2vec import Word2Vec_IR
 from evaluation.Corpus import Corpus
+from evaluation.Preprocessor import Preprocessor
 
 
-
-corpus = Corpus.get_preset_corpus('0_1')
-vsm_generator = VSM(corpus)
+corpus = Corpus.get_preset_corpus('1_1')
+bpe_preprocessor = Preprocessor.get_bpe_preprocessor_instance()
+vsm_generator = VSM(corpus, bpe_preprocessor)
 vsm_model = vsm_generator.generate_model()
 
 def simple_test_sg():
@@ -137,7 +138,7 @@ def simple_test_cbow_bpe():
     evaluator.precision_recall(show_parameters=True, show_random_model=True)
 
 def pretrained_test_sg_bpe():
-    word2vec_generator = Word2Vec_IR(corpus, bpe=True)
+    word2vec_generator = Word2Vec_IR(corpus, bpe_preprocessor)
     word2vec_model = word2vec_generator.generate_model()
 
     evaluator = Evaluator([vsm_model, word2vec_model], corpus)

@@ -43,7 +43,7 @@ class IR_Method:
         """
         self._corpus = corpus
         if preprocessor is None:
-            preprocessor = Preprocessor()
+            preprocessor = Preprocessor.get_default_preprocessor_instance()
         self._preprocessor = preprocessor
         self._relationship_type = relationship_type
 
