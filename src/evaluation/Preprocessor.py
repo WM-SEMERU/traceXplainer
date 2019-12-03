@@ -97,7 +97,12 @@ class Preprocessor:
         ).add_filter_function(
             cls.TokenFilters.STOP_WORDS
         )
-        
+
+    @classmethod
+    def get_bpe_preprocessor_instance(cls):
+        return cls().add_posttokenize_function(cls.Posttokeniers.BPE, args={
+            'use_pretrained_model': True, 
+            'pretrained_model_path': '../../../data/pretrained_models/bpe_models/big_bpe_2000.model'})
 
     def get_preprocess_stages(self) -> Dict:
         stages = {}
@@ -167,7 +172,8 @@ class Preprocessor:
 
     def add_tokenize_function(self, func, args=None, sources=True, targets=True):
         if sources:
-            self.__source_tokenizer_functions.append((func, {} if args is None else args))
+            self.__source_tokenizer_functions.append(
+                (func, {} if args is None else args))
 
         if targets:
             self.__target_tokenizer_functions.append(
@@ -307,7 +313,6 @@ class Preprocessor:
         def STOP_WORDS(cls, artifacts: TokenizedArtifacts, args: PreprocessorStageFunctionArgs) -> TokenizedArtifacts:
             filtered_artifacts = []
 
-
             if 'stop_words' in args:
                 stop_words = set(args['stop_words'])
             elif 'stop_words_path' in args:
@@ -356,13 +361,13 @@ class Preprocessor:
         # args: {
         #   use_pretrained_model: bool,
         #   pretrained_model_path: str,
-        #   
+        #
         #   vocab_size: int
         # }
         @classmethod
         def BPE(cls, artifacts: TokenizedArtifacts, args: PreprocessorStageFunctionArgs) -> TokenizedArtifacts:
             artifacts = [' '.join(artifact) for artifact in artifacts]
-            
+
             if args.get('use_pretrained_model', False):
                 pretrained_model_path = args.get('pretrained_model_path', None)
                 if not pretrained_model_path:
