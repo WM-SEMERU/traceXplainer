@@ -12,10 +12,13 @@
 
 import sentencepiece as spm
 import smart_open
+import math
 
 # load BPE model
 bpe_model = spm.SentencePieceProcessor()
 bpe_model.load('../../../data/pretrained_models/bpe_models/big_bpe_2000.model')
+
+cur_dataset = 'LibEST'
 
 # filename here
 fname = '../../../data/raw/LibEST_semeru_format/0_0_raw_corpus.txt'
@@ -106,55 +109,126 @@ req_unique_toks.sort(key=lambda x: x[1], reverse=True)
 code_unique_toks.sort(key=lambda x: x[1], reverse=True)
 shared_toks.sort(key=lambda x: x[1], reverse=True)
 
+output_filename = 'entropy_results/' + cur_dataset + '_analysis_results.txt'
+output_file = open(output_filename, 'w')
+
 # print out relevant data
 print("\nRequirements Unique Tokens:")
+output_file.write("\nRequirements Unique Tokens:\n")
 for pair in req_unique_toks:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\nCode Requirements Unique Tokens:")
+output_file.write("\nCode Requirements Unique Tokens:\n")
 for pair in code_unique_toks:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 most frequent tokens present in both sets:")
+output_file.write("\n20 most frequent tokens present in both sets:\n")
 for pair in shared_toks[:20]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 least frequent tokens present in both sets:")
+output_file.write("\n20 least frequent tokens present in both sets:\n")
 for pair in shared_toks[-20:]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 most frequent tokens in requirements:")
+output_file.write("\n20 most frequent tokens in requirements:\n")
 for pair in req_unique_toks[:20]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 least frequent tokens in requirements:")
+output_file.write("\n20 least frequent tokens in requirements:\n")
 for pair in req_unique_toks[-20:]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 most frequent tokens in code:")
+output_file.write("\n20 most frequent tokens in code:\n")
 for pair in code_unique_toks[:20]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\n20 least frequent tokens in code:")
+output_file.write("\n20 least frequent tokens in code:\n")
 for pair in code_unique_toks[-20:]:
     print(str(pair[0]) + ": " + str(pair[1]))
+    output_file.write(str(pair[0]) + ": " + str(pair[1]) + "\n")
 
 print("\nMost frequent tokens in common overlapping both sets:")
+output_file.write("\nMost frequent tokens in common overlapping both sets:\n")
 req_most_common = [x[0] for x in req_unique_toks[:20]]
 code_most_common = [x[0] for x in code_unique_toks[:20]]
 count = 0
 for pair in shared_toks[:20]:
     if pair[0] in req_most_common and pair[0] in code_most_common:
         print(pair[0])
+        output_file.write(pair[0] + "\n")
         count += 1
 print("Total: " + str(count))
+output_file.write("Total: " + str(count) + "\n")
 
 print("\nLeast frequent tokens in common overlapping both sets:")
+output_file.write("\nLeast frequent tokens in common overlapping both sets:\n")
 req_least_common = [x[0] for x in req_unique_toks[-20:]]
 code_least_common = [x[0] for x in code_unique_toks[-20:]]
 count = 0
 for pair in shared_toks[-20:]:
     if pair[0] in req_least_common and pair[0] in code_least_common:
         print(pair[0])
+        output_file.write(pair[0] + "\n")
         count += 1
 print("Total: " + str(count))
+output_file.write("Total: " + str(count) + "\n")
+
+####################################################
+
+# Entropy calculations below here
+
+####################################################
+
+# p = src code, q = reqs, w = all
+
+# Self-information measure H(X) for the probability distribution
+# p given a set X of tokens, also for q and w
+
+def self_information(tokens, freqs):
+    output = 0
+
+    for tok in tokens:
+        cur_freq = freqs[tok]
+        output += log((1/cur_freq)**cur_freq)
+
+    return output
+
+# Cross-entropy error H(p,q) given set X of tokens
+
+def cross_entropy(tokens, p, q):
+    pass
+
+# KL-Divergence D(p||q) and D(q||p)
+
+def KL_divergence(tokens, p, q):
+    pass
+
+output_file.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
