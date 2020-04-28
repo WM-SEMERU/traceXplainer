@@ -1,0 +1,59 @@
+{
+	"req": {
+		"RQ1.txt": {
+			"id": "RQ1.txt",
+			"content": "I am the first test requirement",
+			"security_status": "NSR"
+		},
+
+		"RQ2.txt": {
+			"id": "RQ2.txt",
+			"content": "This is another, different requirement",
+			"security_status": "SR"
+		},
+
+		"RQ3.txt": {
+			"id": "RQ3.txt",
+			"content": "I am the third test requirement, with something new",
+			"security_status": "NSR"
+		},
+
+		"RQ4.txt": {
+			"id": "RQ4.txt",
+			"content": "This is another, different requirement. Different from RQ2, but not by much",
+			"security_status": "NSR"
+		},
+
+		"RQ5.txt": {
+			"id": "RQ5.txt",
+			"content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+			"security_status": "SR"
+		},
+
+		"RQ6.txt": {
+			"id": "RQ6.txt",
+			"content": "Just another requirement",
+			"security_status": "NSR"
+		}
+	},
+
+	"src": {
+		"src1.java": {
+			"id": "src1.java",
+			"content": "public static void main(string[] args) {}",
+			"security_status": "NSR"
+		},
+
+		"src2.java": {
+			"id": "src2.java",
+			"content": "public class HelloWorld {\n\tpublic void hello() {\n\t\tSystem.out.println(\"hellooooooooooooo ooooooooooooooooooooooooo world\");\n\t}\n}",
+			"security_status": "NSR"
+		},
+
+		"src3.js": {
+			"id": "src3.js",
+			"content": "const x = 5;\nconsole.log(x);x\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx\nx",
+			"security_status": "NSR"
+		}
+	}
+}

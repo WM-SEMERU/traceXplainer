@@ -1,0 +1,23 @@
+.artifactDetailsContainer {
+	display: flex;
+	width: 600px;
+	min-width: 600px;
+	max-width: 35%;
+	padding: 10px;
+	padding-left: 5px;
+	align-items: stretch;
+
+}
+
+.artifactDetails {
+	max-width: 100%;
+
+	flex-grow: 1;
+	background-color: ghostwhite ;
+	border-radius: 20px;
+
+
+	display: flex;
+	flex-direction: column;
+}
+
