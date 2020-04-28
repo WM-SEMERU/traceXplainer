@@ -1,0 +1,58 @@
+.artifactBrowserContainer {
+	display: flex;
+	width: 600px;
+	min-width: 600px;
+	max-width: 35%;
+	padding: 10px;
+	padding-right: 5px;
+	align-items: stretch;
+
+}
+
+.artifactBrowser {
+	max-width: 100%;
+
+	flex-grow: 1;
+	background-color: ghostwhite;
+	border-radius: 20px;
+
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+
+
+}
+
+.artifactClassSelectorContainer {
+	padding: 20px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.artifactClassSelector {
+	
+}
+
+.artifactFiltersContainer {
+	padding: 20px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.artifactFilters {
+	flex-grow: 1;
+	size: 25;
+}
+
+.artifactPreviewsContainer {
+	flex-grow: 1;
+	overflow: scroll;
+}
+
+.artifactPreview {
+
+}

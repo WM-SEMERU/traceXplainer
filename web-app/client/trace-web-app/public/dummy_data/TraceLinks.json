@@ -1,0 +1,39 @@
+{
+	"links": {
+		"RQ1.txt": {
+			"src1.java": 0.129,
+			"src2.java": 0.882,
+			"src3.js": 0.002
+		},
+
+		"RQ2.txt": {
+			"src1.java": 0.810,
+			"src2.java": 0.917,
+			"src3.js": 0.022
+		},
+
+		"RQ3.txt": {
+			"src1.java": 0.329,
+			"src2.java": 0.509,
+			"src3.js": 0.112
+		},
+
+		"RQ4.txt": {
+			"src1.java": 0.009,
+			"src2.java": 0.999,
+			"src3.js": 0.084
+		},
+
+		"RQ5.txt": {
+			"src1.java": 0.119,
+			"src2.java": 0.674,
+			"src3.js": 0.924
+		},
+
+		"RQ6.txt": {
+			"src1.java": 0.917,
+			"src2.java": 0.830,
+			"src3.js": 0.572
+		}
+	}
+}
