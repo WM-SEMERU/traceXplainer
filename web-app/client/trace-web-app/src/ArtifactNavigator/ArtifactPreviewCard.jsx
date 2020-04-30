@@ -11,12 +11,14 @@ export default class ArtifactPreviewCard extends React.Component {
 	}
 
 	componentDidMount() {
-		getArtifactContent(this.props.artifactInfo.type, this.props.artifactInfo.id).then((content) => {
-			this.setState({
-				loading: false,
-				content: content
+		if (this.props.artifactInfo.type === 'req') {
+			getArtifactContent(this.props.artifactInfo.type, this.props.artifactInfo.id).then((content) => {
+				this.setState({
+					loading: false,
+					content: content
+				});
 			});
-		});
+		}
 	}
 
 	reloadContent() {
@@ -78,11 +80,14 @@ export default class ArtifactPreviewCard extends React.Component {
 					<h3 style={{padding: 0, margin: 0, color: this.state.selected ? 'white' : 'black'}}>
 						{this.props.artifactInfo.id}
 					</h3>
+
+					{this.props.artifactInfo.type === 'req' ?
 					<div style={{flexGrow: 1, overflow: 'hidden'}}>
 						<p style={{padding: 0, margin: 0, color: this.state.selected ? 'white' : 'black'}}>
 							{this.state.loading ? '' : this.state.content}
 						</p>
 					</div>
+					: null}
 					
 				</div>
 				

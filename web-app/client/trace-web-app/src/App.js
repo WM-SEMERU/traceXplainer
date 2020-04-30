@@ -13,7 +13,7 @@ function App() {
 	return (
 		<div className="App" style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 			<ButtonGroup large style={{marginTop: 15}}>
-				<Button>Traceability</Button>
+				<Button active>Traceability</Button>
 				<Button>Analysis</Button>
 				<Button>Link Browser</Button>
 			</ButtonGroup>
