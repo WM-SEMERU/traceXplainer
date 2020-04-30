@@ -31,9 +31,6 @@
 	justify-content: center;
 }
 
-.artifactClassSelector {
-	
-}
 
 .artifactFiltersContainer {
 	padding: 20px;
@@ -53,6 +50,9 @@
 	overflow: scroll;
 }
 
-.artifactPreview {
-
+.artifactPreviewContainer {
+	padding: 10px 20px;
+	display: flex;
+	align-items: stretch;
+	max-width: inherit;
 }
