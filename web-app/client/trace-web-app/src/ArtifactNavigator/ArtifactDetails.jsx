@@ -14,6 +14,8 @@ export default class ArtifactDetails extends React.Component {
 	state = {
 		artifactInfo: null,
 		artifactContent: null,
+
+		contentLoading: true,
 	}
 
 
@@ -26,6 +28,7 @@ export default class ArtifactDetails extends React.Component {
 	loadArtifact(artifactInfo) {
 
 		this.setState({
+			artifactContent: null,
 			artifactInfo: artifactInfo,
 		}, () => {
 			getArtifactContent(artifactInfo.type, artifactInfo.id).then((artifactContent) => {

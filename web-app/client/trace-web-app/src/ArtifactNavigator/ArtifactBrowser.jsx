@@ -55,8 +55,9 @@ export default class ArtifactBrowser extends React.Component {
 
 	getArtifactPreviewCards() {
 		return this.state.artifactInfos.map((artifactInfo, index) => {
+			const cardHeight = artifactInfo.type === 'req' ? '150px' : '65px';
 			return (
-				<div style={{height: '150px', padding: '10px 20px', display: 'flex', alignItems: 'stretch', maxWidth: 'inherit'}}>
+				<div style={{height: cardHeight, padding: '10px 20px', display: 'flex', alignItems: 'stretch', maxWidth: 'inherit'}}>
 					<ArtifactPreviewCard 
 						ref={this.artifactCardRefs[index]} 
 						artifactInfo={artifactInfo} 
