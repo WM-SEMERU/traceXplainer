@@ -64,7 +64,7 @@ export default class ArtifactDetails extends React.Component {
 
 	getNoSelectionComponent() {
 		return (
-			<div style={{display: 'flex', flexGrow: 1, justifyContent: 'center', alignItems: 'center'}}>
+			<div className="noArtifactSelectedContainer">
 				<p>Please select a source artifact</p>
 			</div>
 		)
@@ -113,33 +113,21 @@ export default class ArtifactDetails extends React.Component {
 
 	getDetailsComponent() {
 		return (
-			<div style={{flexGrow: 1, display: 'flex', flexDirection: 'column', maxHeight: '100%'}}>
+			<div className="artifactSelectedContainer">
 				<div style={{padding: 15}}>
 						<h1 style={{margin: 0,}}>{this.getArtifactTitle()}</h1>
 				</div>
-				<div style={{display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: 10, flexGrow: 0, maxHeight: '40%'}}>
+				<div className="artifactContentContainer">
 
-					<pre 
+					<pre className="artifactContent" 
 					style={{
-						maxHeight: '100%',
-						margin: 0, 
-						fontFamily: 'Courier', 
 						whiteSpace: this.state.artifactInfo.type === 'req' ? 'pre-wrap' : null,
-						flexGrow: 1,
-						backgroundColor: 'whitesmoke',
-						borderWidth: 1,
-						borderColor: 'black',
-						borderStyle: 'solid',
-
-						overflow: 'scroll',
-						padding: 10,
-					}}
-					>
+					}}>
 						{this.getArtifactComponent()}
 					</pre>
 
 				</div>
-				<div style={{display: 'flex', flexDirection: 'column', padding: 10, paddingTop: 0, flexGrow: 1,}}>
+				<div className="traceLinksTableContainer">
 					<h2 style={{margin: 0}}>Trace Links</h2>
 					{this.getTraceLinksTable()}
 				</div>
