@@ -1,8 +1,6 @@
+import {ARTIFACTS_LOCATION} from './InterfaceConsts';
 import artifactMetadataJSON from './artifact_infos.json'
 
-const dataLocation = './dummy_data';
-
-let PROJECT_KEY = 'libest';
 let artifactContentCache = {
 	req: {},
 	src: {},
@@ -12,7 +10,7 @@ let artifactContentCache = {
 
 export async function getArtifactContent(artifactClass, id) {
 	if (!(id in artifactContentCache[artifactClass])) {
-		const fileUrl = `${dataLocation}/${PROJECT_KEY}/${artifactClass}/${id}`;
+		const fileUrl = `${ARTIFACTS_LOCATION}/${artifactClass}/${id}`;
 		const file = await fetch(fileUrl, {mode: 'no-cors'});
 		const artifactContent = await file.text();
 		artifactContentCache[artifactClass][id] = artifactContent;

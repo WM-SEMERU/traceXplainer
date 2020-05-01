@@ -1,28 +1,21 @@
+import {TM_FILE_LOCATION} from './InterfaceConsts';
+import TraceModel from './TraceModel';
 
+let traceModel = null;
 
-export function getTraceLinkValue(sourceName, targetName) {
-	//return traceability.links[sourceName][targetName]
-	return 0.5;
+async function loadTraceModel() {
+	traceModel = await TraceModel.getInstanceFromFile(TM_FILE_LOCATION);
 }
 
-export function getTraceLinks(artifactName) {
-	/*
-	if (artifactName in traceability.links) {
-		return traceability.links[artifactName]
+export async function getTraceLinks(artifactName) {
+	if (!traceModel) {
+		await loadTraceModel();
 	}
 
-	const traceLinks = {};
-	if (artifactName in traceability.links[Object.keys(traceability.links)[0]]) {
-		
-		Object.keys(traceability.links).forEach((sourceName) => {
-			traceLinks[sourceName] = traceability.links[sourceName][artifactName];
-		});
-	}
-	return traceLinks;
-	*/
-	return {};
+	return traceModel.getTracesForArtifact(artifactName);
+	
 }
 
 export function getLinkThreshold() {
-	return 0.5;
+	return 0.1;
 }
