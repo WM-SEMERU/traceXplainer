@@ -2,7 +2,7 @@ import './ArtifactDetails.css';
 import 'prismjs/themes/prism.css';
 
 import { Cell, Column, Table } from "@blueprintjs/table";
-import { getArtifactClassName, getArtifactContent, getArtifactInfo } from '../interfaces/ArtifactInterface';
+import { getArtifactClassName, getArtifactContent, } from '../interfaces/ArtifactInterface';
 import { getLinkThreshold, getTraceLinks } from '../interfaces/TraceabilityInterface';
 
 import { Icon } from '@blueprintjs/core';
@@ -14,8 +14,7 @@ export default class ArtifactDetails extends React.Component {
 	state = {
 		artifactInfo: null,
 		artifactContent: null,
-
-		contentLoading: true,
+		traceLinks: null,
 	}
 
 
@@ -39,6 +38,9 @@ export default class ArtifactDetails extends React.Component {
 				});
 			});
 			
+			getTraceLinks(artifactInfo.id).then((traceLinks) => {
+				this.setState({traceLinks: traceLinks});
+			})
 		});
 	}
 
@@ -71,13 +73,11 @@ export default class ArtifactDetails extends React.Component {
 	}
 
 	getTraceLinksTable() {
-		const traceLinks = getTraceLinks(this.state.artifactInfo.id);
-		const traceLinksList = Object.keys(traceLinks).map((targetName) => {
-			return {
-				artifactName: targetName,
-				traceValue: traceLinks[targetName]
-			}
-		});
+		const traceLinksList = this.state.traceLinks;
+		if (!traceLinksList) {
+			return null;
+		}
+
 		traceLinksList.sort((a, b) => {
 			return b.traceValue - a.traceValue;
 		});
@@ -86,7 +86,7 @@ export default class ArtifactDetails extends React.Component {
 		}
 
 		const targetNameCellRenderer = (index) => {
-			return <Cell>{traceLinksList[index].artifactName}</Cell>
+			return <Cell>{traceLinksList[index].artifactId}</Cell>
 		}
 
 		const linkThreshold = getLinkThreshold();
@@ -99,11 +99,11 @@ export default class ArtifactDetails extends React.Component {
 
 		const artifactTypeCellRenderer = (index) => {
 			return <Cell>
-				{getArtifactClassName(getArtifactInfo(traceLinksList[index].artifactName).type)}
+				{getArtifactClassName(traceLinksList[index].artifactType)}
 			</Cell>
 		}
 
-		return <Table numRows={Object.keys(traceLinks).length}>
+		return <Table numRows={traceLinksList.length}>
 			<Column name="Link Status" cellRenderer={linkStatusCellRenderer} />
 			<Column name="Value" cellRenderer={valueCellRenderer} />
 			<Column name="Filename" cellRenderer={targetNameCellRenderer} />
