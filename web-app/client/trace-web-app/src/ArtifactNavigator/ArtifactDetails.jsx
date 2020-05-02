@@ -103,12 +103,17 @@ export default class ArtifactDetails extends React.Component {
 			</Cell>
 		}
 
-		return <Table numRows={traceLinksList.length}>
+		return (
+		<Table 
+			numRows={traceLinksList.length}
+			columnWidths={[80, null, null, null,]}
+		>
 			<Column name="Link Status" cellRenderer={linkStatusCellRenderer} />
 			<Column name="Value" cellRenderer={valueCellRenderer} />
 			<Column name="Filename" cellRenderer={targetNameCellRenderer} />
 			<Column name="Type" cellRenderer={artifactTypeCellRenderer} />
 		</Table>
+		);
 	}
 
 	getDetailsComponent() {

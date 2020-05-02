@@ -17,5 +17,5 @@ export async function getTraceLinks(artifactName) {
 }
 
 export function getLinkThreshold() {
-	return 0.1;
+	return 0.3;
 }
