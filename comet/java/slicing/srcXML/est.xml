@@ -1,0 +1,1853 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<unit xmlns="http://www.srcML.org/srcML/src" xmlns:cpp="http://www.srcML.org/srcML/cpp" revision="0.9.5" language="C" filename="est.c"><comment type="block">/** @file */</comment>
+<comment type="block">/*------------------------------------------------------------------
+ * est/est.c - EST implementation
+ *
+ *	       Assumptions:  - Web server using this module utilizes
+ *	                       OpenSSL for HTTPS services.
+ *	                     - OpenSSL is linked along with this
+ *	                       modulue.
+ *
+ * November, 2012
+ *
+ * Copyright (c) 2012-2014, 2016, 2017 by cisco Systems, Inc.
+ * All rights reserved.
+ **------------------------------------------------------------------
+ */</comment>
+
+
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;stdlib.h&gt;</cpp:file></cpp:include>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>WIN32</name></cpp:ifdef>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_BACKTRACE</name></cpp:ifndef>
+<cpp:define>#<cpp:directive>define</cpp:directive> <cpp:macro><name>_CRTDBG_MAP_ALLOC</name></cpp:macro></cpp:define>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;crtdbg.h&gt;</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* DISABLE_BACKTRACE*/</comment>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/*WIN32*/</comment>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;stdarg.h&gt;</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;string.h&gt;</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est_locl.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est_ossl_util.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"safe_mem_lib.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"safe_str_lib.h"</cpp:file></cpp:include>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>HAVE_URIPARSER</name></cpp:ifdef>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"uriparser/Uri.h"</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>WIN32</name></cpp:ifndef>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_BACKTRACE</name></cpp:ifndef>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;execinfo.h&gt;</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+<cpp:else>#<cpp:directive>else</cpp:directive></cpp:else> <comment type="block">/* DISABLE_BACKTRACE*/</comment>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_BACKTRACE</name></cpp:ifndef>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;DbgHelp.h&gt;</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>  <comment type="block">/* DISABLE_BACKTRACE*/</comment>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* WIN32*/</comment>
+
+<decl_stmt><decl><specifier>static</specifier> <type><name>char</name></type> <name><name>hex_chpw</name><index>[]</index></name> <init>= <expr><block>{<expr><literal type="number">0x06</literal></expr>, <expr><literal type="number">0x09</literal></expr>, <expr><literal type="number">0x2A</literal></expr>, <expr><literal type="number">0x86</literal></expr>, <expr><literal type="number">0x48</literal></expr>, <expr><literal type="number">0x86</literal></expr>, 
+			  <expr><literal type="number">0xF7</literal></expr>, <expr><literal type="number">0x0D</literal></expr>, <expr><literal type="number">0x01</literal></expr>, <expr><literal type="number">0x09</literal></expr>, <expr><literal type="number">0x07</literal></expr>}</block></expr></init></decl>;</decl_stmt>
+
+<decl_stmt><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name><name>EST_ERR_STRINGS</name><index>[]</index></name> <init>= <expr><block>{
+    <expr><literal type="string">"EST_ERR_NONE"</literal></expr>,
+    <macro><name>FOREACH_EST_ERROR</name><argument_list>(<argument>GENERATE_STRING</argument>)</argument_list></macro>
+}</block></expr></init></decl>;</decl_stmt>
+
+<function_decl><specifier>static</specifier> <type><name>void</name></type> (<modifier>*</modifier><name>est_log_func</name>)<parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type></decl></parameter>, <parameter><decl><type><name>va_list</name></type></decl></parameter>)</parameter_list> <init>= <expr><name>NULL</name></expr></init>;</function_decl>
+<decl_stmt><decl><specifier>static</specifier> <type><name>EST_LOG_LEVEL</name></type> <name>est_desired_log_lvl</name> <init>= <expr><name>EST_LOG_LVL_ERR</name></expr></init></decl>;</decl_stmt>
+<decl_stmt><decl><specifier>static</specifier> <type><name>int</name></type> <name>est_backtrace_enabled</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+
+<comment type="block">/*
+ * This is our default logger routine, which just
+ * dumps log data to stderr.  The application can
+ * override this by calling est_init_logger() and
+ * passing in a function pointer to a function
+ * that implements this prototype.
+ */</comment>
+<function><specifier>static</specifier> <type><name>void</name></type> <name>est_logger_stderr</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>format</name></decl></parameter>, <parameter><decl><type><name>va_list</name></type> <name>l</name></decl></parameter>)</parameter_list>
+<block>{
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>WIN32</name></cpp:ifndef>
+	<expr_stmt><expr><call><name>flockfile</name><argument_list>(<argument><expr><name>stderr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+	<expr_stmt><expr><call><name>vfprintf</name><argument_list>(<argument><expr><name>stderr</name></expr></argument>, <argument><expr><name>format</name></expr></argument>, <argument><expr><name>l</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>fflush</name><argument_list>(<argument><expr><name>stderr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>WIN32</name></cpp:ifndef>
+	<expr_stmt><expr><call><name>funlockfile</name><argument_list>(<argument><expr><name>stderr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+}</block></function>
+
+<function><specifier>static</specifier> <type><name>void</name></type> <name>est_log_msg</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>format</name></decl></parameter>, <parameter><decl><type><modifier>...</modifier></type></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>va_list</name></type> <name>arguments</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Pull the arguments from the stack and invoke
+     * the logger function
+     */</comment>
+    <expr_stmt><expr><call><name>va_start</name><argument_list>(<argument><expr><name>arguments</name></expr></argument>, <argument><expr><name>format</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>est_log_func</name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call>(<modifier>*</modifier><name>est_log_func</name>)<argument_list>(<argument><expr><name>format</name></expr></argument>, <argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <expr_stmt><expr><call><name>est_logger_stderr</name><argument_list>(<argument><expr><name>format</name></expr></argument>, <argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></else></if>
+    <expr_stmt><expr><call><name>va_end</name><argument_list>(<argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+}</block></function>
+
+<comment type="block">/*
+ * Global function to be called to log something
+ */</comment>
+<function><type><name>void</name></type> <name>est_log</name> <parameter_list>(<parameter><decl><type><name>EST_LOG_LEVEL</name></type> <name>lvl</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>format</name></decl></parameter>, <parameter><decl><type><modifier>...</modifier></type></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>va_list</name></type> <name>arguments</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * check if user is interested in this log message
+     */</comment>
+    <if>if <condition>(<expr><name>lvl</name> <operator>&gt;</operator> <name>est_desired_log_lvl</name></expr>)</condition><then> <block>{
+        <return>return;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Pull the arguments from the stack and invoke
+     * the logger function
+     */</comment>
+    <expr_stmt><expr><call><name>va_start</name><argument_list>(<argument><expr><name>arguments</name></expr></argument>, <argument><expr><name>format</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>est_log_func</name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call>(<modifier>*</modifier><name>est_log_func</name>)<argument_list>(<argument><expr><name>format</name></expr></argument>, <argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <expr_stmt><expr><call><name>est_logger_stderr</name><argument_list>(<argument><expr><name>format</name></expr></argument>, <argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></else></if>
+    <expr_stmt><expr><call><name>va_end</name><argument_list>(<argument><expr><name>arguments</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+}</block></function>
+
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>WIN32</name></cpp:ifdef>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_BACKTRACE</name></cpp:ifndef>
+<function><specifier>static</specifier> <type><name>void</name></type> <name>printStackTrace</name><parameter_list>(<parameter><decl><type><name>void</name></type></decl></parameter>)</parameter_list> <block>{
+	<decl_stmt><decl><type><name>unsigned</name> <name>int</name></type> <name>i</name></decl>;</decl_stmt>
+	<decl_stmt><decl><type><name>void</name> <modifier>*</modifier></type><name><name>stack</name><index>[<expr><literal type="number">100</literal></expr>]</index></name></decl>;</decl_stmt>
+	<decl_stmt><decl><type><name>unsigned</name> <name>short</name></type> <name>frames</name></decl>;</decl_stmt>
+	<decl_stmt><decl><type><name>SYMBOL_INFO</name> <modifier>*</modifier></type> <name>symbol</name></decl>;</decl_stmt>
+	<decl_stmt><decl><type><name>HANDLE</name></type>        <name>process</name></decl>;</decl_stmt>
+
+	<expr_stmt><expr><name>process</name> <operator>=</operator> <call><name>GetCurrentProcess</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+
+	<expr_stmt><expr><call><name>SymInitialize</name><argument_list>(<argument><expr><name>process</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>, <argument><expr><name>TRUE</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+	<expr_stmt><expr><name>frames</name> <operator>=</operator> <call><name>CaptureStackBackTrace</name><argument_list>(<argument><expr><literal type="number">0</literal></expr></argument>, <argument><expr><literal type="number">100</literal></expr></argument>, <argument><expr><name>stack</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><name>symbol</name> <operator>=</operator> <operator>(</operator><name>SYMBOL_INFO</name> <operator>*</operator><operator>)</operator><call><name>calloc</name><argument_list>(<argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>SYMBOL_INFO</name></expr></argument>)</argument_list></sizeof> <operator>+</operator> <literal type="number">256</literal> <operator>*</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>char</name></expr></argument>)</argument_list></sizeof></expr></argument>, <argument><expr><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><name><name>symbol</name><operator>-&gt;</operator><name>MaxNameLen</name></name> <operator>=</operator> <literal type="number">255</literal></expr>;</expr_stmt>
+	<expr_stmt><expr><name><name>symbol</name><operator>-&gt;</operator><name>SizeOfStruct</name></name> <operator>=</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>SYMBOL_INFO</name></expr></argument>)</argument_list></sizeof></expr>;</expr_stmt>
+	<for>for <control>(<init><expr><name>i</name> <operator>=</operator> <literal type="number">0</literal></expr>;</init> <condition><expr><name>i</name> <operator>&lt;</operator> <name>frames</name></expr>;</condition> <incr><expr><name>i</name><operator>++</operator></expr></incr>)</control> <block>{
+		<expr_stmt><expr><call><name>SymFromAddr</name><argument_list>(<argument><expr><name>process</name></expr></argument>, <argument><expr><call>(<name>DWORD64</name>)<argument_list>(<argument><expr><name><name>stack</name><index>[<expr><name>i</name></expr>]</index></name></expr></argument>)</argument_list></call></expr></argument>, <argument><expr><literal type="number">0</literal></expr></argument>, <argument><expr><name>symbol</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<expr_stmt><expr><call><name>est_log_msg</name><argument_list>(<argument><expr><literal type="string">"\n%i: [0x%0X] %s"</literal></expr></argument>, <argument><expr><operator>(</operator><name>frames</name> <operator>-</operator> <name>i</name> <operator>-</operator> <literal type="number">1</literal><operator>)</operator></expr></argument>, <argument><expr><name><name>symbol</name><operator>-&gt;</operator><name>Address</name></name></expr></argument>, <argument><expr><name><name>symbol</name><operator>-&gt;</operator><name>Name</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+	}</block></for>
+
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>symbol</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+}</block></function>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* DISABLE_BACKTRACE */</comment> 
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* WIN32 */</comment>
+
+<comment type="block">/*
+ * Global function to be called to log something
+ */</comment>
+<function><type><name>void</name></type> <name>est_log_backtrace</name> <parameter_list>(<parameter><decl><type><name>void</name></type></decl></parameter>)</parameter_list>
+<block>{
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_BACKTRACE</name></cpp:ifndef>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>WIN32</name></cpp:ifdef>
+	<comment type="block">/*
+	* Spit out a backtrace if this is enabled globally
+	*/</comment>
+	<if>if <condition>(<expr><name>est_backtrace_enabled</name></expr>)</condition><then> <block>{
+		<expr_stmt><expr><call><name>printStackTrace</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	}</block></then></if>
+<cpp:else>#<cpp:directive>else</cpp:directive></cpp:else>
+    <decl_stmt><decl><type><name>void</name><modifier>*</modifier></type> <name><name>callstack</name><index>[<expr><literal type="number">128</literal></expr>]</index></name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>strs</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>i</name></decl>, <decl><type ref="prev"/><name>frames</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Spit out a backtrace if this is enabled globally
+     */</comment>
+    <if>if <condition>(<expr><name>est_backtrace_enabled</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>frames</name> <operator>=</operator> <call><name>backtrace</name><argument_list>(<argument><expr><name>callstack</name></expr></argument>, <argument><expr><literal type="number">128</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name>strs</name> <operator>=</operator> <call><name>backtrace_symbols</name><argument_list>(<argument><expr><name>callstack</name></expr></argument>, <argument><expr><name>frames</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <for>for <control>(<init><expr><name>i</name> <operator>=</operator> <literal type="number">0</literal></expr>;</init> <condition><expr><name>i</name> <operator>&lt;</operator> <name>frames</name></expr>;</condition> <incr><expr><operator>++</operator><name>i</name></expr></incr>)</control> <block>{
+	    <expr_stmt><expr><call><name>est_log_msg</name><argument_list>(<argument><expr><literal type="string">"\n%s"</literal></expr></argument>, <argument><expr><name><name>strs</name><index>[<expr><name>i</name></expr>]</index></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <comment type="line">//fprintf(stderr, "%s\n", strs[i]);</comment>
+        }</block></for>
+	<expr_stmt><expr><call><name>est_log_msg</name><argument_list>(<argument><expr><literal type="string">"\n\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>strs</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* WIN32*/</comment>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> <comment type="block">/* DISABLE_BACKTRACE*/</comment>
+}</block></function>
+
+<comment type="block">/*! @brief est_get_version() allows the application to retrieve
+    the libEST version string.  Returns a char* array containing
+    the full version string value for the library.
+ 
+    @return const char*
+ */</comment>
+<function><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type> <name>est_get_version</name> <parameter_list>(<parameter><decl><type><name>void</name></type></decl></parameter>)</parameter_list> <block>{
+    <return>return <expr><name>EST_VER_STRING</name></expr>;</return> 
+}</block></function>
+
+<comment type="block">/*! @brief est_get_api_level() allows the application to retrieve
+    the libEST API level.  This is a numeric value that
+    indicates the API level of the library.  When new versions of
+    libEST are released and the API changes, this value will be
+    incremented.  Applications can use this to determine which capabilities
+    in the libEST library should or should not be attempted.
+ 
+    @return int
+ */</comment>
+<function><type><name>int</name></type> <name>est_get_api_level</name> <parameter_list>(<parameter><decl><type><name>void</name></type></decl></parameter>)</parameter_list> <block>{
+    <return>return <expr><name>EST_API_LEVEL</name></expr>;</return> 
+}</block></function>
+
+<comment type="block">/*
+ * Use this to log the libEST version to an information
+ * log message.  Also logs the compile-time and run-time 
+ * OpenSSL versions.
+ */</comment>
+<function><type><name>void</name></type> <name>est_log_version</name> <parameter_list>(<parameter><decl><type><name>void</name></type></decl></parameter>)</parameter_list>
+<block>{
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"%s (API level %d)"</literal></expr></argument>, <argument><expr><call><name>est_get_version</name><argument_list>()</argument_list></call></expr></argument>, <argument><expr><call><name>est_get_api_level</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>SOURCE_REVISION</name></cpp:ifdef>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Source repository revision# %d"</literal></expr></argument>, <argument><expr><name>SOURCE_REVISION</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Compiled against %s"</literal></expr></argument>, <argument><expr><name>OPENSSL_VERSION_TEXT</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Linking to %s"</literal></expr></argument>, <argument><expr><call><name>SSLeay_version</name><argument_list>(<argument><expr><name>SSLEAY_VERSION</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+}</block></function>
+
+
+
+<comment type="block">/*
+ * Logger initialization routine for EST library
+ * This function does not need to be called.
+ */</comment>
+<comment type="block">/*! @brief est_init_logger() allows the application to override the 
+    default log handler for EST logging messages.
+ 
+    @param lvl Sets the desired logging level to EST_LOG_LEVEL
+    @param loggerfunc Sets the callback function to handle logging
+ 
+    This function allows an application that uses EST to provide
+    a function for logging EST messages.  EST provides a default handler
+    that sends messages to stderr.  Applications may desire to send
+    messages to syslog or some other logging facility.  An application
+    would provide a function pointer using this method to intercept
+    and handle EST log messages.  This setting is global to the library
+    and will impact all contexts.
+ 
+    @return EST_ERROR.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_init_logger</name> <parameter_list>(<parameter><decl><type><name>EST_LOG_LEVEL</name></type> <name>lvl</name></decl></parameter>, <parameter><function_decl><type><name>void</name></type> (<modifier>*</modifier><name>loggerfunc</name>)<parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type></decl></parameter>, <parameter><decl><type><name>va_list</name></type></decl></parameter>)</parameter_list></function_decl></parameter>)</parameter_list>
+<block>{
+    <comment type="block">/* Initialize the logger */</comment>
+    <if>if <condition>(<expr><name>loggerfunc</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>est_log_func</name> <operator>=</operator> <name>loggerfunc</name></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <comment type="block">/* install our default logger */</comment>
+        <expr_stmt><expr><name>est_log_func</name> <operator>=</operator> <operator>&amp;</operator><name>est_logger_stderr</name></expr>;</expr_stmt>
+    }</block></else></if>
+
+    <comment type="block">/*
+     * Set the desired logging level
+     */</comment>
+    <expr_stmt><expr><name>est_desired_log_lvl</name> <operator>=</operator> <name>lvl</name></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*! @brief est_enable_backtrace() allows the application to toggle
+    whether the stack trace is displayed for WARNING and ERROR
+    log messages coming from libEST.   
+ 
+    @param enable Set to zero to disable stack traces, non-zero to
+                  enable stack traces through the logging facility.
+ 
+    This function allows an application to enable stack traces, which
+    may be useful for troubleshooting the libEST library.  Stack
+    traces are disabled by default.  Call this function with a 
+    non-zero argument to enable stack traces for both WARNING and
+    ERROR log messages.  This setting is global to the library and
+    will impact all contexts.
+ 
+    @return void.
+ */</comment>
+<function><type><name>void</name></type> <name>est_enable_backtrace</name> <parameter_list>(<parameter><decl><type><name>int</name></type> <name>enable</name></decl></parameter>)</parameter_list>
+<block>{
+    <expr_stmt><expr><name>est_backtrace_enabled</name> <operator>=</operator> <name>enable</name></expr>;</expr_stmt>
+}</block></function>
+
+<comment type="block">/*! @brief est_read_x509_request() is a helper function that reads
+ *  a char* and converts it to an OpenSSL X509_REQ*.  The char* data
+ *  can be either PEM or DER encoded.   
+ 
+    @param csr This is the char* that contains the PEM or DER encoded
+               X509 CSR.
+    @param csr_len This is the length of the csr char*.  DER encoded data
+               may contain zeros, which requires the length to be provided
+	       by the application layer.
+    @param csr_format This parameter specifies the encoding method of the
+               csr char* that was provided.  Set this to either EST_CERT_FORMAT_PEM
+	       or EST_CERT_FORMAT_DER.
+ 
+    This function converts a PEM or DER encoded char* to the OpenSSL
+    X509_REQ structure.  This function will return NULL if the PEM/DER
+    data is corrupted or unable to be parsed by the OpenSSL library.
+    This function will allocate memory for the X509_REQ data.  You must
+    free the memory in your application when it's no longer needed by
+    calling X509_REQ_free().
+ 
+    @return X509_REQ*
+ */</comment>
+<function><type><name>X509_REQ</name> <modifier>*</modifier></type><name>est_read_x509_request</name> <parameter_list>(<parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>csr</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>csr_len</name></decl></parameter>,
+	                         <parameter><decl><type><name>EST_CERT_FORMAT</name></type> <name>csr_format</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>X509_REQ</name> <modifier>*</modifier></type><name>req</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>in</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>long</name></type> <name>err</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><operator>!</operator><name>csr</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"CSR may not be NULL"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>csr_len</name> <operator>&gt;</operator> <name>EST_RAW_CSR_LEN_MAX</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"CSR length is greater than maximum allowed (%d)"</literal></expr></argument>, <argument><expr><name>EST_RAW_CSR_LEN_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>csr_format</name> <operator>!=</operator> <name>EST_CERT_FORMAT_PEM</name> <operator>&amp;&amp;</operator> <name>csr_format</name> <operator>!=</operator> <name>EST_CERT_FORMAT_DER</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Only PEM and DER encoding formats are supported."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>in</name> <operator>=</operator> <call><name>BIO_new_mem_buf</name><argument_list>(<argument><expr><name>csr</name></expr></argument>, <argument><expr><name>csr_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>in</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to open the CSR memory buffer"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <switch>switch <condition>(<expr><name>csr_format</name></expr>)</condition> <block>{
+    <case>case <expr><name>EST_CERT_FORMAT_PEM</name></expr>:</case>
+	<expr_stmt><expr><name>req</name> <operator>=</operator> <call><name>PEM_read_bio_X509_REQ</name><argument_list>(<argument><expr><name>in</name></expr></argument>,<argument><expr><name>NULL</name></expr></argument>,<argument><expr><name>NULL</name></expr></argument>,<argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<break>break;</break>
+    <case>case <expr><name>EST_CERT_FORMAT_DER</name></expr>:</case>
+	<expr_stmt><expr><name>req</name> <operator>=</operator> <call><name>d2i_X509_REQ_bio</name><argument_list>(<argument><expr><name>in</name></expr></argument>,<argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<break>break;</break>
+    <default>default:</default>
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid CSR format specified."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <break>break;</break>
+    }</block></switch>
+
+    <comment type="block">/*
+     * Check for an error while parsing the input data
+     */</comment>
+    <if>if <condition>(<expr><operator>!</operator><name>req</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"An error occurred in the OpenSSL library while reading the CSR data."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><name>err</name> <operator>=</operator> <call><name>ERR_get_error</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"OpenSSL error string: %s"</literal></expr></argument>, <argument><expr><call><name>ERR_error_string</name><argument_list>(<argument><expr><name>err</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>req</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_load_key() is a helper function that reads
+ *  a char* and converts it to an OpenSSL EVP_PKEY*.  The char* data
+ *  can be either PEM or DER encoded.   
+ 
+    @param key This is the char* that contains the PEM or DER encoded
+               key pair.
+    @param key_len This is the length of the key char*.  DER encoded data
+               may contain zeros, which requires the length to be provided
+	       by the application layer.
+    @param key_format This parameter specifies the encoding method of the
+               key char* that was provided.  Set this to either EST_FORMAT_PEM
+	       or EST_FORMAT_DER.
+ 
+    This function converts a PEM or DER encoded char* to the OpenSSL
+    EVP_PKEY* structure.  This function will return NULL if the PEM/DER
+    data is corrupted or unable to be parsed by the OpenSSL library.
+    This function will allocate memory for the EVP_PKEY data.  You must
+    free the memory in your application when it's no longer needed by
+    calling EVP_PKEY_free().
+ 
+    @return EVP_PKEY*
+ */</comment>
+<function><type><name>EVP_PKEY</name> <modifier>*</modifier></type><name>est_load_key</name> <parameter_list>(<parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>key</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>key_len</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>format</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>in</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EVP_PKEY</name> <modifier>*</modifier></type><name>pkey</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><name>key</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"no key data provided"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>in</name> <operator>=</operator> <call><name>BIO_new_mem_buf</name><argument_list>(<argument><expr><name>key</name></expr></argument>, <argument><expr><name>key_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>in</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to open the provided key buffer"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <switch>switch <condition>(<expr><name>format</name></expr>)</condition> <block>{
+    <case>case <expr><name>EST_FORMAT_PEM</name></expr>:</case>
+        <expr_stmt><expr><name>pkey</name> <operator>=</operator> <call><name>PEM_read_bio_PrivateKey</name><argument_list>(<argument><expr><name>in</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <break>break;</break>
+    <case>case <expr><name>EST_FORMAT_DER</name></expr>:</case>
+        <expr_stmt><expr><name>pkey</name> <operator>=</operator> <call><name>d2i_PrivateKey_bio</name><argument_list>(<argument><expr><name>in</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <break>break;</break>
+    <default>default:</default>
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid key format"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+        <break>break;</break>
+    }</block></switch>
+    <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <return>return <expr><operator>(</operator><name>pkey</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+
+<comment type="block">/*
+ * This function is used to read the CERTS in a BIO and build a
+ * stack of X509* pointers.  This is used during the PEM to
+ * PKCS7 conversion process.
+ */</comment>
+<decl_stmt><decl><specifier>static</specifier> <type><name>int</name></type> <name>est_add_certs_from_BIO</name> <argument_list>(<argument><expr><call><name>STACK_OF</name><argument_list>(<argument><expr><name>X509</name></expr></argument>)</argument_list></call> <operator>*</operator><name>stack</name></expr></argument>, <argument><expr><name>BIO</name> <operator>*</operator><name>in</name></expr></argument>)</argument_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>count</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>ret</name> <init>= <expr><operator>-</operator><literal type="number">1</literal></expr></init></decl>;</decl_stmt>
+
+    <expr_stmt><expr><call><name>STACK_OF</name><argument_list>(<argument><expr><name>X509_INFO</name></expr></argument>)</argument_list></call> <operator>*</operator> <name>sk</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <decl_stmt><decl><type><name>X509_INFO</name> <modifier>*</modifier></type><name>xi</name></decl>;</decl_stmt>
+
+
+    <comment type="block">/* This loads from a file, a stack of x509/crl/pkey sets */</comment>
+    <expr_stmt><expr><name>sk</name> <operator>=</operator> <call><name>PEM_X509_INFO_read_bio</name><argument_list>(<argument><expr><name>in</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>sk</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to read certs from PEM encoded data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>ret</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/* scan over it and pull out the CRL's */</comment>
+    <while>while <condition>(<expr><call><name>sk_X509_INFO_num</name><argument_list>(<argument><expr><name>sk</name></expr></argument>)</argument_list></call></expr>)</condition> <block>{
+        <expr_stmt><expr><name>xi</name> <operator>=</operator> <call><name>sk_X509_INFO_shift</name><argument_list>(<argument><expr><name>sk</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name><name>xi</name><operator>-&gt;</operator><name>x509</name></name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>sk_X509_push</name><argument_list>(<argument><expr><name>stack</name></expr></argument>, <argument><expr><name><name>xi</name><operator>-&gt;</operator><name>x509</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name><name>xi</name><operator>-&gt;</operator><name>x509</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <expr_stmt><expr><name>count</name><operator>++</operator></expr>;</expr_stmt>
+        }</block></then></if>
+        <expr_stmt><expr><call><name>X509_INFO_free</name><argument_list>(<argument><expr><name>xi</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></while>
+
+    <expr_stmt><expr><name>ret</name> <operator>=</operator> <name>count</name></expr>;</expr_stmt>
+
+    <comment type="block">/* never need to OPENSSL_free x */</comment>
+    <if>if <condition>(<expr><name>sk</name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>sk_X509_INFO_free</name><argument_list>(<argument><expr><name>sk</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>ret</name><operator>)</operator></expr>;</return>
+}</block></decl></decl_stmt>
+
+
+<comment type="block">/*
+ * Converts from PEM to pkcs7 encoded certs.  Optionally
+ * applies base64 encoding to the output.  This is used
+ * when creating the cached cacerts response.  The returned
+ * BIO contains the PKCS7 encoded certs.  The response
+ * can optionally be base64 encoded by passing in a
+ * non-zero value for the do_base_64 argument.  The caller
+ * of this function should invoke BIO_free_all() on the
+ * return value to avoid memory leaks.  Note, BIO_free() 
+ * will not be sufficient.
+ */</comment>
+<function><specifier>static</specifier> <type><name>BIO</name> <modifier>*</modifier></type> <name>est_get_certs_pkcs7</name> <parameter_list>(<parameter><decl><type><name>BIO</name> <modifier>*</modifier></type><name>in</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>do_base_64</name></decl></parameter>)</parameter_list>
+<block>{
+    <expr_stmt><expr><call><name>STACK_OF</name><argument_list>(<argument><expr><name>X509</name></expr></argument>)</argument_list></call> <operator>*</operator> <name>cert_stack</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <decl_stmt><decl><type><name>PKCS7_SIGNED</name> <modifier>*</modifier></type><name>p7s</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>PKCS7</name> <modifier>*</modifier></type><name>p7</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>out</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>b64</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>buflen</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+
+
+    <comment type="block">/*
+     * Create a PKCS7 object 
+     */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>p7</name> <operator>=</operator> <call><name>PKCS7_new</name><argument_list>()</argument_list></call><operator>)</operator> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"pkcs7_new failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+    <comment type="block">/*
+     * Create the PKCS7 signed object
+     */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>p7s</name> <operator>=</operator> <call><name>PKCS7_SIGNED_new</name><argument_list>()</argument_list></call><operator>)</operator> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"pkcs7_signed_new failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+    <comment type="block">/*
+     * Set the version
+     */</comment>
+    <if>if <condition>(<expr><operator>!</operator><call><name>ASN1_INTEGER_set</name><argument_list>(<argument><expr><name><name>p7s</name><operator>-&gt;</operator><name>version</name></name></expr></argument>, <argument><expr><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"ASN1_integer_set failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Create a stack of X509 certs
+     */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>cert_stack</name> <operator>=</operator> <call><name>sk_X509_new_null</name><argument_list>()</argument_list></call><operator>)</operator> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"stack malloc failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Populate the cert stack
+     */</comment>
+    <if>if <condition>(<expr><call><name>est_add_certs_from_BIO</name><argument_list>(<argument><expr><name>cert_stack</name></expr></argument>, <argument><expr><name>in</name></expr></argument>)</argument_list></call> <operator>&lt;</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to load certificates"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Create the BIO which will receive the output
+     */</comment>
+    <expr_stmt><expr><name>out</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_s_mem</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>out</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Add the base64 encoder if needed
+     */</comment>
+    <if>if <condition>(<expr><name>do_base_64</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><name>b64</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_f_base64</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>b64</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create base64 BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+            <goto>goto <name>cleanup</name>;</goto>
+        }</block></then></if>    
+	<expr_stmt><expr><name>out</name> <operator>=</operator> <call><name>BIO_push</name><argument_list>(<argument><expr><name>b64</name></expr></argument>, <argument><expr><name>out</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <expr_stmt><expr><name><name>p7</name><operator>-&gt;</operator><name>type</name></name> <operator>=</operator> <call><name>OBJ_nid2obj</name><argument_list>(<argument><expr><name>NID_pkcs7_signed</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>p7</name><operator>-&gt;</operator><name>d</name><operator>.</operator><name>sign</name></name> <operator>=</operator> <name>p7s</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>p7s</name><operator>-&gt;</operator><name>contents</name><operator>-&gt;</operator><name>type</name></name> <operator>=</operator> <call><name>OBJ_nid2obj</name><argument_list>(<argument><expr><name>NID_pkcs7_data</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>p7s</name><operator>-&gt;</operator><name>cert</name></name> <operator>=</operator> <name>cert_stack</name></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Convert from PEM to PKCS7
+     */</comment>
+    <expr_stmt><expr><name>buflen</name> <operator>=</operator> <call><name>i2d_PKCS7_bio</name><argument_list>(<argument><expr><name>out</name></expr></argument>, <argument><expr><name>p7</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>buflen</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"PEM_write_bio_PKCS7 failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>out</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name>out</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+	<goto>goto <name>cleanup</name>;</goto>
+    }</block></then></if>
+    <expr_stmt><expr><operator>(</operator><name>void</name><operator>)</operator><call><name>BIO_flush</name><argument_list>(<argument><expr><name>out</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+<label><name>cleanup</name>:</label>
+    <comment type="block">/* 
+     * Only need to cleanup p7.  This frees up the p7s and
+     * cert_stack allocations for us since these are linked
+     * to the p7.
+     */</comment>
+    <if>if <condition>(<expr><name>p7</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>PKCS7_free</name><argument_list>(<argument><expr><name>p7</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <return>return <expr><name>out</name></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * Takes a raw char array containg the CA certificates, reads the data
+ * in and loads the certificates on to the context as pkcs7 certs.  This is
+ * stored on the EST context and used to respond to the /cacerts request,
+ * which requires PKCS7 encoding.
+ *
+ * This function also loads the x509 store on the context used to
+ * verify the peer.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_load_ca_certs</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>raw</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>size</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>cacerts</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>in</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>retval</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Only the server and proxy modes may load the cacerts response
+     */</comment>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>==</operator> <name>EST_CLIENT</name></expr>)</condition><then> <block>{
+	<return>return <expr><name>EST_ERR_BAD_MODE</name></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>in</name> <operator>=</operator> <call><name>BIO_new_mem_buf</name><argument_list>(<argument><expr><name>raw</name></expr></argument>, <argument><expr><name>size</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>in</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to open the raw cert buffer"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_LOAD_CACERTS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * convert the CA certs to PKCS7 encoded char array
+     * This is used by an EST server to respond to the
+     * cacerts request.
+     */</comment>
+    <expr_stmt><expr><name>cacerts</name> <operator>=</operator> <call><name>est_get_certs_pkcs7</name><argument_list>(<argument><expr><name>in</name></expr></argument>, <argument><expr><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>cacerts</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"est_get_certs_pkcs7 failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_LOAD_CACERTS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>BIO_get_mem_data</name><argument_list>(<argument><expr><name>cacerts</name></expr></argument>, <argument><expr><operator>(</operator><name>char</name><operator>*</operator><operator>*</operator><operator>)</operator><operator>&amp;</operator><name>retval</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to copy PKCS7 data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>cacerts</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_LOAD_CACERTS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"malloc failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>cacerts</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_LOAD_CACERTS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name></expr></argument>, <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name></expr></argument>, <argument><expr><name>retval</name></expr></argument>, <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>cacerts</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BIO_free</name><argument_list>(<argument><expr><name>in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * Takes a char array containing the PEM encoded CA certificates,
+ * both implicit and explict certs.  These are decoded and loaded
+ * into the trusted_certs_store member on the EST context.  This cert
+ * store is used by the TLS stack for peer verification at the TLS
+ * layer.
+ * Note: we do not include defensive code to check for NULL arguments
+ *       because this function is not part of the public API.  These
+ *       checks should have already been performed.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_load_trusted_certs</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>certs</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>certs_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Create the combined cert store on the context
+     * This contains both the implicit and explicit certs
+     */</comment>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name> <operator>=</operator> <call><name>X509_STORE_new</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to allocate combined cert store"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_LOAD_TRUST_CERTS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>X509_STORE_set_verify_cb</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name></expr></argument>, <argument><expr><name>ossl_verify_cb</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>ossl_init_cert_store</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name></expr></argument>, <argument><expr><name>certs</name></expr></argument>, <argument><expr><name>certs_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to populate combined cert store"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_set_ex_data() sets the application specific data
+    on the EST context. 
+ 
+    @param ctx Pointer to an EST context
+    @param ex_data Pointer to application specific data that will be
+                   passed through to the EST callbacks.
+ 
+    @return EST_ERROR
+
+    This function is used to link application specific data to the
+    EST_CTX structure.  This can be used by an application to bind
+    application specific data to an EST operation.  libEST does 
+    not use the application specific data.  The *ex_data pointer is
+    passed back to the application when libEST invokes the 
+    enroll, re-enroll, CSR attributes, and HTTP auth callbacks.
+
+    libEST will not free the memory referenced by the *ex_data
+    parameter when est_destroy() is invoked.  The application is
+    responsible for releasing its application specific data. 
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_set_ex_data</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>ex_data</name></decl></parameter>)</parameter_list>
+<block>{
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ex_data</name></name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"ex_data was already set, possible memory leak"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ex_data</name></name> <operator>=</operator> <name>ex_data</name></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_get_ex_data() retrieves the application specific data
+    on the EST context. 
+ 
+    @param ctx Pointer to an EST context
+ 
+    @return void* 
+
+    This function is used to attain a reference to the application 
+    specific data on the EST_CTX structure.  This data should have
+    been set by invoking est_set_ex_data() earlier.  Otherwise it
+    will return NULL. 
+ */</comment>
+<function><type><name>void</name> <modifier>*</modifier></type> <name>est_get_ex_data</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>)</parameter_list>
+<block>{
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name><name>ctx</name><operator>-&gt;</operator><name>ex_data</name></name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_destroy() frees an EST context 
+ 
+    @param ctx Pointer to an EST context
+ 
+    @return EST_ERROR
+
+    This function is used to release all the memory allocated under
+    the EST_CTX*.  This should be called last after performing EST
+    operations using the context.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_destroy</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>)</parameter_list>
+<block>{
+
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>X509_STORE_free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>trusted_certs_store</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>retrieved_ca_certs</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>retrieved_ca_certs</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>retrieved_csrattrs</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>retrieved_csrattrs</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>server_csrattrs</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>server_csrattrs</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>enrolled_client_cert</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>enrolled_client_cert</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>dh_tmp</name></name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>DH_free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>dh_tmp</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <comment type="block">/* Only free the SSL context when acting as a client.  When
+     * operating as a server, it's expected the web server
+     * will free the context */</comment>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ssl_ctx</name></name> <operator>&amp;&amp;</operator>
+        <operator>(</operator><operator>(</operator><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>==</operator> <name>EST_CLIENT</name><operator>)</operator><operator>||</operator><operator>(</operator><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>==</operator> <name>EST_PROXY</name><operator>)</operator><operator>)</operator></expr>)</condition><then> <block>{
+        <comment type="block">/*
+         * If the SSL session had been cached, this means that
+         * SSL_get1_session() has been called, so now it needs to be explictly
+         * freed to get its ref count decrememnted.
+         */</comment>
+        <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>sess</name></name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>SSL_SESSION_free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>sess</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+        <expr_stmt><expr><call><name>SSL_CTX_free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ssl_ctx</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>==</operator> <name>EST_PROXY</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>proxy_cleanup</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * And finally free the EST context itself
+     */</comment>
+    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This routine is used to determine whether the BIO_FLAGS_BASE64_NO_NL 
+ * option needs to be used when using the OpenSSL
+ * base64 decoder.  It takes a string as input and
+ * checks if it contains newline characters.
+ *
+ * Returns 1 if OpenSSL should use the BIO_FLAGS_BASE64_NO_NL option
+ * Returns 0 otherwise
+ */</comment>
+<function><specifier>static</specifier> <type><name>int</name></type> <name>est_base64_contains_nl</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>src</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>i</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><name>len</name> <operator>&lt;</operator> <literal type="number">64</literal></expr>)</condition><then> <block>{
+	<comment type="block">/* 
+	 * Any base64 less than 64 bytes shouldn't be a 
+	 * problem for OpenSSL since this is the minimum
+	 * line length for base64 encoding.
+	 */</comment>
+	<return>return <expr><literal type="number">0</literal></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Start looking for newlines at the 64th position
+     */</comment>
+    <for>for <control>(<init><expr><name>i</name> <operator>=</operator> <literal type="number">63</literal></expr>;</init> <condition><expr><name>i</name> <operator>&lt;</operator> <name>len</name><operator>-</operator><literal type="number">1</literal></expr>;</condition> <incr><expr><name>i</name><operator>++</operator></expr></incr>)</control> <block>{
+	<if>if <condition>(<expr><name><name>src</name><index>[<expr><name>i</name></expr>]</index></name> <operator>==</operator> <literal type="number">0xA</literal></expr>)</condition><then> <block>{
+	    <return>return <expr><literal type="number">1</literal></expr>;</return>
+	}</block></then></if>
+    }</block></for>
+    <return>return <expr><literal type="number">0</literal></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This routine is used to decode base64 encoded data.
+ * Pass in the base64 encoded data and a pointer to a buffer
+ * to receive the decoded data.  The length of the decoded 
+ * data is returned.  If the return value is zero or negative, then
+ * an error occurred.  The dst_size parameter is the maximum
+ * allowed size of the decoded data.
+ */</comment>
+<function><type><name>int</name></type> <name>est_base64_decode</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>src</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>dst</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>dst_size</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>b64</name></decl>, <modifier>*</modifier><decl><type ref="prev"/><name>b64in</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>max_in</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * When decoding base64, the output will always be smaller by a
+     * ratio of 4:3.  Determine what the max size can be for the input
+     * based on the size of the given output buffer and then make sure that
+     * the actual input buffer is not too big.
+     */</comment>
+    <expr_stmt><expr><name>max_in</name> <operator>=</operator> <operator>(</operator><operator>(</operator><name>dst_size</name> <operator>*</operator> <literal type="number">4</literal><operator>)</operator> <operator>/</operator> <literal type="number">3</literal><operator>)</operator> <operator>+</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+    <comment type="block">/*
+     * Get the length of the base64 encoded data.  Make sure it's not too
+     * big
+     */</comment>
+    <expr_stmt><expr><name>len</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>src</name></expr></argument>, <argument><expr><name>max_in</name><operator>+</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt> 
+    <if>if <condition>(<expr><name>len</name> <operator>&gt;</operator> <name>max_in</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Source buffer for base64 decode is loo large for destination buffer. "</literal>
+                    <literal type="string">"source buf len = %d, max input len = %d, max dest len = %d"</literal></expr></argument>,
+                    <argument><expr><name>len</name></expr></argument>, <argument><expr><name>max_in</name></expr></argument>, <argument><expr><name>dst_size</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><literal type="number">0</literal><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>b64</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_f_base64</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>b64</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create base64 BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><literal type="number">0</literal><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name>b64in</name> <operator>=</operator> <call><name>BIO_new_mem_buf</name><argument_list>(<argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>src</name></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt> 
+    <if>if <condition>(<expr><name>b64in</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create mem BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><literal type="number">0</literal><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><operator>!</operator><call><name>est_base64_contains_nl</name> <argument_list>(<argument><expr><name>src</name></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+	<comment type="block">/*
+	 * Enable the no newlines option if the input
+	 * data doesn't contain any newline characters.
+	 * It's too bad OpenSSL doesn't do this implicitly.
+	 */</comment>
+        <expr_stmt><expr><call><name>BIO_set_flags</name><argument_list>(<argument><expr><name>b64</name></expr></argument>,<argument><expr><name>BIO_FLAGS_BASE64_NO_NL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <expr_stmt><expr><name>b64in</name> <operator>=</operator> <call><name>BIO_push</name><argument_list>(<argument><expr><name>b64</name></expr></argument>, <argument><expr><name>b64in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>len</name> <operator>=</operator> <call><name>BIO_read</name><argument_list>(<argument><expr><name>b64in</name></expr></argument>, <argument><expr><name>dst</name></expr></argument>, <argument><expr><name>dst_size</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>len</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"BIO_read failed while decoding base64 data (%d)"</literal></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <comment type="block">/*
+         * Make sure the response is null terminated
+         */</comment>
+        <expr_stmt><expr><name><name>dst</name><index>[<expr><name>len</name></expr>]</index></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+    }</block></else></if>
+
+    <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>b64in</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>len</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This routine is used to encode base64 data.
+ * Pass in the unencoded data, the length of the source buffer,
+ * and a pointer to a buffer to receive the encoded data.
+ * The length of the encoded data is returned.  If the return value
+ * is zero, then an error occurred.  The max_dest_len parameter
+ * is the maximum allowed size of the encoded data.
+ */</comment>
+<function><type><name>int</name></type> <name>est_base64_encode</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>src</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>actual_src_len</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>dst</name></decl></parameter>,
+                       <parameter><decl><type><name>int</name></type> <name>max_dst_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>b64</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>out</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>max_src_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>actual_dst_len</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>write_cnt</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BUF_MEM</name> <modifier>*</modifier></type><name>bptr</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    
+    <comment type="block">/*
+     * When encoding base64, the output will always be larger by a
+     * ratio of 3:4.  Determine what the max size can be for the input
+     * based on the size of the given output buffer and then make sure that
+     * the actual input buffer is not too big.
+     */</comment>
+    <expr_stmt><expr><name>max_src_len</name> <operator>=</operator> <operator>(</operator><operator>(</operator><name>max_dst_len</name> <operator>*</operator> <literal type="number">3</literal><operator>)</operator> <operator>/</operator> <literal type="number">4</literal><operator>)</operator> <operator>+</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>actual_src_len</name> <operator>&gt;</operator> <name>max_src_len</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Source buffer for base64 encode is loo large for destination buffer. "</literal>
+                    <literal type="string">"max source len = %d, actual_source len = %d"</literal></expr></argument>,
+                    <argument><expr><name>max_src_len</name></expr></argument>, <argument><expr><name>actual_src_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><literal type="number">0</literal></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>b64</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_f_base64</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>b64</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create base64 BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><literal type="number">0</literal></expr>;</return>
+    }</block></then></if>    
+
+    <expr_stmt><expr><name>out</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_s_mem</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>out</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create mem based BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>b64</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><literal type="number">0</literal></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name>out</name> <operator>=</operator> <call><name>BIO_push</name><argument_list>(<argument><expr><name>b64</name></expr></argument>, <argument><expr><name>out</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * We don't ever insert new lines
+     */</comment>
+    <expr_stmt><expr><call><name>BIO_set_flags</name><argument_list>(<argument><expr><name>out</name></expr></argument>, <argument><expr><name>BIO_FLAGS_BASE64_NO_NL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Write the source buffer through the BIOs and then get a pointer
+     * to the resulting memory buffer on the other side to obtain the
+     * result.
+     */</comment>
+    <expr_stmt><expr><name>write_cnt</name> <operator>=</operator> <call><name>BIO_write</name><argument_list>(<argument><expr><name>out</name></expr></argument>, <argument><expr><name>src</name></expr></argument>, <argument><expr><name>actual_src_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>(</operator><name>void</name><operator>)</operator><call><name>BIO_flush</name><argument_list>(<argument><expr><name>out</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BIO_get_mem_ptr</name><argument_list>(<argument><expr><name>out</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>bptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>write_cnt</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"BIO_write failed while encoding base64 data (%d)"</literal></expr></argument>, <argument><expr><name>write_cnt</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <comment type="block">/*
+         * copy out the resulting base64 encoded string, make sure it's
+         * null terminated, and return the length
+         */</comment>
+        <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>dst</name></expr></argument>, <argument><expr><name>max_dst_len</name></expr></argument>, <argument><expr><name><name>bptr</name><operator>-&gt;</operator><name>data</name></name></expr></argument>, <argument><expr><name><name>bptr</name><operator>-&gt;</operator><name>length</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>dst</name><index>[<expr><name><name>bptr</name><operator>-&gt;</operator><name>length</name></name></expr>]</index></name> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><name>actual_dst_len</name> <operator>=</operator> <name><name>bptr</name><operator>-&gt;</operator><name>length</name></name></expr>;</expr_stmt>
+    }</block></else></if>
+
+    <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>b64</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>actual_dst_len</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * Given an SSL session, get the TLS unique ID from the
+ * peer finished message.  This uses the OpenSSL API
+ * to get the 'finished' value from the TLS stack. This 
+ * is then encoded using the channel binding rules.  The
+ * value is then returned to the call, which can be
+ * used for the PoP check.
+ */</comment>
+<cpp:define>#<cpp:directive>define</cpp:directive> <cpp:macro><name>MAX_FINISHED</name></cpp:macro>  <cpp:value>100</cpp:value></cpp:define>
+<function><type><name>char</name> <modifier>*</modifier></type> <name>est_get_tls_uid</name> <parameter_list>(<parameter><decl><type><name>SSL</name> <modifier>*</modifier></type><name>ssl</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>is_client</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>char</name></type> <name><name>finished</name><index>[<expr><name>MAX_FINISHED</name></expr>]</index></name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BIO</name> <modifier>*</modifier></type><name>bio</name> <init>= <expr><name>NULL</name></expr></init></decl>, <modifier>*</modifier><decl><type ref="prev"/><name>b64</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BUF_MEM</name> <modifier>*</modifier></type><name>bptr</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>rv</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * RFC5929 states the *first* finished message is used
+     * to derive the tls-unique-id.  When session resumption
+     * is used, the server sends the first finished message.
+     * Normally the client sends the first finished messaged.
+     */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>is_client</name> <operator>&amp;&amp;</operator> <operator>!</operator><call><name>SSL_session_reused</name><argument_list>(<argument><expr><name>ssl</name></expr></argument>)</argument_list></call><operator>)</operator> <operator>||</operator>
+        <operator>(</operator><operator>!</operator><name>is_client</name> <operator>&amp;&amp;</operator> <call><name>SSL_session_reused</name><argument_list>(<argument><expr><name>ssl</name></expr></argument>)</argument_list></call><operator>)</operator></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>len</name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>SSL_get_finished</name><argument_list>(<argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>finished</name></expr></argument>, <argument><expr><name>MAX_FINISHED</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <expr_stmt><expr><name>len</name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>SSL_get_peer_finished</name><argument_list>(<argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>finished</name></expr></argument>, <argument><expr><name>MAX_FINISHED</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></else></if>
+
+    <expr_stmt><expr><name>b64</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_f_base64</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>b64</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create base64 BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><name>rv</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name>bio</name> <operator>=</operator> <call><name>BIO_new</name><argument_list>(<argument><expr><call><name>BIO_s_mem</name><argument_list>()</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>bio</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"BIO_new failed while attempting to create mem based BIO"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>ossl_dump_ssl_errors</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><name>rv</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><operator>(</operator><name>void</name><operator>)</operator><call><name>BIO_flush</name><argument_list>(<argument><expr><name>bio</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>bio</name> <operator>=</operator> <call><name>BIO_push</name><argument_list>(<argument><expr><name>b64</name></expr></argument>, <argument><expr><name>bio</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BIO_write</name><argument_list>(<argument><expr><name>bio</name></expr></argument>, <argument><expr><name>finished</name></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>(</operator><name>void</name><operator>)</operator><call><name>BIO_flush</name><argument_list>(<argument><expr><name>bio</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BIO_get_mem_ptr</name><argument_list>(<argument><expr><name>bio</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>bptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Be aware that OpenSSL adds a newline character at the
+     * end of the base64 encoded data
+     */</comment>
+    <if>if <condition>(<expr><name><name>bptr</name><operator>-&gt;</operator><name>length</name></name> <operator>!=</operator> <name>EST_TLS_UID_LEN</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"TLS UID length mismatch (%d/%d)"</literal></expr></argument>, <argument><expr><name><name>bptr</name><operator>-&gt;</operator><name>length</name></name></expr></argument>,
+                     <argument><expr><name>EST_TLS_UID_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>EST_TLS_UID_LEN</name> <operator>+</operator> <literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to allocate buffer"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><name>rv</name></expr>;</return>
+        }</block></then></if>    
+        <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>rv</name></expr></argument>, <argument><expr><name>EST_TLS_UID_LEN</name></expr></argument>, <argument><expr><name><name>bptr</name><operator>-&gt;</operator><name>data</name></name></expr></argument>, <argument><expr><name>EST_TLS_UID_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>rv</name><index>[<expr><name>EST_TLS_UID_LEN</name><operator>-</operator><literal type="number">1</literal></expr>]</index></name> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"TLS UID was found"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></else></if>
+    <expr_stmt><expr><call><name>BIO_free_all</name><argument_list>(<argument><expr><name>bio</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><name>rv</name></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * This is a utility function to convert a hex value
+ * to a string. This is used with the HTTP digest
+ * authentication logic.
+ */</comment>
+<function><type><name>void</name></type> <name>est_hex_to_str</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>dst</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>src</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><specifier>static</specifier> <type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>hex</name> <init>= <expr><literal type="string">"0123456789abcdef"</literal></expr></init></decl>;</decl_stmt>
+
+    <for>for <control>(<init>;</init> <condition><expr><name>len</name><operator>--</operator></expr>;</condition> <incr><expr><name>src</name><operator>++</operator></expr></incr>)</control> <block>{
+        <expr_stmt><expr><operator>*</operator><name>dst</name><operator>++</operator> <operator>=</operator> <name><name>hex</name><index>[<expr><name><name>src</name><index>[<expr><literal type="number">0</literal></expr>]</index></name> <operator>&gt;&gt;</operator> <literal type="number">4</literal></expr>]</index></name></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><name>dst</name><operator>++</operator> <operator>=</operator> <name><name>hex</name><index>[<expr><name><name>src</name><index>[<expr><literal type="number">0</literal></expr>]</index></name> <operator>&amp;</operator> <literal type="number">0x0f</literal></expr>]</index></name></expr>;</expr_stmt>
+    }</block></for>
+    <expr_stmt><expr><operator>*</operator><name>dst</name> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+}</block></function>
+
+<comment type="block">/*! @brief est_enable_crl() is used by an application to enable 
+    checking of a certificate revocation list when validating the client
+    TLS peer certificate during the TLS handshake. When enabled, 
+    the ca_chain parameter provided to either est_server_init()
+    or est_client_init() should contain both the trusted certificates 
+    along with the CRL entries.  The CRL entries should be appened
+    at the end.
+ 
+    @param ctx Pointer to the EST context
+
+    CRL checking is disabled by default.  This function must be called 
+    after invoking est_server_init() or est_client_init() and prior 
+    to performing any EST operations.  Therefore, there is no 'disable' 
+    version of this method.  
+ 
+    @return EST_ERROR.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_enable_crl</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>)</parameter_list>
+<block>{
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Null context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>enable_crl</name></name> <operator>=</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * est_asn1_sanity_test - perform a sanity test on the CSR
+ * attribute string.  This function operates on an ASN.1 hex
+ * string, so it should already be un-based64.
+ *
+ * return EST_ERROR and the presence of challengePassword
+ */</comment>
+<function><specifier>static</specifier> 
+<type><name>EST_ERROR</name></type> <name>est_asn1_sanity_test</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>string</name></decl></parameter>, <parameter><decl><type><name>long</name></type> <name>out_len</name></decl></parameter>, 
+				<parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>pop_present</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>tag</name></decl>, <decl><type ref="prev"/><name>xclass</name></decl>, <decl><type ref="prev"/><name>j</name></decl>, <decl><type ref="prev"/><name>nid</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>long</name></type> <name>out_len_save</name> <init>= <expr><name>out_len</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>long</name></type> <name>len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><specifier>const</specifier> <name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>ostring</name> <init>= <expr><name>string</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>ASN1_OBJECT</name> <modifier>*</modifier></type><name>a_object</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>max_len</name> <init>= <expr><name>MAX_CSRATTRS</name></expr></init></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Assume the challengePassword OID is not present
+     */</comment>
+    <expr_stmt><expr><operator>*</operator><name>pop_present</name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+
+    <comment type="block">/* make sure its long enough to be ASN.1 */</comment>
+    <if>if <condition>(<expr><name>out_len</name> <operator>&lt;</operator> <name>MIN_ASN1_CSRATTRS</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX_TOO_SHORT</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <while>while <condition>(<expr><name>out_len</name> <operator>&gt;</operator> <literal type="number">0</literal></expr>)</condition> <block>{
+	<expr_stmt><expr><name>j</name> <operator>=</operator> <call><name>ASN1_get_object</name><argument_list>(<argument><expr><operator>&amp;</operator><name>string</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>len</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>tag</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>xclass</name></expr></argument>, <argument><expr><name>out_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+	<expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Sanity: tag=%d, len=%d, j=%d, out_len=%d"</literal></expr></argument>, <argument><expr><name>tag</name></expr></argument>, <argument><expr><name>len</name></expr></argument>, <argument><expr><name>j</name></expr></argument>, <argument><expr><name>out_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<if>if <condition>(<expr><name>j</name> <operator>&amp;</operator> <literal type="number">0x80</literal></expr>)</condition><then> <block>{
+	    <return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+	<switch>switch <condition>(<expr><name>tag</name></expr>)</condition>
+	<block>{
+	<case>case <expr><name>V_ASN1_OBJECT</name></expr>:</case>
+            <expr_stmt><expr><name>a_object</name> <operator>=</operator> <call><name>c2i_ASN1_OBJECT</name><argument_list>(<argument><expr><name>NULL</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>string</name></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>a_object</name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+	        <expr_stmt><expr><name>nid</name> <operator>=</operator> <call><name>OBJ_obj2nid</name><argument_list>(<argument><expr><name>a_object</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"NID=%d"</literal></expr></argument>, <argument><expr><name>nid</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<if>if <condition>(<expr><name>nid</name> <operator>==</operator> <name>NID_pkcs9_challengePassword</name></expr>)</condition><then> <block>{
+	            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"challengePassword OID found"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    <expr_stmt><expr><operator>*</operator><name>pop_present</name> <operator>=</operator> <literal type="number">1</literal></expr>;</expr_stmt> <comment type="block">/* just signifiy it's there */</comment>
+		    <expr_stmt><expr><name>max_len</name> <operator>=</operator> <name>MAX_CSRATTRS_WITHPOP</name></expr>;</expr_stmt>
+		}</block></then></if>
+		<expr_stmt><expr><call><name>ASN1_OBJECT_free</name><argument_list>(<argument><expr><name>a_object</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            }</block></then></if>
+	    <break>break;</break>
+	<default>default:</default>
+	    <comment type="block">/* have to adjust string pointer here */</comment>
+	    <expr_stmt><expr><name>string</name> <operator>+=</operator> <name>len</name></expr>;</expr_stmt>
+	    <break>break;</break>
+	<case>case <expr><name>V_ASN1_SET</name></expr>:</case>
+	<case>case <expr><name>V_ASN1_SEQUENCE</name></expr>:</case>
+	    <break>break;</break>
+	}</block></switch>
+	<expr_stmt><expr><name>out_len</name> <operator>=</operator> <operator>(</operator><name>out_len_save</name> <operator>-</operator> <operator>(</operator><name>string</name> <operator>-</operator> <name>ostring</name><operator>)</operator><operator>)</operator></expr>;</expr_stmt>	
+    }</block></while>
+    <if>if <condition>(<expr><name>out_len</name> <operator>!=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>out_len_save</name> <operator>&gt;</operator> <name>max_len</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX_TOO_LONG</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * est_is_challengePassword_present - take a base64 
+ * encoded ASN.1 string and scan through it to see 
+ * if challengePassword is included.
+ *
+ * return EST_ERROR and the presence of challengePassword
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_is_challengePassword_present</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>base64_ptr</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>b64_len</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>presence</name></decl></parameter>)</parameter_list>
+<block>{
+
+    <comment type="block">/* assume its not there */</comment>
+    <expr_stmt><expr><operator>*</operator><name>presence</name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+
+    <comment type="block">/* just return if no data */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>base64_ptr</name> <operator>==</operator> <name>NULL</name><operator>)</operator> <operator>||</operator> <operator>(</operator><name>b64_len</name> <operator>==</operator> <literal type="number">0</literal><operator>)</operator></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><call><name>est_asn1_parse_attributes</name><argument_list>(<argument><expr><name>base64_ptr</name></expr></argument>, <argument><expr><name>b64_len</name></expr></argument>, <argument><expr><name>presence</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * est_asn1_parse_attributes - base64 decode and sanity test
+ * the given attributes string
+ *
+ * return EST_ERROR and the presence of challengePassword
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_asn1_parse_attributes</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>p</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>len</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>pop_present</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>der_ptr</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>der_len</name></decl>, <decl><type ref="prev"/><name>rv</name></decl>;</decl_stmt>
+
+    <comment type="block">/* 
+     * check smallest possible base64 case here for now 
+     * and sanity test will check min/max value for ASN.1 data
+     */</comment>
+    <if>if <condition>(<expr><name>len</name> <operator>&lt;</operator> <name>MIN_CSRATTRS</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>der_ptr</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>der_ptr</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>der_len</name> <operator>=</operator> <call><name>est_base64_decode</name><argument_list>(<argument><expr><name>p</name></expr></argument>, <argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>der_ptr</name></expr></argument>, <argument><expr><name>len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>der_len</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid base64 encoded data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>der_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_BASE64</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_asn1_sanity_test</name><argument_list>(<argument><expr><name>der_ptr</name></expr></argument>, <argument><expr><name>der_len</name></expr></argument>, <argument><expr><name>pop_present</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid ASN1 encoded data. rv = %d (%s)"</literal></expr></argument>,
+                    <argument><expr><name>rv</name></expr></argument>, <argument><expr><call><name>EST_ERR_NUM_TO_STR</name><argument_list>(<argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>der_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>der_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/* 
+ * est_add_challengePassword - caller has verified that challengePassword 
+ * is configured and not included, so add it to the attributes here.
+ * No sanity check is needed since est_is_challengePassword_present
+ * has already been called.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_add_challengePassword</name> <parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>base64_ptr</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>b64_len</name></decl></parameter>, 
+				     <parameter><decl><type><name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>new_csr</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>pop_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><specifier>const</specifier> <name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>der_ptr</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>orig_ptr</name></decl>, <modifier>*</modifier><decl><type ref="prev"/><name>new_der</name> <init>= <expr><name>NULL</name></expr></init></decl>, <modifier>*</modifier><decl><type ref="prev"/><name>csrattrs</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>der_len</name></decl>, <decl><type ref="prev"/><name>tag</name></decl>, <decl><type ref="prev"/><name>xclass</name></decl>, <decl><type ref="prev"/><name>new_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>long</name></type> <name>len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>enc_len</name></decl>;</decl_stmt>
+
+    <expr_stmt><expr><name>der_ptr</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>b64_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>der_ptr</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>der_len</name> <operator>=</operator> <call><name>est_base64_decode</name><argument_list>(<argument><expr><name>base64_ptr</name></expr></argument>, <argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>der_ptr</name></expr></argument>, <argument><expr><name>b64_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>der_len</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Malformed base64 data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><operator>(</operator><name>void</name> <operator>*</operator><operator>)</operator><name>der_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>orig_ptr</name> <operator>=</operator> <operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>der_ptr</name></expr>;</expr_stmt>
+
+    <comment type="block">/* grab the first one and do the POP stuff */</comment>
+    <expr_stmt><expr><operator>(</operator><name>void</name><operator>)</operator><call><name>ASN1_get_object</name><argument_list>(<argument><expr><operator>&amp;</operator><name>der_ptr</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>len</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>tag</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>xclass</name></expr></argument>, <argument><expr><name>der_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>tag</name> <operator>!=</operator> <name>V_ASN1_SEQUENCE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Malformed ASN.1 Hex, no leanding Sequence"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>len</name> <operator>=</operator> <operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>der_ptr</name> <operator>-</operator> <name>orig_ptr</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name>new_len</name> <operator>=</operator> <name>der_len</name> <operator>-</operator> <operator>(</operator><name>int</name><operator>)</operator><name>len</name> <operator>+</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof></expr>;</expr_stmt>
+	    
+    <comment type="block">/* remove leading sequence and length and copy to new buffer */</comment>
+    <comment type="block">/* if &gt;= 256 need 4 byte Seq header */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>der_len</name> <operator>-</operator> <name>len</name> <operator>+</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof><operator>)</operator> <operator>&gt;=</operator> <literal type="number">256</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>new_len</name> <operator>+=</operator> <literal type="number">4</literal></expr>;</expr_stmt>
+	<expr_stmt><expr><name>new_der</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<if>if <condition>(<expr><operator>!</operator><name>new_der</name></expr>)</condition><then> <block>{
+	    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+	}</block></then></if>
+        <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>, <argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">1</literal><operator>)</operator> <operator>=</operator> <literal type="number">0x82</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">2</literal><operator>)</operator> <operator>=</operator> <operator>(</operator><name>new_len</name> <operator>-</operator> <literal type="number">4</literal><operator>)</operator> <operator>&gt;&gt;</operator> <literal type="number">8</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">3</literal><operator>)</operator> <operator>=</operator> <operator>(</operator><operator>(</operator><name>new_len</name> <operator>-</operator> <literal type="number">4</literal><operator>)</operator> <operator>&amp;</operator> <literal type="number">0xff</literal><operator>)</operator></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>new_der</name><operator>+</operator><literal type="number">4</literal></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><name>unsigned</name> <name>int</name><operator>)</operator> <name>len</name></expr></argument>, <argument><expr><name>der_ptr</name></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><name>unsigned</name> <name>int</name><operator>)</operator><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<comment type="block">/* if &lt;= 256, but &gt;= 128 need 3 byte Seq header */</comment>
+    }</block></then> <elseif>else <if>if <condition>(<expr><operator>(</operator><name>der_len</name> <operator>-</operator> <name>len</name> <operator>+</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof><operator>)</operator> <operator>&gt;=</operator> <literal type="number">128</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>new_len</name> <operator>+=</operator> <literal type="number">3</literal></expr>;</expr_stmt>
+	<expr_stmt><expr><name>new_der</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<if>if <condition>(<expr><operator>!</operator><name>new_der</name></expr>)</condition><then> <block>{
+	    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+	}</block></then></if>
+        <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>, <argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">1</literal><operator>)</operator> <operator>=</operator> <literal type="number">0x81</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">2</literal><operator>)</operator> <operator>=</operator> <name>new_len</name> <operator>-</operator> <literal type="number">3</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>new_der</name><operator>+</operator><literal type="number">3</literal></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><operator>(</operator><name>rsize_t</name><operator>)</operator> <name>len</name><operator>)</operator></expr></argument>, <argument><expr><name>der_ptr</name></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><operator>(</operator><name>rsize_t</name><operator>)</operator> <name>len</name><operator>)</operator></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <comment type="block">/* else just need 2 byte header */</comment>
+    }</block></then></if></elseif> <else>else <block>{
+        <expr_stmt><expr><name>new_len</name> <operator>+=</operator> <literal type="number">2</literal></expr>;</expr_stmt>
+        <expr_stmt><expr><name>new_der</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<if>if <condition>(<expr><operator>!</operator><name>new_der</name></expr>)</condition><then> <block>{
+	    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+	}</block></then></if>
+        <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>, <argument><expr><name>new_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><operator>*</operator><operator>(</operator><name>new_der</name> <operator>+</operator> <literal type="number">1</literal><operator>)</operator> <operator>=</operator> <name>new_len</name> <operator>-</operator> <literal type="number">2</literal></expr>;</expr_stmt>
+	<if>if <condition>(<expr><operator>(</operator><name>der_len</name> <operator>-</operator> <name>len</name><operator>)</operator> <operator>!=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>new_der</name><operator>+</operator><literal type="number">2</literal></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><operator>(</operator><name>rsize_t</name><operator>)</operator> <name>len</name><operator>)</operator></expr></argument>, <argument><expr><name>der_ptr</name></expr></argument>, <argument><expr><name>der_len</name> <operator>-</operator> <operator>(</operator><operator>(</operator><name>rsize_t</name><operator>)</operator> <name>len</name><operator>)</operator></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	}</block></then></if>
+    }</block></else></if>
+    <expr_stmt><expr><operator>*</operator><name>new_der</name> <operator>=</operator> <literal type="number">0x30</literal></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>new_der</name> <operator>+</operator> <operator>(</operator><name>new_len</name> <operator>-</operator> <sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof><operator>)</operator></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof></expr></argument>,
+	     <argument><expr><name>hex_chpw</name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>hex_chpw</name></expr></argument>)</argument_list></sizeof></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <expr_stmt><expr><name>csrattrs</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>new_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>csrattrs</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>csrattrs</name></expr></argument>, <argument><expr><name>new_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    
+    <expr_stmt><expr><name>enc_len</name> <operator>=</operator> <call><name>est_base64_encode</name><argument_list>(<argument><expr><operator>(</operator><specifier>const</specifier> <name>char</name> <operator>*</operator><operator>)</operator><name>new_der</name></expr></argument>, <argument><expr><name>new_len</name></expr></argument>, <argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>csrattrs</name></expr></argument>, <argument><expr><name>new_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>enc_len</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid base64 encoded data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>csrattrs</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_BASE64</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><operator>*</operator><name>new_csr</name> <operator>=</operator> <name>csrattrs</name></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>*</operator><name>pop_len</name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>csrattrs</name></expr></argument>, <argument><expr><name>new_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"CSR reconstituted attributes are(%d/%d): %s"</literal></expr></argument>, <argument><expr><name>b64_len</name></expr></argument>, <argument><expr><operator>*</operator><name>pop_len</name></expr></argument>, <argument><expr><name>csrattrs</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>new_der</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>new_der</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>orig_ptr</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>orig_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_add_attributes_helper() Add a NID and its character string to
+    an X509_REQ as an attribute.
+ 
+    @param req an X509_REQ structure used for the CSR request
+    @param nid NID to be added as an attribute
+    @param string pointer to the NID string if needed
+    @param chtype type of string used with this NID
+ 
+    @return EST_ERROR
+
+    This function is used to add a CSR attribute to a CSR request by the
+    EST client.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_add_attributes_helper</name> <parameter_list>(<parameter><decl><type><name>X509_REQ</name> <modifier>*</modifier></type><name>req</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>nid</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>string</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>chtype</name></decl></parameter>)</parameter_list>
+<block>{
+    
+    <if>if <condition>(<expr><name>req</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>nid</name> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>string</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/* Only MBSTRING_ASC used today, but callers could pass in other values */</comment>
+    <if>if <condition>(<expr><name>chtype</name> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>chtype</name> <operator>=</operator> <name>MBSTRING_ASC</name></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if<condition>(<expr><operator>!</operator><call><name>X509_REQ_add1_attr_by_NID</name><argument_list>(<argument><expr><name>req</name></expr></argument>, <argument><expr><name>nid</name></expr></argument>, <argument><expr><name>chtype</name></expr></argument>,
+				  <argument><expr><operator>(</operator><name>unsigned</name> <name>char</name> <operator>*</operator><operator>)</operator><name>string</name></expr></argument>, <argument><expr><operator>-</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Error adding attribute"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_X509_ATTR</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_decode_attributes_helper() Decode a base64 encoded string
+    into DER format(ASN.1 hex).
+ 
+    @param csrattrs pointer to a base64 encoded string
+    @param csrattrs_len base64 string length
+    @param der_ptr pointer to a pointer to store the DER encoded string
+    @param der_len pointer to store the DER string length
+ 
+    @return EST_ERROR
+
+    This function is used decode a base64 encoded CSR attributes string
+    into DER format.  It also performs range checking on the input parameters.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_decode_attributes_helper</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>csrattrs</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>csrattrs_len</name></decl></parameter>, 
+					<parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>der</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>der_ptr</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>der_len</name></decl>;</decl_stmt>
+
+    <comment type="block">/* just return if no data */</comment>
+    <if>if <condition>(<expr><operator>(</operator><name>csrattrs</name> <operator>==</operator> <name>NULL</name><operator>)</operator> <operator>||</operator> <operator>(</operator><name>csrattrs_len</name> <operator>==</operator> <literal type="number">0</literal><operator>)</operator></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><operator>(</operator><name>der</name> <operator>==</operator> <name>NULL</name><operator>)</operator> <operator>||</operator> <operator>(</operator><name>len</name> <operator>==</operator> <name>NULL</name><operator>)</operator></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/* 
+     * check smallest possible base64 case here for now 
+     * and sanity test will check min/max value for ASN.1 data
+     */</comment>
+    <if>if <condition>(<expr><name>csrattrs_len</name> <operator>&lt;</operator> <name>MIN_CSRATTRS</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+
+    <expr_stmt><expr><name>der_ptr</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>csrattrs_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>der_ptr</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>der_len</name> <operator>=</operator> <call><name>est_base64_decode</name><argument_list>(<argument><expr><name>csrattrs</name></expr></argument>, <argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>der_ptr</name></expr></argument>, <argument><expr><name>csrattrs_len</name><operator>*</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>der_len</name> <operator>&lt;=</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Invalid base64 encoded data"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>der_ptr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_BAD_BASE64</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><operator>*</operator><name>der</name> <operator>=</operator> <name>der_ptr</name></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>*</operator><name>len</name> <operator>=</operator> <name>der_len</name></expr>;</expr_stmt>
+
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+
+}</block></function>
+
+
+<comment type="block">/*! @brief est_get_attributes_helper() get attributes NID from a DER
+    encoded string.
+ 
+    @param der_ptr pointer to a pointer of DER encoded string
+    @param der_len pointer to the DER encoded string length
+    @param new_nid pointer to storage for NID, if found
+ 
+    @return EST_ERROR
+
+    This function is used to find the next NID in a DER encoded string.
+    If no NID is found before reaching the end of the string, then
+    new_nid returned as zero and EST_ERR_BAD_ASN1_HEX.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_get_attributes_helper</name> <parameter_list>(<parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>der_ptr</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>der_len</name></decl></parameter>, <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>new_nid</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>tag</name></decl>, <decl><type ref="prev"/><name>xclass</name></decl>, <decl><type ref="prev"/><name>j</name></decl>, <decl><type ref="prev"/><name>nid</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>out_len_save</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>long</name></type> <name>out_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>long</name></type> <name>len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><specifier>const</specifier> <name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>string</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><specifier>const</specifier> <name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>ostring</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>ASN1_OBJECT</name> <modifier>*</modifier></type><name>a_object</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+
+
+    <if>if <condition>(<expr><name>der_ptr</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name>string</name> <operator>=</operator> <operator>*</operator><name>der_ptr</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name>ostring</name> <operator>=</operator> <operator>*</operator><name>der_ptr</name></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>der_len</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name>out_len</name> <operator>=</operator> <operator>*</operator><name>der_len</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name>out_len_save</name> <operator>=</operator> <operator>*</operator><name>der_len</name></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>new_nid</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <while>while <condition>(<expr><name>out_len</name> <operator>&gt;</operator> <literal type="number">0</literal></expr>)</condition> <block>{
+	<expr_stmt><expr><name>j</name> <operator>=</operator> <call><name>ASN1_get_object</name><argument_list>(<argument><expr><operator>&amp;</operator><name>string</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>len</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>tag</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>xclass</name></expr></argument>, <argument><expr><name>out_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+	<if>if <condition>(<expr><name>j</name> <operator>&amp;</operator> <literal type="number">0x80</literal></expr>)</condition><then> <block>{
+	    <return>return <expr><operator>(</operator><name>EST_ERR_BAD_ASN1_HEX</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+	<switch>switch <condition>(<expr><name>tag</name></expr>)</condition> <block>{
+
+	<case>case <expr><name>V_ASN1_OBJECT</name></expr>:</case>
+            <expr_stmt><expr><name>a_object</name> <operator>=</operator> <call><name>c2i_ASN1_OBJECT</name><argument_list>(<argument><expr><name>NULL</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>string</name></expr></argument>, <argument><expr><name>len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>a_object</name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+	        <expr_stmt><expr><name>nid</name> <operator>=</operator> <call><name>OBJ_obj2nid</name><argument_list>(<argument><expr><name>a_object</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"NID=%d"</literal></expr></argument>, <argument><expr><name>nid</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<expr_stmt><expr><operator>*</operator><name>new_nid</name> <operator>=</operator> <name>nid</name></expr>;</expr_stmt>
+		<expr_stmt><expr><operator>*</operator><name>der_len</name> <operator>=</operator> <operator>(</operator><name>out_len_save</name> <operator>-</operator> <call>(<name>int</name>) <argument_list>(<argument><expr><name>string</name> <operator>-</operator> <name>ostring</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</expr_stmt>
+		<expr_stmt><expr><operator>*</operator><name>der_ptr</name> <operator>=</operator> <operator>(</operator><name>unsigned</name> <name>char</name> <operator>*</operator><operator>)</operator><name>string</name></expr>;</expr_stmt>
+	        <expr_stmt><expr><call><name>ASN1_OBJECT_free</name><argument_list>(<argument><expr><name>a_object</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+	    <break>break;</break>
+	<default>default:</default>
+	    <comment type="block">/* have to adjust string pointer here */</comment>
+	    <expr_stmt><expr><name>string</name> <operator>+=</operator> <name>len</name></expr>;</expr_stmt>
+	    <break>break;</break>
+	<case>case <expr><name>V_ASN1_SET</name></expr>:</case>
+	<case>case <expr><name>V_ASN1_SEQUENCE</name></expr>:</case>
+	    <break>break;</break>
+	}</block></switch>
+	<expr_stmt><expr><name>out_len</name> <operator>=</operator> <operator>(</operator><name>out_len_save</name> <operator>-</operator> <operator>(</operator><name>string</name> <operator>-</operator> <name>ostring</name><operator>)</operator><operator>)</operator></expr>;</expr_stmt>	
+    }</block></while>
+
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/* 
+ * cleanse_auth_credentials - Walk through the auth_credentials structure and
+ * overwrite and free each value.
+ */</comment>
+<function><type><name>void</name></type> <name>cleanse_auth_credentials</name><parameter_list>(<parameter><decl><type><name>EST_HTTP_AUTH_HDR</name> <modifier>*</modifier></type><name>auth_cred</name></decl></parameter>)</parameter_list>
+<block>{
+
+    <if>if <condition>(<expr><name>auth_cred</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return;</return>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>user</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>user</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>user</name></name></expr></argument>, <argument><expr><name>MAX_UIDPWD</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>user</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>user</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>pwd</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>pwd</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>pwd</name></name></expr></argument>, <argument><expr><name>MAX_UIDPWD</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>pwd</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>pwd</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>uri</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>uri</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>uri</name></name></expr></argument>, <argument><expr><name>EST_URI_MAX_LEN</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>uri</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>cnonce</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>cnonce</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>cnonce</name></name></expr></argument>, <argument><expr><name>MAX_NONCE</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>cnonce</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>cnonce</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>qop</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>qop</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>qop</name></name></expr></argument>, <argument><expr><name>MAX_QOP</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>qop</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>qop</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nc</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nc</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nc</name></name></expr></argument>, <argument><expr><name>MAX_NC</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nc</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nc</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nonce</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nonce</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nonce</name></name></expr></argument>,
+                                                    <argument><expr><name>MAX_NONCE</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nonce</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>nonce</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>response</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>response</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>response</name></name></expr></argument>,
+                                                       <argument><expr><name>MAX_RESPONSE</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>response</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>response</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name><name>auth_cred</name><operator>-&gt;</operator><name>auth_token</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>OPENSSL_cleanse</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>auth_token</name></name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>auth_token</name></name></expr></argument>,
+                                                         <argument><expr><name>MAX_AUTH_TOKEN_LEN</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>auth_token</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>auth_cred</name><operator>-&gt;</operator><name>auth_token</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>        
+    
+    <return>return;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * Given an input string, look for the four valid operations
+ */</comment>
+<function><type><name>EST_OPERATION</name></type> <name>est_parse_operation</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>op_path</name></decl></parameter>)</parameter_list> 
+<block>{
+    <decl_stmt><decl><type><name>EST_OPERATION</name></type> <name>operation</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><operator>!</operator><call><name>est_strcasecmp_s</name><argument_list>(<argument><expr><name>op_path</name></expr></argument>, <argument><expr><name>EST_GET_CACERTS</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>operation</name> <operator>=</operator> <name>EST_OP_CACERTS</name></expr>;</expr_stmt>
+    }</block></then> <elseif>else <if>if <condition>(<expr><operator>!</operator><call><name>est_strcasecmp_s</name><argument_list>(<argument><expr><name>op_path</name></expr></argument>, <argument><expr><name>EST_GET_CSRATTRS</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>operation</name> <operator>=</operator> <name>EST_OP_CSRATTRS</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <elseif>else <if>if <condition>(<expr><operator>!</operator><call><name>est_strcasecmp_s</name><argument_list>(<argument><expr><name>op_path</name></expr></argument>, <argument><expr><name>EST_SIMPLE_ENROLL</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>operation</name> <operator>=</operator> <name>EST_OP_SIMPLE_ENROLL</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <elseif>else <if>if <condition>(<expr><operator>!</operator><call><name>est_strcasecmp_s</name><argument_list>(<argument><expr><name>op_path</name></expr></argument>, <argument><expr><name>EST_SIMPLE_REENROLL</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>operation</name> <operator>=</operator> <name>EST_OP_SIMPLE_REENROLL</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <else>else <block>{
+        <expr_stmt><expr><name>operation</name> <operator>=</operator> <name>EST_OP_MAX</name></expr>;</expr_stmt>
+    }</block></else></if>
+    
+    <return>return <expr><operator>(</operator><name>operation</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * Given a URI string, parse it up and return the optional path
+ * segment if it exists and the operation value
+ */</comment>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>HAVE_URIPARSER</name></cpp:ifdef>
+<function><type><name>EST_ERROR</name></type> <name>est_parse_uri</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>uri</name></decl></parameter>, <parameter><decl><type><name>EST_OPERATION</name> <modifier>*</modifier></type><name>operation</name></decl></parameter>,
+                         <parameter><decl><type><name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>path_seg</name></decl></parameter>)</parameter_list> 
+<block>{
+    <comment type="block">/* char *path_seg_end; */</comment>
+    <comment type="block">/* int   path_seg_len = 0; */</comment>
+    <decl_stmt><decl><type><name>UriParserStateA</name></type> <name>state</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>UriUriA</name></type> <name>parsed_uri</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name> <init>= <expr><name>EST_ERR_NONE</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>uriparse_rc</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>errno_t</name></type> <name>safec_rc</name></decl>;</decl_stmt>    
+    <decl_stmt><decl><type><name>int</name></type> <name>diff</name></decl>;</decl_stmt>
+
+    <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>state</name><operator>.</operator><name>uri</name></name> <operator>=</operator> <operator>&amp;</operator><name>parsed_uri</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name>uriparse_rc</name> <operator>=</operator> <call><name>uriParseUriA</name><argument_list>(<argument><expr><operator>&amp;</operator><name>state</name></expr></argument>, <argument><expr><name>uri</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>uriparse_rc</name> <operator>!=</operator> <name>URI_SUCCESS</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name><name>parsed_uri</name><operator>.</operator><name>pathHead</name></name></expr>)</condition><then> <block>{
+        
+        <comment type="block">/*
+         * validate the URI
+         * - parse the path-prefix (/.well-known/est)
+         * - look to see if there is a path segment extension
+         * - determine which operation it is
+         */</comment>        
+        <decl_stmt><decl><type><name>UriPathSegmentA</name> <modifier>*</modifier></type><name>cur_seg</name> <init>= <expr><name><name>parsed_uri</name><operator>.</operator><name>pathHead</name></name></expr></init></decl>;</decl_stmt>
+        <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>cur_seg_str</name> <init>= <expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>first</name></name></expr></init></decl>;</decl_stmt>
+        <decl_stmt><decl><type><name>int</name></type> <name>cur_seg_len</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+        <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>segment</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+        
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>memcmp_s</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>, <argument><expr><name>WELL_KNOWN_SEGMENT_LEN</name></expr></argument>,
+                            <argument><expr><literal type="string">".well-known"</literal></expr></argument>, <argument><expr><name>WELL_KNOWN_SEGMENT_LEN</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>diff</name> <operator>||</operator> <name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"URI path does not start with %s, safec_rc = 0x%xO\n"</literal></expr></argument>,
+                        <argument><expr><name>WELL_KNOWN_SEGMENT</name></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        
+        <expr_stmt><expr><name>cur_seg</name> <operator>=</operator> <name><name>cur_seg</name><operator>-&gt;</operator><name>next</name></name></expr>;</expr_stmt>
+        <expr_stmt><expr><name>cur_seg_str</name> <operator>=</operator> <operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>first</name></name></expr>;</expr_stmt>
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>memcmp_s</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>, <argument><expr><name>EST_SEGMENT_LEN</name></expr></argument>,
+                            <argument><expr><literal type="string">"est"</literal></expr></argument>, <argument><expr><name>EST_SEGMENT_LEN</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>diff</name> <operator>||</operator> <name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"URI does not contain %s segment 0x%xO\n"</literal></expr></argument>,
+                        <argument><expr><name>EST_SEGMENT</name></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        
+        <comment type="block">/*
+         * This next segment is either a segment extension
+         * or it's the operation 
+         */</comment>
+        <expr_stmt><expr><name>cur_seg</name> <operator>=</operator> <name><name>cur_seg</name><operator>-&gt;</operator><name>next</name></name></expr>;</expr_stmt>
+        <expr_stmt><expr><name>cur_seg_str</name> <operator>=</operator> <operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>first</name></name></expr>;</expr_stmt>
+
+        <comment type="block">/*
+         * If there's another segment after this one then use it
+         * to find the end, else walk this one for the length
+         */</comment>
+        <if>if <condition>(<expr><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><name>cur_seg_len</name> <operator>=</operator> <operator>(</operator><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name><operator>)</operator> <operator>-</operator> <name>cur_seg_str</name></expr>;</expr_stmt>
+        }</block></then> <else>else <block>{
+            <expr_stmt><expr><name>cur_seg_len</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>, <argument><expr><name>EST_MAX_PATH_SEGMENT_LEN</name><operator>+</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></else></if>
+        <if>if <condition>(<expr><name>cur_seg_len</name> <operator>&gt;</operator> <name>EST_MAX_PATH_SEGMENT_LEN</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"path segment exceeds maximum of %d\n"</literal></expr></argument>,
+                        <argument><expr><name>EST_MAX_PATH_SEGMENT_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <comment type="block">/*
+         * See if the current segment needs to be put into its own
+         * string
+         */</comment>
+        <if>if <condition>(<expr><operator>(</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name> <operator>!=</operator> <name>NULL</name><operator>)</operator> <operator>&amp;&amp;</operator>
+            <operator>*</operator><operator>(</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name><operator>)</operator> <operator>!=</operator> <literal type="char">'\0'</literal></expr>)</condition><then> <block>{
+            <expr_stmt><expr><name>segment</name> <operator>=</operator> <call><name>STRNDUP</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>, <argument><expr><name>cur_seg_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then> <else>else <block>{
+            <expr_stmt><expr><name>segment</name> <operator>=</operator> <call><name>STRNDUP</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>, <argument><expr><name>EST_MAX_PATH_SEGMENT_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></else></if>
+        
+        <comment type="block">/*
+         * look to see if the operation path comes next:
+         * cacerts, csrattrs, simpleenroll, simplereenroll
+         */</comment>
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <call><name>est_parse_operation</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><operator>*</operator><name>operation</name> <operator>==</operator> <name>EST_OP_MAX</name></expr>)</condition><then> <block>{
+            
+            <comment type="block">/*
+             * It wasn't one of the 4 known operations so
+             * it must be a path segment.  parse it out.
+             *
+             * Find the end of the path segment,
+             * determine the length,
+             * save it away
+             */</comment>
+            <comment type="block">/* path_seg_end = (char *)cur_seg-&gt;text.afterLast; */</comment>
+            
+            <comment type="block">/* if (path_seg_end != NULL) { */</comment>
+            <comment type="block">/*     path_seg_len = path_seg_end - cur_seg_str; */</comment>
+            <comment type="block">/* } */</comment>
+            
+            <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>cur_seg_len</name><operator>+</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <if>if <condition>(<expr><operator>*</operator><name>path_seg</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+            
+            <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>memcpy_s</name><argument_list>(<argument><expr><operator>*</operator><name>path_seg</name></expr></argument>, <argument><expr><name>cur_seg_len</name><operator>+</operator><literal type="number">1</literal></expr></argument>,
+                                <argument><expr><name>segment</name></expr></argument>, <argument><expr><name>cur_seg_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+                <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"URI path seg could not copied into the context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><operator>*</operator><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>                
+                <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+            <expr_stmt><expr><operator>*</operator><operator>(</operator><operator>(</operator><operator>*</operator><name>path_seg</name><operator>)</operator><operator>+</operator><name>cur_seg_len</name><operator>)</operator> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+            
+            <comment type="block">/*
+             * now that we have the path segment parsed, try
+             * for the operation again.  jump over the path segment
+             * and the next '/'
+             */</comment>
+            <expr_stmt><expr><name>cur_seg_str</name> <operator>=</operator> <name>cur_seg_str</name> <operator>+</operator> <name>cur_seg_len</name> <operator>+</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+            <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <call><name>est_parse_operation</name><argument_list>(<argument><expr><name>cur_seg_str</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            
+            <if>if <condition>(<expr><operator>*</operator><name>operation</name> <operator>==</operator> <name>EST_OP_MAX</name></expr>)</condition><then> <block>{
+                <comment type="block">/*
+                 * Operation code was suppose to be next but is not
+                 */</comment>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><operator>*</operator><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>                
+                <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_BAD_REQ</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+        }</block></then> <else>else <block>{
+            <comment type="block">/*
+             * It was one of the operations, make sure it's the end
+             */</comment>
+            <if>if <condition>(<expr><operator>(</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name> <operator>!=</operator> <name>NULL</name><operator>)</operator> <operator>&amp;&amp;</operator>
+                <operator>*</operator><operator>(</operator><name><name>cur_seg</name><operator>-&gt;</operator><name>text</name><operator>.</operator><name>afterLast</name></name><operator>)</operator> <operator>!=</operator> <literal type="char">'\0'</literal></expr>)</condition><then> <block>{
+                <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Invalid path segment: contains an operation value"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><operator>*</operator><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+                <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_MAX</name></expr>;</expr_stmt>
+                <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+        }</block></else></if>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>segment</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>uriFreeUriMembersA</name><argument_list>(<argument><expr><name><name>state</name><operator>.</operator><name>uri</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>        
+    }</block></then></if>    
+    <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+}</block></function>
+<cpp:else>#<cpp:directive>else</cpp:directive></cpp:else>
+<function><type><name>EST_ERROR</name></type> <name>est_parse_uri</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>uri</name></decl></parameter>, <parameter><decl><type><name>EST_OPERATION</name> <modifier>*</modifier></type><name>operation</name></decl></parameter>,
+                         <parameter><decl><type><name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>path_seg</name></decl></parameter>)</parameter_list> 
+<block>{
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rc</name> <init>= <expr><name>EST_ERR_NONE</name></expr></init></decl>;</decl_stmt>
+    <expr_stmt><expr><operator>*</operator><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <comment type="block">/*
+     * Assume that the uri is pointing to
+     *   /.well-known/est/&lt;operation&gt;
+     */</comment>
+    <if>if <condition>(<expr><call><name>strncmp</name><argument_list>(<argument><expr><name>uri</name></expr></argument>, <argument><expr><name>EST_CACERTS_URI</name></expr></argument>, <argument><expr><name>EST_URI_MAX_LEN</name></expr></argument>)</argument_list></call> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_CACERTS</name></expr>;</expr_stmt>
+    }</block></then> <elseif>else <if>if <condition>(<expr><call><name>strncmp</name><argument_list>(<argument><expr><name>uri</name></expr></argument>, <argument><expr><name>EST_SIMPLE_ENROLL_URI</name></expr></argument>, <argument><expr><name>EST_URI_MAX_LEN</name></expr></argument>)</argument_list></call> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_SIMPLE_ENROLL</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <elseif>else <if>if <condition>(<expr><call><name>strncmp</name><argument_list>(<argument><expr><name>uri</name></expr></argument>, <argument><expr><name>EST_RE_ENROLL_URI</name></expr></argument>, <argument><expr><name>EST_URI_MAX_LEN</name></expr></argument>)</argument_list></call> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_SIMPLE_REENROLL</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <elseif>else <if>if <condition>(<expr><call><name>strncmp</name><argument_list>(<argument><expr><name>uri</name></expr></argument>, <argument><expr><name>EST_CSR_ATTRS_URI</name></expr></argument>, <argument><expr><name>EST_URI_MAX_LEN</name></expr></argument>)</argument_list></call> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_CSRATTRS</name></expr>;</expr_stmt>
+    }</block></then></if></elseif> <else>else <block>{
+        <expr_stmt><expr><operator>*</operator><name>operation</name> <operator>=</operator> <name>EST_OP_MAX</name></expr>;</expr_stmt>
+        <expr_stmt><expr><name>rc</name> <operator>=</operator> <name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name></expr>;</expr_stmt>
+        
+    }</block></else></if>
+    
+    <return>return <expr><name>rc</name></expr>;</return>
+}</block></function>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+
+<comment type="block">/*
+ * Store the path segment into the context.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_store_path_segment</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>path_segment</name></decl></parameter>,
+                                  <parameter><decl><type><name>int</name></type> <name>path_segment_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <comment type="block">/*
+     * reset what might already be cached
+     */</comment>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    }</block></then></if>
+    
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name>path_segment</name></expr></argument>, <argument><expr><name>path_segment_len</name></expr></argument>)</argument_list></call><operator>+</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_MALLOC</name></expr>;</return>
+    }</block></then></if>
+    
+    <if>if <condition>(<expr><name>EOK</name> <operator>!=</operator> <call><name>strncpy_s</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name></name></expr></argument>, <argument><expr><name>path_segment_len</name><operator>+</operator><literal type="number">1</literal></expr></argument>,
+                         <argument><expr><name>path_segment</name></expr></argument>, <argument><expr><name>path_segment_len</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_HTTP_INVALID_PATH_SEGMENT</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>uri_path_segment</name><index>[<expr><name>path_segment_len</name></expr>]</index></name> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+
+    <return>return <expr><name>EST_ERR_NONE</name></expr>;</return>   
+}</block></function>
+
+
+<function><type><name>int</name></type> <name>est_strcasecmp_s</name> <parameter_list>(<parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>s1</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>s2</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>errno_t</name></type> <name>safec_rc</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>diff</name></decl>;</decl_stmt>
+    
+    <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>strcasecmp_s</name><argument_list>(<argument><expr><name>s1</name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name>s1</name></expr></argument>, <argument><expr><name>RSIZE_MAX_STR</name></expr></argument>)</argument_list></call></expr></argument>, <argument><expr><name>s2</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+    	<comment type="block">/*
+    	 * Log that we encountered a SafeC error
+     	 */</comment>
+     	<expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"strcasecmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if> 
+
+    <return>return <expr><name>diff</name></expr>;</return>
+}</block></function>
+
+</unit>

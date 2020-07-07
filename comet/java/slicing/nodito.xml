@@ -1,0 +1,1 @@
+<expr_stmt><expr><call><name>printf</name><argument_list>(<argument><expr><literal type="string">"Function name est_logger_stderr\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
