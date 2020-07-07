@@ -1,0 +1,69 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <!--
+      This jelly script is used for per-project configuration.
+      See global.jelly for a general discussion about jelly script.
+    -->
+
+    <!--
+      Creates a text field that shows the value of the "name" property.
+      When submitted, it will be passed to the corresponding constructor parameter.
+    -->
+    <f:section title="Basic Configuration">
+        <f:entry title="Python3" field="python3Path">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Causality tool" field="causalityPath">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Requirements" field="requirementsPath">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Source code" field="sourcePath">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Test cases" field="testPath">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Programing language" field="projectLanguage">
+            <f:select />
+        </f:entry>
+    </f:section>
+    <f:section title="Advanced Options">
+        <f:advanced>
+            <f:entry title="VSM" field="vsm">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="LSI" field="lsi">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="JS" field="js">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="LDA" field="lda">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="NMF" field="nmf">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="VSM+LDA" field="vsm_lda">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="JS+LDA" field="js_lda">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="VSM+NMF" field="vsm_nmf">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="JS+NMF" field="js_nmf">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="VSM+JS" field="vsm_js">
+                <f:checkbox default="true"/>
+            </f:entry>
+            <f:entry title="Traces" field="traces">
+                <f:textbox />
+            </f:entry>
+        </f:advanced>
+    </f:section>
+</j:jelly>
