@@ -13,17 +13,21 @@ The team is going to be divided into 3 domains:
 - Front-End Development, and 
 - Back-End Development. 
 
-## Project Goals:
+## Project Description for CSCI 435/535
 
-- Consume and adapt services from the  library DS4SE. This task will need a constant communication with the Team of Project#2, which is in charge of the Data Science interfaces, and Team of Project#3, which is in charge of the security interfaces. 
-- Complete the navigation of the web-app. 
+### Project Goals:
 
-## Project Requirements:
+- [ ] Complete the navigation of the web-app 
+- [ ] Consume and adapt services from the  library DS4SE. This task will need a fluent communication with the Team of Project#2, which is in charge of the Data Science interfaces, and 
+- [ ] Consume and adapt services from the library SecureReqNet. This task will need a fluent communication with the Team of Project#3, which is in charge of the security interfaces
+
+
+### Project Requirements:
 
 - Required Knowledge Prerequisites: Python, JavaScript, and Git
 - Preferred Knowledge Prerequisites: Machine Learning, Statistical Computing
 
-## Recommended Readings:
+### Recommended Readings:
 
 - An introductory Video for Traceability [link](https://www.youtube.com/watch?v=guSAnWP9zDI&feature=youtu.be)
 - A probabilistic approach to Traceability [paper](https://arxiv.org/pdf/2005.09046.pdf)
