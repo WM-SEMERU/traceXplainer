@@ -9,7 +9,7 @@ SEMERU lab has been developing automated approaches based on Natural Language Pr
 The main goal of this project is to extend the functionality of a Traceability Tool in order to integrate new components based on unsupervised learning. 
 You are required to implement and refactor components in the front- and back-end. 
 The team is going to be divided into 3 domains: 
-- DataBase Integration, 
+- DataBase Integration & Jenkins, 
 - Front-End Development, and 
 - Back-End Development. 
 
