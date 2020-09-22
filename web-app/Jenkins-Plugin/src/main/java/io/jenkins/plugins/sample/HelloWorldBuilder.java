@@ -14,6 +14,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.io.*;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -48,6 +49,27 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             listener.getLogger().println("Bonjour, " + name + "!");
         } else {
             listener.getLogger().println("Hello my friend, " + name + "!");
+        }
+
+        //This is where the fun begins. Run a console command to find the difference between this commit and the last one.
+        Process process = Runtime.getRuntime().exec("cmd /c cd C:\\Users\\User\\Desktop\\TestRepo && name-only HEAD HEAD~1");
+
+        Process testProcess = Runtime.getRuntime().exec("cmd /c echo multiple word command", null, new File("C:\\Users\\User\\Desktop\\TestRepo"));
+
+
+        //The above command is executed in a separate environment, which is why the above type is 'process'.
+        //Lets access that process to extract the log and print that to the shell.
+        printResults(process, listener);
+        printResults(testProcess, listener);
+    }
+
+    //Helper function to output our diff command.
+    public static void printResults(Process process, TaskListener listener) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line = "";
+        listener.getLogger().println("About to run command.");
+        while ((line = reader.readLine()) != null) {
+            listener.getLogger().println(line);
         }
     }
 
