@@ -15,3 +15,11 @@ Execute these commands in machine's terminal:
     sudo systemctl status mongodb
 7. Set MongoDB to automatically start after system reboot
     sudo systemctl enable mongod
+
+MongoDB Python Driver - PyMongo Installation:
+
+Execute this command in machine's terminal:
+1. Import latest PyMongo version using pip
+    python -m pip install pymongo
+2. (Optional) Update PyMongo
+    python -m pip install --upgrade pymongo
