@@ -39,6 +39,9 @@ col = db[commit_name]
 
 #initialize an empty dictionary to be filled by the upcoming loop.
 fileDict = {}
+fileDict['NOTGIVEN'] = []
+fileDict['TMreq'] = []
+fileDict['TMsrc'] = []
 
 for i in diff_list:
     #Initialize filetype so that if users don't label theire files we can find out down the road.
@@ -58,10 +61,7 @@ for i in diff_list:
             break
 
     #Add the filename into the dictionary with the key corresponding to its type
-    if fileDict[filetype] is None:
-      fileDict[filetype] = [i]
-    else:
-      fileDict[filetype].append(i)
+    fileDict[filetype].append(i)
 
 print(fileDict)
 
