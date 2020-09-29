@@ -17,10 +17,12 @@ import sys
 client = pymongo.MongoClient("mongodb://localhost:27017/")
 db = client["TM-filenames"]
 
-print(myclient.list_database_names())
+print(client.list_database_names())
 
 
 # get repository name from command line
+if len(sys.argv) < 2:
+  print("Please enter the name of the repo as a cl argument")
 gitRepo = sys.argv[1]
 os.chdir(gitRepo)
 
