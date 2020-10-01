@@ -1,0 +1,31 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %} Dashboard {% endblock title %}
+
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+<div>
+  Implement Traceability Screen here?
+  <div id="like_button_container"></div>
+  <div id="root"></div>
+    </div>
+
+{% include "includes/footer.html" %}
+{% endblock content %}
+
+<!-- Specific JS goes HERE -->
+{% block javascripts %}
+
+  <script src="/static/assets/vendor/chart.js/dist/Chart.min.js"></script>
+  <script src="/static/assets/vendor/chart.js/dist/Chart.extension.js"></script>
+  <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <!--script src="https://unpkg.com/@babel/standalone/babel.min.js"></script-->
+
+  <!-- Load our React component. -->
+  <script src="/static/assets/js/like_button.js" type="text/javascript"></script>
+  <script src="/static/assets/js/index.js" type="module"></script>
+
+{% endblock javascripts %}
