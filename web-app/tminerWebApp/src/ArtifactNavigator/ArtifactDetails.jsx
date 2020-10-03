@@ -1,6 +1,5 @@
 import './ArtifactDetails.css';
 import 'prismjs/themes/prism.css';
-import './2.76480504.chunk.css';
 
 import { Cell, Column, Table } from "@blueprintjs/table";
 import { getArtifactClassName, getArtifactContent, } from '../interfaces/ArtifactInterface';
