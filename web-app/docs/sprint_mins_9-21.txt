@@ -1,0 +1,19 @@
+Notes for next sprint:
+-create issues in github, only put the issue num/name in trello
+-link files in github issues
+-have milestones for sprints, measurable progress trackers
+-have an incremental prototype to help show off progress
+-goal for this sprint was understand the technology
+-create some documentation (we should take minutes at our meetings)
+-create step by step documentation and guides for setting up jenkins, db, etc.
+-nice and organized documentation (someone external to the project could understand)
+-create a documentation folder in the github? maybe
+-presentation aspect (have some slides detailing what we got done, what we are working on, what we want to do)
+-contributions, issues (problems we are having like port forwarding, etc), next sprint steps
+
+What we did after our sprint review:
+-discussed expectations for future sprints, including having slides for presentation
+-scheduled weekly scrum meetings on wednesdays during class
+-we will discuss milestones during those scrums
+-set up "dev-branch"
+-set up "docs" folder in "web-app" to maintain our meeting minutes and other documentation

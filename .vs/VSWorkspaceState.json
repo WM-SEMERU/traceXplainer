@@ -1,0 +1,12 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\web-app",
+    "\\web-app\\flask-server",
+    "\\web-app\\trace-web-app",
+    "\\web-app\\trace-web-app\\public",
+    "\\web-app\\trace-web-app\\scripts"
+  ],
+  "SelectedNode": "\\comet",
+  "PreviewInSolutionExplorer": false
+}
