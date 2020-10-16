@@ -47,7 +47,7 @@
 .browser-container {
 	position: absolute;
 	left: 260px;
-	margin-top: 70px;
+	margin-top: 10px;
 	width: calc(100% - 270px);
 	height: calc(100vh - 80px);
 	/* background-color: rgba(255,255,255,.6); */
@@ -111,6 +111,28 @@
 	font-size: 15px;
 }
 
-#mongo-vomit {
+.link {
 	color: white;
+	text-decoration: none;
+}
+
+.link:hover {
+	color: #FF1493 !important;
+	text-decoration: none;
+}
+
+.link:visited {
+	color: white;
+	text-decoration: none;
+}
+
+.page-title {
+	color: white;
+	margin-left: 75px;
+	margin-top: 20px;
+	font-size: 30px;
+}
+
+.testing {
+	margin-right: 20px;
 }
