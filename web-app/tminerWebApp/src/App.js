@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { Button, ButtonGroup } from '@blueprintjs/core';
 import ArtifactNavigator from './ArtifactNavigator/ArtifactNavigator';
+import AnalysisView from './AnalysisView/AnalysisView';
 import logo from './logo.svg';
 import './App.css';
 import './assets/css/black-dashboard.css'
@@ -104,7 +105,7 @@ function Artifacts() {
 function Analysis() {
   return (
     <div class="browser-container">
-      <h2>Not yet implemented</h2>
+      <AnalysisView />
     </div>
   );
 }
