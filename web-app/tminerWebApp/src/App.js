@@ -6,8 +6,11 @@ import {
   Link
 } from "react-router-dom";
 import { Button, ButtonGroup } from '@blueprintjs/core';
+import LinkBrowser from './Links/LinkBrowser';
 import ArtifactNavigator from './ArtifactNavigator/ArtifactNavigator';
 import AnalysisView from './AnalysisView/AnalysisView';
+
+
 import logo from './logo.svg';
 import './App.css';
 import './assets/css/black-dashboard.css'
@@ -27,9 +30,9 @@ function App() {
 
   return (
     <body>
-	
+
 	<Router>
-	
+
 	<div class="page-title">
 		<Switch>
           <Route exact path="/">
@@ -43,11 +46,11 @@ function App() {
           </Route>
         </Switch>
 	</div>
-	
-    
+
+
 	<div class="sidebar">
-      <div class="sidebar-wrapper">		
-		
+      <div class="sidebar-wrapper">
+
         <ul class="nav">
 
           <li>
@@ -71,9 +74,9 @@ function App() {
 
         </ul>
       </div>
-	  
+
     </div>
-	
+
 	<div>
 	    <Switch>
           <Route exact path="/">
@@ -87,9 +90,9 @@ function App() {
           </Route>
         </Switch>
 	</div>
-	
+
 	</Router>
-	
+
 	</body>
   );
 }
@@ -113,7 +116,7 @@ function Analysis() {
 function Links() {
   return (
     <div class="browser-container">
-      <h2>Not yet implemented</h2>
+      <LinkBrowser />
     </div>
   );
 }

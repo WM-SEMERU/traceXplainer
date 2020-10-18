@@ -4,9 +4,6 @@ import {HTMLSelect, InputGroup} from '@blueprintjs/core';
 
 import React from 'react';
 import { getAllArtifactInfos } from '../interfaces/ArtifactInterface';
-import { Cell, Column, Table } from "@blueprintjs/table";
-import { getLinkThreshold, getTraceLinks } from '../interfaces/TraceabilityInterface';
-import { getArtifactClassName, getArtifactContent, } from '../interfaces/ArtifactInterface';
 import { Icon } from '@blueprintjs/core';
 
 export default class SourceBrowser extends React.Component {
