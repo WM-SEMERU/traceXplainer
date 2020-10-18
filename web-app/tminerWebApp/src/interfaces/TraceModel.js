@@ -36,9 +36,11 @@ export default class TraceModel {
 				artifactType: "src",
 				artifactId: targetName,
 				traceValue: this.__model[sourceName][targetName],
-				
+				thisSourceName: sourceName,
 			}
 		})
+
+
 	}
 
 	getTracesForTarget(targetName) {
@@ -85,7 +87,10 @@ export default class TraceModel {
 			}
 
 			model[sourceName][targetName] = traceValue;
+			//console.log('source ' + sourceName + ' target ' + targetName + ' ' + traceValue);
+
 		});
+
 
 		return new TraceModel(model);
 	}
