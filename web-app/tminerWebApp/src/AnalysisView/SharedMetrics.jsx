@@ -1,12 +1,11 @@
-import './SourceBrowser.css';
+import './SharedMetrics.css';
 
 import {HTMLSelect, InputGroup} from '@blueprintjs/core';
 
 import React from 'react';
 import { getAllArtifactInfos } from '../interfaces/ArtifactInterface';
-import { Icon } from '@blueprintjs/core';
 
-export default class SourceBrowser extends React.Component {
+export default class SharedMetrics extends React.Component {
 
 	state = {
 		artifactInfos: null,
@@ -30,32 +29,26 @@ export default class SourceBrowser extends React.Component {
 
 	render() {
 		return (
-			<div className="artifactBrowserContainer">
+			<div className="metricBrowserContainer">
 				<div className="artifactBrowser">
 					
-					<div className="sourceTitle">
-					<div className="sourceTitleRow">
+					<div className="sharedTable">
 					
-					<div className="leftTitle">
-						&nbsp; &nbsp; &nbsp; Source
+					<div className="sharedTitleRow">
+					
+					<div className="metricsTitle">
+						&nbsp; &nbsp; &nbsp; Shared Metrics
 					</div>
 					
-					<div className="artifactClassSelectorContainer">
-						<HTMLSelect onChange={(event) => {
-							this.deselectCurrentlySelectedArtifact();
-							this.props.onArtifactDeselect();
-							this.currentArtifactClass = event.currentTarget.value;
-							this.fetchArtifacts(event.currentTarget.value);
-						}}>
-							<option value="req">Requirements</option>
-							<option value="src">Source Code</option>
-						</HTMLSelect>
+					<div className="heading headingSharedMetric">
+						Vocab
 					</div>
 					
 					</div>
-					</div>
 					
-					<table className="metricTable">
+					<div className="sharedContentRow">
+					
+					<table className="metricTable leftTable">
 						<tr>
 							<th>Metric</th>
 							<th>Value</th>
@@ -77,12 +70,8 @@ export default class SourceBrowser extends React.Component {
 							<td>+435</td>
 						</tr>
 					</table>
-					
-					<div className="heading">
-						Vocab
-					</div>
-					
-					<table className="metricTable">
+										
+					<table className="metricTable rightTable">
 						<tr>
 							<th>Token</th>
 							<th>Count</th>
@@ -104,6 +93,10 @@ export default class SourceBrowser extends React.Component {
 							<td>0.05</td>
 						</tr>
 					</table>
+					
+					</div>
+					
+					</div>
 
 					<div style={{height: 20}}/>
 				</div>

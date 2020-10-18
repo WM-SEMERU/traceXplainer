@@ -76,7 +76,7 @@ export default class ArtifactBrowser extends React.Component {
 		return (
 			<div className="artifactBrowserContainer">
 				<div className="artifactBrowser">
-					<div className="artifactClassSelectorContainer">
+					<div className="aartifactClassSelectorContainer">
 						<HTMLSelect onChange={(event) => {
 							this.deselectCurrentlySelectedArtifact();
 							this.props.onArtifactDeselect();

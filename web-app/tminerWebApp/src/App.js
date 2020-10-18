@@ -5,7 +5,6 @@ import {
   Route,
   Link
 } from "react-router-dom";
-import { Button, ButtonGroup } from '@blueprintjs/core';
 import ArtifactNavigator from './ArtifactNavigator/ArtifactNavigator';
 import AnalysisView from './AnalysisView/AnalysisView';
 import logo from './logo.svg';
