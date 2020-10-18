@@ -128,7 +128,7 @@ Note: source_df should be the requirement files, target_df should be the source 
 
 Return: the result from inserting the record into the db
 '''
-def compute_metrics(source_df, target_df):
+def compute_metrics(db_collection, source_df, target_df):
     num_doc_data = facade.NumDoc(source_df, target_df)
     vocab_size_data = facade.VocabSize(source_df, target_df)
     avg_tokens_data = facade.AverageToken(source_df, target_df)
@@ -183,4 +183,4 @@ if __name__ == "__main__":
     src_df = pd.DataFrame(src_list)
 
     #compute metrics with requirement files as source and source code files as the target
-    compute_metrics(req_df, src_df)
+    compute_metrics(collection, req_df, src_df)
