@@ -35,7 +35,7 @@ function App() {
 
 	<div class="page-title">
 		<Switch>
-          <Route exact path="/">
+          <Route exact path="/tminer">
             T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability
           </Route>
 		  <Route path="/analysis">
@@ -56,7 +56,7 @@ function App() {
           <li>
             <a>
               <i class="tim-icons icon-chart-pie-36"></i>
-              <p class="sidebar-item"><Link to="/" className="link">Traceability</Link></p>
+              <p class="sidebar-item"><Link to="/tminer" className="link">Traceability</Link></p>
             </a>
           </li>
           <li>
@@ -79,7 +79,7 @@ function App() {
 
 	<div>
 	    <Switch>
-          <Route exact path="/">
+          <Route exact path="/tminer">
             <Artifacts />
           </Route>
 		  <Route path="/analysis">
