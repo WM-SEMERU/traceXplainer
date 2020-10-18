@@ -8,6 +8,7 @@ import {
 import { Button, ButtonGroup } from '@blueprintjs/core';
 import LinkBrowser from './Links/LinkBrowser';
 import ArtifactNavigator from './ArtifactNavigator/ArtifactNavigator';
+import AnalysisView from './AnalysisView/AnalysisView';
 
 
 import logo from './logo.svg';
@@ -107,7 +108,7 @@ function Artifacts() {
 function Analysis() {
   return (
     <div class="browser-container">
-      <h2>Not yet implemented</h2>
+      <AnalysisView />
     </div>
   );
 }

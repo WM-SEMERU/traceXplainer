@@ -14,8 +14,11 @@
 	border-radius: 20px;
 }
 
-.aartifactClassSelectorContainer {
+.artifactClassSelectorContainer {
 	padding: 20px;
+	display: table-cell;
+	float: right;
+	margin-right: 30px;
 }
 
 
@@ -37,4 +40,23 @@
 .artifactPreviewContainer {
 	padding: 10px 20px;
 	display: flex;
+}
+
+.targetTitle {
+	width: 100%; 
+	display: table;
+}
+
+.targetTitleRow {
+	display: table-row;
+	height: 50px;
+}
+
+.leftTitle {
+	width: 50%; 
+	display: table-cell; 
+	color: white;
+	font-size: 30px;
+	font-weight: bold;
+	vertical-align: middle;
 }
