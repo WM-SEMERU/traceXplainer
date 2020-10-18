@@ -16,8 +16,9 @@ import sys
 import datetime
 import requests
 
-from database_insert import insert_record_into_collection
+from database_insert import insert_record_into_collection, insert_metrics_into_collection
 import ds4se.facade as facade
+import pandas as pd
 
 #taken from the DS4SE documentation
 TRACE_TECHNIQUES = ["VSM", "LDA", "orthogonal", "LSA", "JS", "word2vec", "doc2vec"]
@@ -71,10 +72,11 @@ def get_security(file_contents):
 Creates a record for a given file in the given collection in the db.
 
 Parameters: the name of the record, the name of the git repo (filepath), the name of the collection
+a list of all the requirement files and a list of all the source code files
 
 Return: the result from inserting the record into the db
 '''
-def create_records(filename, gitRepo, collection):
+def create_records(filename, gitRepo, collection, req_list, src_list):
     # make all .txt files requirements and everything else source
     artifact_type = "src"
     if filename[-4:] == ".txt":
@@ -87,6 +89,13 @@ def create_records(filename, gitRepo, collection):
             artifact_content = artifact.read()
         except UnicodeDecodeError as e:
             print("could not decode file:", filename)
+
+    #add files to their corresponding lists
+    #as of now, we are only working with requirement files and source code files; are there more file types?
+    if artifact_type == "src":
+        src_list.append({'contents':artifact_content})
+    else:
+        req_list.append({'contents':artifact_content})
 
     #retrieve security info from SecureReqNet
     if artifact_type == "req":
@@ -108,6 +117,33 @@ def create_records(filename, gitRepo, collection):
         content=artifact_content,
         links=trace_target_list,
         security=is_security)
+    return result
+
+'''
+Creates a record of all the relevant metrics for the repo.
+
+Params: a Pandas DataFrame containing the files designated as source, and another
+with the files designated as target.
+Note: source_df should be the requirement files, target_df should be the source code files
+
+Return: the result from inserting the record into the db
+'''
+def compute_metrics(source_df, target_df):
+    num_doc_data = facade.NumDoc(source_df, target_df)
+    vocab_size_data = facade.VocabSize(source_df, target_df)
+    avg_tokens_data = facade.AverageToken(source_df, target_df)
+    rec_vocab_data = facade.Vocab(source_df)
+    src_vocab_data = facade.Vocab(target_df)
+    shared_vocab_data = facade.VocabShared(source_df, target_df)
+
+    result = insert_metrics_into_collection(
+        db_collection,
+        num_doc= num_doc_data,
+        vocab_size = vocab_size_data,
+        avg_tokens = avg_tokens_data,
+        rec_vocab = rec_vocab_data,
+        src_vocab = src_vocab_data,
+        shared_vocab = shared_vocab_data)
     return result
 
 
@@ -136,7 +172,15 @@ if __name__ == "__main__":
             for filename in filenames:
                 all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
 
-
+    req_list = []
+    src_list = []
     # create records for each file in the repo and insert them into the collection
     for filename in all_files:
-        result = create_records(filename, gitRepo, collection)
+        result = create_records(filename, gitRepo, collection, req_list, src_list)
+
+    #create Pandas DataFrames of the requirement files/source code files
+    req_df = pd.DataFrame(req_list)
+    src_df = pd.DataFrame(src_list)
+
+    #compute metrics with requirement files as source and source code files as the target
+    compute_metrics(req_df, src_df)
