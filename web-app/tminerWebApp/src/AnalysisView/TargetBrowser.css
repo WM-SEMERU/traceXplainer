@@ -17,7 +17,8 @@
 .artifactClassSelectorContainer {
 	padding: 20px;
 	display: table-cell;
-	text-align: right;
+	float: right;
+	margin-right: 30px;
 }
 
 

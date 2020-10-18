@@ -2,6 +2,7 @@ import './AnalysisView.css';
 
 import SourceBrowser from './SourceBrowser';
 import TargetBrowser from './TargetBrowser';
+import SharedMetrics from './SharedMetrics';
 import React from 'react';
 
 export default class AnalysisView extends React.Component {
@@ -21,10 +22,16 @@ export default class AnalysisView extends React.Component {
 
 	render() {
 		return (
+		<div>
 		<div className="window">
 			<SourceBrowser />
 			<TargetBrowser />
 		</div>
+		<div>
+			<SharedMetrics />
+		</div>
+		</div>
+		
 		);
 	}
 }

@@ -51,7 +51,7 @@
 }
 
 .leftTitle {
-	width: 30%; 
+	width: 50%; 
 	display: table-cell; 
 	color: white;
 	font-size: 30px;
@@ -76,7 +76,7 @@ th {
 
 .heading {
 	color: white;
-	font-size: 30px;
+	font-size: 25px;
 	font-weight: bold;
 	margin-left: 45px;
 	margin-top: 15px;
