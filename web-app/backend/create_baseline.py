@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 import datetime
+import requests
 
 from database_insert import insert_record_into_collection
 import ds4se.facade as facade
@@ -42,12 +43,36 @@ def caclulate_traceability_value(source_contents_raw, target_file):
         #adds trace values as a tuple in the form "(technique name, value)"
         trace_val_list.append((technique, trace_val))
     return (target_file, trace_val_list)
+
+'''
+Creates a POST request to SecureReqNet and retrieves whether the file is security related.
+
+Parameters: the raw contents of the file being checked.
+
+Return: a boolean representing whether the file was classified as security related.
+'''
+def get_security(file_contents):
+    #url to SecureReqNet projecy
+    url = "http://rocco.cs.wm.edu:8080/securereqnet/models/alpha"
+
+    #contains the text input for the model (the contents of req files)
+    data = {'instances': [file_contents]}
+    headers = {
+      'Content-Type': 'application/json'
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+
+    is_security = response.json()['predictions']
+    #their predictions returns a list (with a single boolean) so get the boolean
+    return is_security[0]
+
 '''
 Creates a record for a given file in the given collection in the db.
 
 Parameters: the name of the record, the name of the git repo (filepath), the name of the collection
 
-Return: the result from inserting the record into the db 
+Return: the result from inserting the record into the db
 '''
 def create_records(filename, gitRepo, collection):
     # make all .txt files requirements and everything else source
@@ -63,6 +88,12 @@ def create_records(filename, gitRepo, collection):
         except UnicodeDecodeError as e:
             print("could not decode file:", filename)
 
+    #retrieve security info from SecureReqNet
+    if artifact_type == "req":
+        is_security = get_security(artifact_content)
+    else:
+        is_security = "Not a requirements file."
+
     #build the list of traceability values between this file (source) and all other files (targets)
     trace_target_list = []
     for target_file in all_files:
@@ -76,7 +107,7 @@ def create_records(filename, gitRepo, collection):
         artifact_type=artifact_type,
         content=artifact_content,
         links=trace_target_list,
-        security=0)
+        security=is_security)
     return result
 
 
