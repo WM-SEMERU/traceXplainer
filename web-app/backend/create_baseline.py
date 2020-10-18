@@ -140,3 +140,6 @@ if __name__ == "__main__":
     # create records for each file in the repo and insert them into the collection
     for filename in all_files:
         result = create_records(filename, gitRepo, collection)
+
+    
+    # TODO: create one record for analytics measures!
