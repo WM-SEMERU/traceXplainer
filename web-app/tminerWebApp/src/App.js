@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link
+} from "react-router-dom";
 import { Button, ButtonGroup } from '@blueprintjs/core';
+import LinkBrowser from './Links/LinkBrowser';
 import ArtifactNavigator from './ArtifactNavigator/ArtifactNavigator';
+import AnalysisView from './AnalysisView/AnalysisView';
+
+
 import logo from './logo.svg';
 import './App.css';
 import './assets/css/black-dashboard.css'
@@ -20,46 +30,94 @@ function App() {
 
   return (
     <body>
-  
+
+	<Router>
+
+	<div class="page-title">
+		<Switch>
+          <Route exact path="/tminer">
+            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability
+          </Route>
+		  <Route path="/analysis">
+            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Analysis
+          </Route>
+          <Route path="/linkbrowser">
+            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Link Browser
+          </Route>
+        </Switch>
+	</div>
+
+
 	<div class="sidebar">
       <div class="sidebar-wrapper">
-        <div class="logo">
-          <a target="_blank" rel="sponsored noopener noreferrer" class="simple-text logo-normal title">
-            T-Miner
-          </a>
-        </div>
 
         <ul class="nav">
 
-          <li class="{% if 'index' in segment %} active {% endif %}" >
-            <a href="/">
+          <li>
+            <a>
               <i class="tim-icons icon-chart-pie-36"></i>
-              <p class="sidebar-item">Traceability</p>
+              <p class="sidebar-item"><Link to="/tminer" className="link">Traceability</Link></p>
             </a>
           </li>
-          <li class="{% if 'icons' in segment %} active {% endif %}" >
-            <a href="test.js">
+          <li>
+            <a>
               <i class="tim-icons icon-atom"></i>
-              <p class="sidebar-item">Analysis</p>
+              <p class="sidebar-item"><Link to="/analysis" className="link">Analysis</Link></p>
             </a>
           </li>
-          <li class="{% if 'maps' in segment %} active {% endif %}" >
-            <a href="/ui-maps.html">
+          <li>
+            <a>
               <i class="tim-icons icon-pin"></i>
-              <p class="sidebar-item">Link Browser</p>
+              <p class="sidebar-item"><Link to="/linkbrowser" className="link">Link Browser</Link></p>
             </a>
           </li>
 
         </ul>
-        
       </div>
+
     </div>
-	
-	<div class="browser-container">
+
+	<div>
+	    <Switch>
+          <Route exact path="/tminer">
+            <Artifacts />
+          </Route>
+		  <Route path="/analysis">
+            <Analysis />
+          </Route>
+          <Route path="/linkbrowser">
+            <Links />
+          </Route>
+        </Switch>
+	</div>
+
+	</Router>
+
+	</body>
+  );
+}
+
+function Artifacts() {
+  return (
+    <div class="browser-container">
 	  <ArtifactNavigator />
 	</div>
-	
-	</body>
+  );
+}
+
+function Analysis() {
+  return (
+    <div class="browser-container">
+      <AnalysisView />
+    </div>
+  );
+}
+
+function Links() {
+  return (
+    <div class="browser-container">
+      <LinkBrowser />
+    </div>
   );
 }
 
