@@ -12,3 +12,5 @@ app = Flask(__name__)
 @app.route('/api/getdb')
 def get_db_item():
     return {'item': x}
+
+app.run(port=5000)

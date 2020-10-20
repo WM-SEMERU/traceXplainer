@@ -1,5 +1,5 @@
 const NPM_DATA_LOCATION = 'dummy_data/';
-const FLASK_DATA_LOCATION = 'dummy_data';
+const FLASK_DATA_LOCATION = 'tminer/dummy_data';
 
 export const DATA_LOCATION = FLASK_DATA_LOCATION;
 export const PROJECT_KEY = 'libest';
