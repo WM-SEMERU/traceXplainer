@@ -30,7 +30,7 @@ Parameters: the raw contents of a source file and those of a target file
 
 Return: a tuple containing the name of the target file and a list of all the traceability values
 '''
-def caclulate_traceability_value(source_contents_raw, target_file):
+def calculate_traceability_value(source_contents_raw, target_file):
     #get target file contents, if possible
     with open(gitRepo + target_file.replace('./', '/'), "r") as target_contents:
         try:
@@ -109,7 +109,7 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     trace_target_list = []
     for target_file in all_files:
         if filename != target_file:
-            trace_target_list.append(caclulate_traceability_value(artifact_content, target_file))
+            trace_target_list.append(calculate_traceability_value(artifact_content, target_file))
 
     #inserts record for the current file into the collection, stored under the timestamp
     result = insert_record_into_collection(
