@@ -17,7 +17,7 @@ import datetime
 import requests
 
 from database_insert import insert_record_into_collection, insert_metrics_into_collection
-import ds4se.facade as facade
+#import ds4se.facade as facade
 import pandas as pd
 
 #taken from the DS4SE documentation
@@ -32,7 +32,7 @@ Return: a tuple containing the name of the target file and a list of all the tra
 '''
 def caclulate_traceability_value(source_contents_raw, target_file):
     #get target file contents, if possible
-    with open(gitRepo + target_file, "r") as target_contents:
+    with open(gitRepo + target_file.replace('./', '/'), "r") as target_contents:
         try:
             target_contents_raw = target_contents.read()
         except UnicodeDecodeError as e:
@@ -82,9 +82,11 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     if filename[-4:] == ".txt":
         artifact_type = "req"
 
+    print(filename)
+
     # read contents of file as a string
     artifact_content = ""
-    with open(gitRepo + filename, "r") as artifact:
+    with open(gitRepo + filename.replace('./', '/'), "r") as artifact:
         try:
             artifact_content = artifact.read()
         except UnicodeDecodeError as e:
