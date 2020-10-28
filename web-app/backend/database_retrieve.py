@@ -41,3 +41,47 @@ def get_metrics(database, timestamp_key):
     # "num_doc" is a key found in the metrics document but not
     # in the artifacts documents
     return collection.find_one({"num_doc":{"$exists":True}})
+
+
+'''
+Retrieves a list of all the requirements artifacts from a collection. 
+
+parameters:
+database -- a reference to an active pymongo Database
+timestamp_key -- a string timestamp name of the collection
+
+returns a list of requirements artifacts (as dictionaries) from the collection
+'''
+def get_requirement_artifacts(database, timestamp_key):
+    
+    collection = database[timestamp_key]
+    reqs = []
+
+    # iterate through artifacts, ignoring the metrics document,
+    # which has the unique key "num_doc"
+    for artifact in collection.find({"type":"req"}):
+        reqs.append(artifact)
+
+    return reqs
+
+
+'''
+Retrieves a list of all the source artifacts from a collection. 
+
+parameters:
+database -- a reference to an active pymongo Database
+timestamp_key -- a string timestamp name of the collection
+
+returns a list of source artifacts (as dictionaries) from the collection
+'''
+def get_source_artifacts(database, timestamp_key):
+    
+    collection = database[timestamp_key]
+    srcs = []
+
+    # iterate through artifacts, ignoring the metrics document,
+    # which has the unique key "num_doc"
+    for artifact in collection.find({"type":"src"}):
+        srcs.append(artifact)
+
+    return srcs
