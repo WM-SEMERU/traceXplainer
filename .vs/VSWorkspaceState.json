@@ -1,11 +1,6 @@
 {
   "ExpandedNodes": [
-    "",
-    "\\web-app",
-    "\\web-app\\flask-server",
-    "\\web-app\\test_db",
-    "\\web-app\\trace-web-app"
+    ""
   ],
-  "SelectedNode": "\\web-app\\test_db",
   "PreviewInSolutionExplorer": false
 }
