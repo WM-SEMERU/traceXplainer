@@ -85,3 +85,39 @@ def get_source_artifacts(database, timestamp_key):
         srcs.append(artifact)
 
     return srcs
+
+
+'''
+Retrieves a list of artifacts that match the searched string.
+
+parameters:
+database -- a reference to an active database
+timestamp_key -- a string timestamp name of the collection
+search -- searched string
+
+returns a list of artifacts (as dictionaries) from the 
+collection that contain the searched string 
+'''
+def search_artifacts(database, timestamp_key, search):
+    
+    collection = database[timestamp_key]
+    arts = []
+
+    # check all artifact entries
+    for artifact in collection.find({"num_doc":{"$exists":False}}):
+        # check all content per artifact for searched content
+        for key in artifact:
+            content = artifact[key]
+            # convert content to string for check if not already
+            if not iisinstance(content, str):
+                content = str(content)
+            # case-insensitive check 
+            if search.lower() in content.lower():
+                arts.append(artifact)
+                # if already one instance of search string found, do 
+                # not need to search rest of artifact
+                continue
+
+    return arts
+
+
