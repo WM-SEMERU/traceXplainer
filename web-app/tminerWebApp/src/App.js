@@ -23,8 +23,8 @@ function App() {
   const [dbitem, setDbItem] = useState([]);
 
   useEffect(() => {
-    fetch('/api/getdb').then(res => res.json()).then(data => {
-      setDbItem(data.item);
+    fetch('tminer/api/getdb').then(res => res.json()).then(data => {
+      setDbItem(data.Number);
     });
   }, []);
 
@@ -36,7 +36,7 @@ function App() {
 	<div class="page-title">
 		<Switch>
           <Route exact path="/tminer">
-            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability
+            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability {dbitem}
           </Route>
 		  <Route path="/analysis">
             T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Analysis
