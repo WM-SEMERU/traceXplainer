@@ -11,6 +11,7 @@ let artifactContentCache = {
 export async function getArtifactContent(artifactClass, id) {
 	if (!(id in artifactContentCache[artifactClass])) {
 		const fileUrl = `${ARTIFACTS_LOCATION}/${artifactClass}/${id}`;
+		console.log('url ' + fileUrl);
 		const file = await fetch(fileUrl, {mode: 'no-cors'});
 		const artifactContent = await file.text();
 		artifactContentCache[artifactClass][id] = artifactContent;
@@ -36,5 +37,20 @@ export function getArtifactClassName(artifactClass) {
 		case 'src': return "Source Code";
 		case 'tc': return "Test Case";
 		default: return "Unknown";
+	}
+}
+
+export function getArtifactClass(artifactId) {
+	if(Object.keys(artifactMetadataJSON['req']).includes(artifactId)) {
+		return 'req';
+	}
+	else if(Object.keys(artifactMetadataJSON['src']).includes(artifactId)) {
+		return 'src';
+	}
+	else if(Object.keys(artifactMetadataJSON['tc']).includes(artifactId)) {
+		return 'tc';
+	}
+	else {
+		return 'Unknown';
 	}
 }
