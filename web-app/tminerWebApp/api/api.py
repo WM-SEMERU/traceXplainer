@@ -32,8 +32,8 @@ def get_db_item():
     x = get_artifacts(mydb, collection)
     print('returning something')
     retStr = ""
-    for i in range(len(x)):
-        retStr += x[i]["name"] + " "
+    for i in range(5):
+        retStr += x[i]["name"] + " " + str(x[i]["links"][1])
     return retStr
 
 app.run(port=5000)
