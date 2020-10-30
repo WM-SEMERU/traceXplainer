@@ -22,7 +22,7 @@ export async function getAllTraceLinks() {
 		await loadTraceModel();
 	}
 
-	const testArr = ['RQ1.txt', 'RQ2.txt', 'RQ10.txt'];
+	const testArr = ['RQ1.txt', 'RQ2.txt', 'RQ4.txt', 'RQ5.txt', 'RQ6.txt', 'RQ10.txt'];
 	const thisModel = [];
 
 	for(let element of testArr) {
