@@ -1,5 +1,7 @@
 from flask import Flask
 from pymongo import MongoClient
+from flask_cors import CORS, cross_origin
+
 
 client = MongoClient("mongodb://localhost:27017/")
 
@@ -12,16 +14,24 @@ client = MongoClient("mongodb://localhost:27017/")
 # collection = database["content in repoName_version.txt"]
 # some loop to go through contents and display on screen?
 
-mydb = client["test"]
-mycol = mydb["inventory"]
 
-x = mycol.find_one({},{ "_id": 0, "item": 1, "qty": 1 })
+dbNameFile = open('/home/semeru/Neural-Unsupervised-Software-Traceability/web-app/tminerWebApp/api/repoName_version.txt', 'r')
+database = dbNameFile.readline().rstrip()
+collection = dbNameFile.readline().rstrip()
+
+mydb = client[database]
+mycol = mydb[collection]
+
+x = mycol.find_one()
 print(x)
 
 app = Flask(__name__)
+CORS(app)
 
-@app.route('/api/getdb')
+
+@app.route('/tminer/api/getdb')
 def get_db_item():
-    return {'item': x}
+    print('returning something')
+    return {"Number" : 1}
 
 app.run(port=5000)
