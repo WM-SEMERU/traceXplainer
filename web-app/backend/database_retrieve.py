@@ -168,3 +168,26 @@ def get_nonsecurity_artifacts(database, timestamp_key):
         arts.append(artifact)
 
     return arts
+
+'''
+Retrieves a list of artifacts that are orphans - no positive
+traceability values.
+
+parameters:
+database -- a reference to an active database
+timestamp_key -- a string timestamp name of the collection
+
+Returns a list of artifacts (as dictionaries) that are 
+orphans.
+'''
+def get_orphan_artifacts(database, timestamp_key):
+
+    collection = database[timestamp_key]
+    arts = []
+
+    # retrieve all requirements that do not have any
+    # traceability links 
+    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"links": []}]}):
+        arts.append(artifact)
+
+    return arts
