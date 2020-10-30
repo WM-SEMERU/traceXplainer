@@ -159,13 +159,13 @@ if __name__ == "__main__":
 
     # get a timestamp to use as a collection name. This will be different than the commit timestamp that will be used
     timestamp = datetime.datetime.now()
-    timestamp = timestamp.strftime("%Y%m%d%H%M%S")
+    timestamp = timestamp.strftime("%Y-%m-%d- %H:%M:%S")
     print(timestamp)
 
     # connect to database in the standard way
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     db = client[db_name]
-    collection = db['a'+ timestamp] # the database collection whose key is the current time
+    collection = db[timestamp] # the database collection whose key is the current time
 
     # gather all the files
     all_files = []
