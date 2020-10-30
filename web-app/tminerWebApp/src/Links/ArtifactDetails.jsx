@@ -2,7 +2,7 @@ import './ArtifactDetailsLink.css';
 import 'prismjs/themes/prism.css';
 
 import { Cell, Column, Table } from "@blueprintjs/table";
-import { getArtifactClassName, getArtifactContent, getArtifactInfo, } from '../interfaces/ArtifactInterface';
+import { getArtifactClassName, getArtifactContent, getArtifactInfo, getArtifactClass} from '../interfaces/ArtifactInterface';
 import { getLinkThreshold, getTraceLinks, getAllTraceLinks } from '../interfaces/TraceabilityInterface';
 
 import { Icon } from '@blueprintjs/core';
@@ -22,7 +22,7 @@ export default class ArtifactDetails extends React.Component {
 		checkboxes: OPTIONS.reduce(
       (options, option) => ({
         ...options,
-        [option]: false
+        [option]: true
       }),
       {}
     )
@@ -33,6 +33,8 @@ export default class ArtifactDetails extends React.Component {
 		super(props);
 
 		this.codeRef = React.createRef();
+		this.state.checkboxes['Links'] = true;
+		this.state.checkboxes['Non-Links'] = true;
 		//this.totalTraceLinks = [];
 
 	}
@@ -42,7 +44,6 @@ export default class ArtifactDetails extends React.Component {
 	}
 
 	loadTable(){
-		//getAllTraceLinks();
 		this.setState({
 		}, () => {
 			getAllTraceLinks().then((totalTraceLinks) => {
@@ -110,27 +111,71 @@ export default class ArtifactDetails extends React.Component {
 
 	getTraceLinksTable() {
 		const traceLinksList = this.state.totalTraceLinks;
-
 		if (!traceLinksList) {
 			return null;
 		}
 
-		traceLinksList.sort((a, b) => {
+		const linkThreshold = getLinkThreshold();
+		var result = traceLinksList;
+		if(!this.state.checkboxes['Links']){
+			result = result.filter(element => element.traceValue <= linkThreshold);
+		}
+		if(!this.state.checkboxes['Non-Links']){
+			result = traceLinksList.filter(element => element.traceValue > linkThreshold);
+		}
+		if(!this.state.checkboxes['Security Related']){ //if security_status=0, won't show
+			result = result.filter(element =>
+				getArtifactInfo('req', element.thisSourceName)['security_status'] == 0);
+		}
+		if(!this.state.checkboxes['Non Security Related']){ //if security_status=0, won't show
+			result = result.filter(element =>
+				getArtifactInfo('req', element.thisSourceName)['security_status'] == 1);
+		}
+		if(!this.state.checkboxes['Requirements']){
+			result = result.filter(element =>
+				getArtifactClass(element.artifactType) == 'req');
+		}
+
+		function srcFunction(element){
+			if(getArtifactClass(element.artifactId) == 'src') {
+				return false;
+			}
+			return true;
+		}
+		if(!this.state.checkboxes['Source Code']){
+			result = result.filter(srcFunction);
+		}
+
+		function tcFunction(element){
+			if(getArtifactClass(element.artifactId) == 'tc') {
+				return false;
+			}
+			return true;
+		}
+		if(!this.state.checkboxes['Test Cases']){
+			result = result.filter(tcFunction);
+		}
+
+		//console.log(result);
+
+
+
+		result.sort((a, b) => {
 			return b.traceValue - a.traceValue;
 		});
 
-
+		//alert('length ' + result.length);
 		const valueCellRenderer = (index) => {
-			return <Cell>{traceLinksList[index].traceValue}</Cell>
+			return <Cell>{result[index].traceValue}</Cell>
 		}
 
 		const targetNameCellRenderer = (index) => {
-			return <Cell>{traceLinksList[index].artifactId}</Cell>
+			return <Cell>{result[index].artifactId}</Cell>
 		}
 
-		const linkThreshold = getLinkThreshold();
+
 		const linkStatusCellRenderer = (index) => {
-			const linkStatus = traceLinksList[index].traceValue > linkThreshold;
+			const linkStatus = result[index].traceValue > linkThreshold;
 			return <Cell style={{display: 'flex', justifyContent: 'center'}}>
 				<Icon icon={linkStatus ? 'link' : 'delete'} color={linkStatus ? 'green' : 'red'}/>
 			</Cell>
@@ -138,38 +183,46 @@ export default class ArtifactDetails extends React.Component {
 
 		const artifactTypeCellRenderer = (index) => {
 			return <Cell>
-				{getArtifactClassName(traceLinksList[index].artifactType)}
+				{getArtifactClassName(result[index].artifactType)}
 			</Cell>
 		}
 
 		const securityCellRenderer = (index) => {
 			return <Cell>
-				{getArtifactInfo('req', traceLinksList[index].thisSourceName)['security_status']}
+				{getArtifactInfo('req', result[index].thisSourceName)['security_status']}
 			</Cell>
 		}
 
 		const sourceCellRenderer = (index) => {
 			return <Cell>
-				{traceLinksList[index].thisSourceName}
+				{result[index].thisSourceName}
 			</Cell>
 		}
 
 		//Todo, actually make work
 		const sourceTypeCellRenderer = (index) => {
 			return <Cell>
-				{'Requirement'}
+				{getArtifactClassName(getArtifactInfo('req', result[index].thisSourceName)['type'])}
 					</Cell>
 		}
 
-		const tbdCellRenderer = (index) => {
+		const feedbackCellRenderer = (index) => {
 			return <Cell>
-				{'TBD'}
+				<form>
+				<label for="cars"></label>
+ <select name="cars" id="cars">
+	 <option value="agree">Agree</option>
+	 <option value="neutral">Neutral</option>
+	 <option value="disagree">Disagree</option>
+ </select>
+				</form>
 			</Cell>
 		}
 
 		return (
 		<Table class="link-table"
-			numRows={traceLinksList.length}
+			numRows={result.length}
+			defaultRowHeight={30}
 			columnWidths={[null, null, null, null, null, null, null, null,]}
 		>
 			<Column name="Link Status" cellRenderer={linkStatusCellRenderer} />
@@ -179,7 +232,7 @@ export default class ArtifactDetails extends React.Component {
 			<Column name="Source" cellRenderer={sourceCellRenderer} />
 			<Column name="Target Type" cellRenderer={artifactTypeCellRenderer} />
 			<Column name="Target" cellRenderer={targetNameCellRenderer} />
-			<Column name="Feedback" cellRenderer={tbdCellRenderer} />
+			<Column name="Feedback" cellRenderer={feedbackCellRenderer} />
 		</Table>
 		);
 	}
@@ -202,7 +255,6 @@ export default class ArtifactDetails extends React.Component {
 
   handleCheckboxChange = changeEvent => {
     const { name } = changeEvent.target;
-
     this.setState(prevState => ({
       checkboxes: {
         ...prevState.checkboxes,
@@ -246,10 +298,31 @@ export default class ArtifactDetails extends React.Component {
 				<div className="checkboxes">
 				<form onSubmit={this.handleFormSubmit}>
               {this.createCheckboxes()}
+
+							<div className="form-group mt-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary mr-2"
+                  onClick={this.selectAll}
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary mr-2"
+                  onClick={this.deselectAll}
+                >
+                  Deselect All
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save
+                </button>
+              </div>
+
 				</form>
 				</div>
 
-					<h2 style={{margin: 0}}>Trace Links</h2>
+				<h2 style={{margin: 0}}>Trace Links</h2>
 					{this.getTraceLinksTable()}
 				</div>
 			</div>
