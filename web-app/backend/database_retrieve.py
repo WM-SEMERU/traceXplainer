@@ -191,3 +191,26 @@ def get_orphan_artifacts(database, timestamp_key):
         arts.append(artifact)
 
     return arts
+
+'''
+Retrieves a list of artifacts that are not orphans - 
+traceability links exist.
+
+parameters:
+database -- a reference to an active database
+timestamp_key -- a string timestamp name of the collection
+
+Returns a list of artifacts (as dictionaries) that are 
+not orphans.
+'''
+def get_nonorphan_artifacts(database, timestamp_key):
+
+    collection = database[timestamp_key]
+    arts = []
+
+    # retrieve all requirements that have traceability
+    # links 
+    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"links": { "$not": { [] } }}]}):
+        arts.append(artifact)
+
+    return arts
