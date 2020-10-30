@@ -86,6 +86,7 @@ def get_source_artifacts(database, timestamp_key):
 
     return srcs
 
+# SEARCH BAR
 
 '''
 Retrieves a list of artifacts that match the searched string.
@@ -95,7 +96,7 @@ database -- a reference to an active database
 timestamp_key -- a string timestamp name of the collection
 search -- searched string
 
-returns a list of artifacts (as dictionaries) from the 
+Returns a list of artifacts (as dictionaries) from the 
 collection that contain the searched string 
 '''
 def search_artifacts(database, timestamp_key, search):
@@ -120,4 +121,26 @@ def search_artifacts(database, timestamp_key, search):
 
     return arts
 
+# FILTERS
 
+'''
+Retrieves a list of artifacts that are security-related.
+
+parameters:
+database -- a reference to an active database
+timestamp_key -- a string timestamp name of the collection
+
+Returns a list of artifacts (as dictionaries) that are
+security-related.
+'''
+def get_security_artifacts(database, timestamp_key):
+
+    collection = database[timestamp_key]
+    arts = []
+
+    # retrieve all artifacts that are security-related, 
+    # ignore the metrics doc
+    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"security": True}]}):
+        arts.append(artifact)
+
+    return arts
