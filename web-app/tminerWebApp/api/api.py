@@ -22,7 +22,7 @@ collection = dbNameFile.readline().rstrip()
 mydb = client[database]
 mycol = mydb[collection]
 
-x = mycol.find_one()
+x = mycol.find_one({}, {"name"})
 print(x)
 
 app = Flask(__name__)
@@ -32,6 +32,7 @@ CORS(app)
 @app.route('/tminer/api/getdb')
 def get_db_item():
     print('returning something')
-    return {"Number" : 1}
+    print(x['name'])
+    return x['name']
 
 app.run(port=5000)
