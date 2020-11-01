@@ -35,10 +35,10 @@ def get_db_item():
         retStr += x[i]["name"] + " " + str(x[i]["type"][1])
     return retStr
 
-@app.route('/tminer/api/getdb/<id>')
-def get_db_req_item_content(id):
+@app.route('/tminer/api/getdb/<type>/<id>')
+def get_db_req_item_content(type, id):
     print("\n " + id + "\n")
-    content = mycol.find_one({"name":"./req/"+id})["content"]
+    content = mycol.find_one({"name":"./"+type+"/"+id})["content"]
     return str(content)
 
 app.run(port=5000)
