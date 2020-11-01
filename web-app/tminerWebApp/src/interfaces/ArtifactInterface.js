@@ -21,8 +21,8 @@ let artifactContentCache = {
 
 export async function getArtifactContent(artifactClass, id) {
     if (!(id in artifactContentCache[artifactClass])) {
-        idPath = 'tminer/api/getdb' + id
-        artifactContent = fetch(idPath).then(data => data.text())
+        const idPath = 'tminer/api/getdb/' + id
+        const artifactContent = fetch(idPath).then(data => data.text())
         artifactContentCache[artifactClass][id] = artifactContent
     }
 	return artifactContentCache[artifactClass][id];

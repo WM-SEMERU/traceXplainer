@@ -36,10 +36,9 @@ def get_db_item():
     return retStr
 
 @app.route('/tminer/api/getdb/<id>')
-def get_db_item_content():
-    print("Hello World\n")
-    content = mycol.find_one({"name":id})["content"]
-    print(content)
+def get_db_req_item_content(id):
+    print("\n " + id + "\n")
+    content = mycol.find_one({"name":"./req/"+id})["content"]
     return str(content)
 
 app.run(port=5000)
@@ -56,3 +55,4 @@ def get_artifacts(database, timestamp_key):
         arts.append(artifact)
 
     return arts
+
