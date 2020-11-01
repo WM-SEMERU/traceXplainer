@@ -8,14 +8,23 @@ let artifactContentCache = {
 };
 
 
+//export async function getArtifactContent(artifactClass, id) {
+//	if (!(id in artifactContentCache[artifactClass])) {
+//		const fileUrl = `${ARTIFACTS_LOCATION}/${artifactClass}/${id}`;
+//		console.log('url ' + fileUrl);
+//		const file = await fetch(fileUrl, {mode: 'no-cors'});
+//		const artifactContent = await file.text();
+//		artifactContentCache[artifactClass][id] = artifactContent;
+//	}
+//	return artifactContentCache[artifactClass][id];
+//}
+
 export async function getArtifactContent(artifactClass, id) {
-	if (!(id in artifactContentCache[artifactClass])) {
-		const fileUrl = `${ARTIFACTS_LOCATION}/${artifactClass}/${id}`;
-		console.log('url ' + fileUrl);
-		const file = await fetch(fileUrl, {mode: 'no-cors'});
-		const artifactContent = await file.text();
-		artifactContentCache[artifactClass][id] = artifactContent;
-	}
+    if (!(id in artifactContentCache[artifactClass])) {
+        idPath = 'tminer/api/getdb' + id
+        artifactContent = fetch(idPath).then(data => data.text())
+        artifactContentCache[artifactClass][id] = artifactContent
+    }
 	return artifactContentCache[artifactClass][id];
 }
 

@@ -1,3 +1,21 @@
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > \
+    /etc/apt/sources.list.d/jenkins.list'
+sudo apt-get update
+sudo apt-get install jenkins
+
+Running this, then starting the service with systemctl runs the server on port 8080 by default, which is where
+we will keep it, at least for now.
+
+
+
+
+
+
+
+
+############################## Turns out this is outdated ###################################################
+
 How to set up Jenkins for this project
 
 Note: This was done on a windows machine. The process may be similar but probably will not be the same
