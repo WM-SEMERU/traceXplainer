@@ -30,14 +30,23 @@ CORS(app)
 @app.route('/tminer/api/getdb')
 def get_db_item():
     x = get_artifacts(mydb, collection)
+    content = mycol.find({})
+    for document in content:
+        print(document["name"])
     retStr = ""
     for i in range(5):
         retStr += x[i]["name"] + " " + str(x[i]["type"][1])
     return retStr
 
+#Return the contents of the files directly from the database
+#The way we deal with files is specific to the libest repo. 
+#In the future, there should be an option to change the path
+#To src files or something, as this is not reliable often.
 @app.route('/tminer/api/getdb/<type>/<id>')
-def get_db_req_item_content(type, id):
-    print("\n " + id + "\n")
+def get_db_item_content(type, id):
+    print("\n " + id + " " + type + "\n")
+    if type == 'src':
+        type = 'src/est'
     content = mycol.find_one({"name":"./"+type+"/"+id})["content"]
     return str(content)
 
