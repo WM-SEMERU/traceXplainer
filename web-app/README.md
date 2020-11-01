@@ -32,3 +32,29 @@ The team is going to be divided into 3 domains:
 - An introductory Video for Traceability [link](https://www.youtube.com/watch?v=guSAnWP9zDI&feature=youtu.be)
 - A probabilistic approach to Traceability [paper](https://arxiv.org/pdf/2005.09046.pdf)
 - The page of the project [link](https://semeru-code-public.gitlab.io/Project-Websites/comet-website/)
+
+# T-Miner Documentation (Team #1)
+Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krupka, and Nicholas Write
+
+"We expect that the team documents the architecture, methodology, deployment, components, and navigation of the tool in a markdown file."
+
+## Overview
+???
+
+## Diagrams
+Processes: 
+![Processes_Diagram](/docs/Processes Diagram.png) 
+
+Components: 
+![Components_Diagram](/docs/Components Diagram.png)
+
+## Jenkins
+Jenkins [Installation](https://www.jenkins.io/doc/book/installing/)
+Jenkins Setup [Documentation](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt)
+
+## MongoDB
+MongoDB & PyMongo Installation [Documentation](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt)
+
+## Database Structure
+
+## Web-App Navigation
