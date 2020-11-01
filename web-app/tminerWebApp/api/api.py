@@ -30,11 +30,17 @@ CORS(app)
 @app.route('/tminer/api/getdb')
 def get_db_item():
     x = get_artifacts(mydb, collection)
-    print('returning something')
     retStr = ""
     for i in range(5):
-        retStr += x[i]["name"] + " " + str(x[i]["links"][1])
+        retStr += x[i]["name"] + " " + str(x[i]["type"][1])
     return retStr
+
+@app.route('/tminer/api/getdb/<id>')
+def get_db_item_content():
+    print("Hello World\n")
+    content = mycol.find_one({"name":id})["content"]
+    print(content)
+    return str(content)
 
 app.run(port=5000)
 
