@@ -43,17 +43,28 @@ Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krup
 
 ## Diagrams
 Processes: 
-![Processes_Diagram](/docs/Processes Diagram.png) 
+![Processes Diagram](docs/Processes%20Diagram.png) 
+
+This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Processes%20Diagram.png)
 
 Components: 
-![Components_Diagram](/docs/Components Diagram.png)
+![Components Diagram](docs/Components%20Diagram.png)
+
+This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Component%20Diagram.png)
+
+*Note: all components are hosted on the Tower1 machine*
 
 ## Jenkins
-Jenkins [Installation](https://www.jenkins.io/doc/book/installing/)
-Jenkins Setup [Documentation](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt)
+Jenkins notifies the web-application of when a developer commits and pushes changes to the repository. This notification is what triggers an update of the database with the newly updated repository, which will in turn, update the content displayed on the web-application.
+
+Followed Jenkins' official installation [guidelines](https://www.jenkins.io/doc/book/installing/). Setup of Jenkins required installation of Maven and Java JDK 8. The setup of Jenkins required installations of Maven and Java JDK 8. Note that Java JDK 8 must be used.
+
+For more details regarding setup, view `Jenkins Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt)
 
 ## MongoDB
-MongoDB & PyMongo Installation [Documentation](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt)
+MongoDB was chosen for the document-like storage of data. Every artifact in the repo would need to be stored along with analysis results, such as traceability values, whether the artifact is security-related, etc. In this sense, having a dictionary of information per artifact was the most comprehensive structure for the team. MongoDB’s structure of databases and collections also allows for an organization of repository versions as collections and the storage of multiple repositories as different databases.
+
+For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt)
 
 ## Database Structure
 
