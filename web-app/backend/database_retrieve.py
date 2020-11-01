@@ -187,11 +187,7 @@ def get_orphan_artifacts(database, timestamp_key):
 
     # retrieve all requirements that do not have any
     # traceability links 
-<<<<<<< HEAD
-    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": 1}]}):
-=======
     for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": True}]}):
->>>>>>> a9762287de1ce16d5136e7873723b1a26bbf2176
         arts.append(artifact)
 
     return arts
@@ -214,11 +210,7 @@ def get_nonorphan_artifacts(database, timestamp_key):
 
     # retrieve all requirements that have traceability
     # links 
-<<<<<<< HEAD
-    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": 0}]}):
-=======
-    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": False }]}):
->>>>>>> a9762287de1ce16d5136e7873723b1a26bbf2176
+    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": False}]}):
         arts.append(artifact)
 
     return arts
