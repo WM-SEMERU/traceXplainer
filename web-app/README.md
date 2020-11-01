@@ -43,10 +43,10 @@ Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krup
 
 ## Diagrams
 Processes: 
-![Processes_Diagram](/docs/Processes Diagram.png) 
+![Processes_Diagram](docs/Processes Diagram.png) 
 
 Components: 
-![Components_Diagram](/docs/Components Diagram.png)
+![Components_Diagram](docs/Components Diagram.png)
 
 ## Jenkins
 Jenkins [Installation](https://www.jenkins.io/doc/book/installing/)
