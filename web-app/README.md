@@ -42,13 +42,15 @@ Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krup
 ???
 
 ## Diagrams
-Processes: 
+###Processes:
+
 ![Processes Diagram](docs/Processes%20Diagram.png) 
 
 This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Processes%20Diagram.png)
 
-Components: 
-![Components Diagram](docs/Components%20Diagram.png)
+###Components: 
+
+![Components Diagram](docs/Component%20Diagram.png)
 
 This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Component%20Diagram.png)
 
@@ -57,15 +59,70 @@ This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupe
 ## Jenkins
 Jenkins notifies the web-application of when a developer commits and pushes changes to the repository. This notification is what triggers an update of the database with the newly updated repository, which will in turn, update the content displayed on the web-application.
 
-Followed Jenkins' official installation [guidelines](https://www.jenkins.io/doc/book/installing/). Setup of Jenkins required installation of Maven and Java JDK 8. The setup of Jenkins required installations of Maven and Java JDK 8. Note that Java JDK 8 must be used.
+Jenkins' was installed using the official installation [guidelines](https://www.jenkins.io/doc/book/installing/). Setup of Jenkins required installation of Maven and Java JDK 8. The setup of Jenkins required installations of Maven and Java JDK 8. Note that Java JDK 8 must be used.
 
-For more details regarding setup, view `Jenkins Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt)
+For more details regarding setup, view `Jenkins Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt).
 
 ## MongoDB
 MongoDB was chosen for the document-like storage of data. Every artifact in the repo would need to be stored along with analysis results, such as traceability values, whether the artifact is security-related, etc. In this sense, having a dictionary of information per artifact was the most comprehensive structure for the team. MongoDB’s structure of databases and collections also allows for an organization of repository versions as collections and the storage of multiple repositories as different databases.
 
-For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt)
+For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt).
 
 ## Database Structure
+As mentioned in the MongoDB section above, the database is organized such that a repository has an individual database named after the repository. That database then has a separate collection for each commit or verion, named using the timestamp of the commit made. A collection stores an analysis metrics document as a dictionary of that version, and has an individual entry for each artifact in the repository.
+
+### Collection
+- Key: timestamp of commit
+	- Format: "YYYY-MM-DD 12:00:00"
+- Records: each file in the repo at the time of the commit
+	- Requires storing all artifacts of the commit regardless of change
+- Additional Record: artifact metrics (for analysis view)
+
+### Record (Artifact Metrics) - one per repository
+- Number of documents
+	- Key: “num_doc”
+		- [num_req, num_src, diff_st, diff_ts]
+			- All of the values in the list will be numbers
+			- ‘diff_st’ means the value of the difference from source files (requirement files) to target files (source code files)
+			- ‘diff_ts’ means the value of the difference from target files (source code files) to source files (requirement files)
+- Vocabulary Size
+	- Key: “vocab_size”
+		- [vocab_req, vocab_src, diff_st, diff_ts]
+- Average Number of Tokens Used
+	- Key: “avg_tokens”
+		- [token_req, token_src, diff_st, diff_ts]
+- Requirement Vocabulary
+	- Key: “rec_vocab”
+		- {‘token1’ : [count, freq], ‘token2’ : [count, freq], ‘token3’ : [count, freq]}
+		- Note: this does not need to be formatted as this matched the direct output from DS4SE’s Vocab method, which returns the three most common tokens and their corresponding counts/frequencies
+- Source Code Vocabulary
+	- Key: “src_vocab”
+		- {‘token1’ : [count, freq], ‘token2’ : [count, freq], ‘token3’ : [count, freq]}
+- Shared Vocabulary
+	- Key: “shared_vocab”
+		- {‘token1’ : [count, freq], ‘token2’ : [count, freq], ‘token3’ : [count, freq]}
+
+### Record (Individual Artifacts) - one per artifact in the repository
+- Artifact name
+	- Key: "name"
+- Artifact type
+	- Key: "type"
+	- Two types:
+		- Requirement: "req"
+		- Source code: "src"
+- Artifact content
+	- Key: "content"
+		- Full file content
+- Traceability links
+	- Key: "links"
+		- List of Tuples: [(target1, [(tech1, val)...(tech7, val)]), … (targetN, [(tech1, val)...(tech7, val)])]
+- Orphan - there are no traceability links to other artifacts
+	- Key: “orphan”
+		- True/False
+- Security-related
+	- Key: "security"
+		- True/False/Not a requirements file
+
+
 
 ## Web-App Navigation
