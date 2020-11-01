@@ -77,8 +77,10 @@ export default class ArtifactPreviewCard extends React.Component {
 			}}
 			>
 				<div style={{flexGrow: 1, display: 'flex', flexDirection: 'column', maxWidth: 'inherit'}}>
-					<h3 style={{padding: 0, margin: 0, color: this.state.selected ? 'white' : 'black'}}>
+					<h3 style={{paddingLeft: 0, margin: 0, color: this.state.selected ? 'white' : 'black'}}>
+					<span style={{backgroundColor: this.props.artifactInfo.security_status ? 'red' : '', borderRadius: 10, paddingLeft: 5, paddingRight: 5}}>
 						{this.props.artifactInfo.id}
+					</span>
 					</h3>
 
 					{this.props.artifactInfo.type === 'req' ?
