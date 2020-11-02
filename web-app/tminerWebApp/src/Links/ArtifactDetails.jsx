@@ -183,7 +183,7 @@ export default class ArtifactDetails extends React.Component {
 
 		const artifactTypeCellRenderer = (index) => {
 			return <Cell>
-				{getArtifactClassName(result[index].artifactType)}
+				{getArtifactClassName(getArtifactClass(result[index].artifactId))}
 			</Cell>
 		}
 
