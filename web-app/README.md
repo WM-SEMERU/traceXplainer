@@ -47,7 +47,7 @@ T-Miner Jenkins Link: http://rocco.cs.wm.edu:8080/jenkins
 ### High-Level Overview
 The T-Miner web-application displays the content of the most recent version of a repository, alongside analysis data. The traceability page displays the artifacts within the repository and selecting an artifact will display the artifact’s details, including traceability links to other artifacts, whether it is security-related, and more. There is also a general analytic metrics page that provides an overview of information regarding the overall repository, and a link browser page that displays trace links across all artifacts.
 
-Jenkins and MongoDB are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
+Web-app, Jenkins, and MongoDB are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
 
 ## Diagrams
 ### Processes:
@@ -63,6 +63,11 @@ This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupe
 This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Component%20Diagram.png).
 
 *Note: all components are hosted on the Tower1 machine*
+
+## Linux Services
+Linux services allow us to immediately run programs when the host computer boots up. This is used to start the webserver for T-Miner. It is important to note that Jenkins is also started this way, but this was completed automatically during the download. 
+
+For more details regarding Linux Services, view `Linux_Services.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/Linux_Services.txt)
 
 ## Jenkins
 Jenkins notifies the web-application of when a developer commits and pushes changes to the repository. This notification is what triggers an update of the database with the newly updated repository, which will in turn, update the content displayed on the web-application.
