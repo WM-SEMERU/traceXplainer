@@ -107,9 +107,16 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
 
     #build the list of traceability values between this file (source) and all other files (targets)
     trace_target_list = []
+    orphan = 1 # assume the file is an orphan (has no links)
     for target_file in all_files:
         if filename != target_file:
-            trace_target_list.append(calculate_traceability_value(artifact_content, target_file))
+            trace_value = calculate_traceability_value(artifact_content, target_file)
+            
+            # if the link is nonzero, then we know this artifact is not an orphan
+            if len([link for link in trace_value[1] if link[1] > 0]) > 0:
+                orphan = 0
+            
+            trace_target_list.append(trace_value)
 
     #inserts record for the current file into the collection, stored under the timestamp
     result = insert_record_into_collection(
@@ -118,7 +125,8 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
         artifact_type=artifact_type,
         content=artifact_content,
         links=trace_target_list,
-        security=is_security)
+        security=is_security,
+        orphan=orphan)
     return result
 
 '''
@@ -153,19 +161,20 @@ if __name__ == "__main__":
     # get repository name and db name from command line
     if len(sys.argv) != 3:
         sys.exit("usage: python create_baseline.py [repo_name] [database_name]")
+    script_location = os.path.dirname(sys.argv[0]) # for Jenkins, this is an absolute path
     gitRepo = sys.argv[1]
     db_name = sys.argv[2]
     os.chdir(gitRepo)
 
-    # get a timestamp to use as a collection name. This will be different than the commit timestamp that will be used
+    # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
-    timestamp = timestamp.strftime("%Y%m%d%H%M%S")
+    timestamp = timestamp.strftime("%Y-%m-%d- %H:%M:%S")
     print(timestamp)
 
     # connect to database in the standard way
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     db = client[db_name]
-    collection = db['a'+ timestamp] # the database collection whose key is the current time
+    collection = db[timestamp] # the database collection whose key is the current time
 
     # gather all the files
     all_files = []
@@ -186,3 +195,14 @@ if __name__ == "__main__":
 
     #compute metrics with requirement files as source and source code files as the target
     compute_metrics(collection, req_df, src_df)
+
+
+    # Write the database name and the most recent commit timestamp to a file
+    print(script_location)
+    print()
+    path = os.path.join(script_location, "../tminerWebApp/api")
+    print(path)
+    os.chdir(path)
+    with open("repoName_version.txt", "w") as f:
+        f.writelines([db_name + "\n", timestamp + "\n"])
+
