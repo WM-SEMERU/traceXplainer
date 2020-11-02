@@ -40,11 +40,12 @@ Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krup
 
 ## Overview
 ### T-Miner Web-Application
-T-Miner Web-App Link: http://rocco.cs.wm.edu:8080/tminer/%20 
+T-Miner Web-App Link: http://rocco.cs.wm.edu:8080/tminer/%20
+
 T-Miner Jenkins Link: http://rocco.cs.wm.edu:8080/jenkins
 
 ### High-Level Overview
-The T-Miner web-application displays the content of the most recent version of a repository, alongside analysis data. The traceability page displays the artifacts within the repository and selecting an artifact will display the artifactís details, including traceability links to other artifacts, whether it is security-related, and more. There is also a general analytic metrics page that provides an overview of information regarding the overall repository, and a link browser page that displays trace links across all artifacts.
+The T-Miner web-application displays the content of the most recent version of a repository, alongside analysis data. The traceability page displays the artifacts within the repository and selecting an artifact will display the artifact‚Äôs details, including traceability links to other artifacts, whether it is security-related, and more. There is also a general analytic metrics page that provides an overview of information regarding the overall repository, and a link browser page that displays trace links across all artifacts.
 
 Jenkins and MongoDB are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
 
@@ -71,7 +72,7 @@ Jenkins' was installed using the official installation [guidelines](https://www.
 For more details regarding setup, view `Jenkins Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.txt).
 
 ## MongoDB
-MongoDB was chosen for the document-like storage of data. Every artifact in the repo would need to be stored along with analysis results, such as traceability values, whether the artifact is security-related, etc. In this sense, having a dictionary of information per artifact was the most comprehensive structure for the team. MongoDBís structure of databases and collections also allows for an organization of repository versions as collections and the storage of multiple repositories as different databases.
+MongoDB was chosen for the document-like storage of data. Every artifact in the repo would need to be stored along with analysis results, such as traceability values, whether the artifact is security-related, etc. In this sense, having a dictionary of information per artifact was the most comprehensive structure for the team. MongoDB‚Äôs structure of databases and collections also allows for an organization of repository versions as collections and the storage of multiple repositories as different databases.
 
 For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/MongoDB%20Setup.txt).
 
@@ -93,27 +94,27 @@ As mentioned in the MongoDB section above, the database is organized such that a
 
 ### Record (Artifact Metrics) - one per repository
 - Number of documents
-	- Key: ìnum_docî
+	- Key: ‚Äúnum_doc‚Äù
 		- [num_req, num_src, diff_st, diff_ts]
 			- All of the values in the list will be numbers
-			- ëdiff_stí means the value of the difference from source files (requirement files) to target files (source code files)
-			- ëdiff_tsí means the value of the difference from target files (source code files) to source files (requirement files)
+			- ‚Äòdiff_st‚Äô means the value of the difference from source files (requirement files) to target files (source code files)
+			- ‚Äòdiff_ts‚Äô means the value of the difference from target files (source code files) to source files (requirement files)
 - Vocabulary Size
-	- Key: ìvocab_sizeî
+	- Key: ‚Äúvocab_size‚Äù
 		- [vocab_req, vocab_src, diff_st, diff_ts]
 - Average Number of Tokens Used
-	- Key: ìavg_tokensî
+	- Key: ‚Äúavg_tokens‚Äù
 		- [token_req, token_src, diff_st, diff_ts]
 - Requirement Vocabulary
-	- Key: ìrec_vocabî
-		- {ëtoken1í : [count, freq], ëtoken2í : [count, freq], ëtoken3í : [count, freq]}
-		- Note: this does not need to be formatted as this matched the direct output from DS4SEís Vocab method, which returns the three most common tokens and their corresponding counts/frequencies
+	- Key: ‚Äúrec_vocab‚Äù
+		- {‚Äòtoken1‚Äô : [count, freq], ‚Äòtoken2‚Äô : [count, freq], ‚Äòtoken3‚Äô : [count, freq]}
+		- Note: this does not need to be formatted as this matched the direct output from DS4SE‚Äôs Vocab method, which returns the three most common tokens and their corresponding counts/frequencies
 - Source Code Vocabulary
-	- Key: ìsrc_vocabî
-		- {ëtoken1í : [count, freq], ëtoken2í : [count, freq], ëtoken3í : [count, freq]}
+	- Key: ‚Äúsrc_vocab‚Äù
+		- {‚Äòtoken1‚Äô : [count, freq], ‚Äòtoken2‚Äô : [count, freq], ‚Äòtoken3‚Äô : [count, freq]}
 - Shared Vocabulary
-	- Key: ìshared_vocabî
-		- {ëtoken1í : [count, freq], ëtoken2í : [count, freq], ëtoken3í : [count, freq]}
+	- Key: ‚Äúshared_vocab‚Äù
+		- {‚Äòtoken1‚Äô : [count, freq], ‚Äòtoken2‚Äô : [count, freq], ‚Äòtoken3‚Äô : [count, freq]}
 
 ### Record (Individual Artifacts) - one per artifact in the repository
 - Artifact name
@@ -128,9 +129,9 @@ As mentioned in the MongoDB section above, the database is organized such that a
 		- Full file content
 - Traceability links
 	- Key: "links"
-		- List of Tuples: [(target1, [(tech1, val)...(tech7, val)]), Ö (targetN, [(tech1, val)...(tech7, val)])]
+		- List of Tuples: [(target1, [(tech1, val)...(tech7, val)]), ‚Ä¶ (targetN, [(tech1, val)...(tech7, val)])]
 - Orphan - there are no traceability links to other artifacts
-	- Key: ìorphanî
+	- Key: ‚Äúorphan‚Äù
 		- True/False
 - Security-related
 	- Key: "security"
@@ -148,7 +149,7 @@ As mentioned in the MongoDB section above, the database is organized such that a
 	- Output: Boolean or string value that indicates whether or not artifact is security related
 		- True: is security-related
 		- False: is NOT security-related
-		- ìNot a requirements fileî
+		- ‚ÄúNot a requirements file‚Äù
 
 ## Flask/React Front-End
 **Front-End** - Node.js server with React JS library
@@ -162,7 +163,7 @@ As mentioned in the MongoDB section above, the database is organized such that a
 - Updates with latest data from database
 
 ## Web-App Navigation & Usage
-Pages
-Filters
-Search bar
+Pages,
+Filters,
+Search bar,
 Refresh
