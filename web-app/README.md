@@ -39,20 +39,27 @@ Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krup
 "We expect that the team documents the architecture, methodology, deployment, components, and navigation of the tool in a markdown file."
 
 ## Overview
-???
+### T-Miner Web-Application
+T-Miner Web-App Link: http://rocco.cs.wm.edu:8080/tminer/%20 
+T-Miner Jenkins Link: http://rocco.cs.wm.edu:8080/jenkins
+
+### High-Level Overview
+The T-Miner web-application displays the content of the most recent version of a repository, alongside analysis data. The traceability page displays the artifacts within the repository and selecting an artifact will display the artifact’s details, including traceability links to other artifacts, whether it is security-related, and more. There is also a general analytic metrics page that provides an overview of information regarding the overall repository, and a link browser page that displays trace links across all artifacts.
+
+Jenkins and MongoDB are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
 
 ## Diagrams
-###Processes:
+### Processes:
 
 ![Processes Diagram](docs/Processes%20Diagram.png) 
 
-This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Processes%20Diagram.png)
+This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Processes%20Diagram.png).
 
-###Components: 
+### Components: 
 
 ![Components Diagram](docs/Component%20Diagram.png)
 
-This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Component%20Diagram.png)
+This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Component%20Diagram.png).
 
 *Note: all components are hosted on the Tower1 machine*
 
@@ -70,6 +77,12 @@ For more details regarding installation and Mongo Shell commands, view `MongoDB 
 
 ## Database Structure
 As mentioned in the MongoDB section above, the database is organized such that a repository has an individual database named after the repository. That database then has a separate collection for each commit or verion, named using the timestamp of the commit made. A collection stores an analysis metrics document as a dictionary of that version, and has an individual entry for each artifact in the repository.
+
+### Database
+- Key: repository name
+	- Format: "repo_name"
+- Collections: each version is stored individually as a collection
+	- New collection is created after each commit
 
 ### Collection
 - Key: timestamp of commit
@@ -123,6 +136,33 @@ As mentioned in the MongoDB section above, the database is organized such that a
 	- Key: "security"
 		- True/False/Not a requirements file
 
+## Integration of DS4SE & SecureReqNet
+**DS4SE** - *All possible artifact file pairs in the repo are checked*
+- Import DS4SE Python Library 
+	- Input: pass in a source file and target file to a technique method (7 possible techniques methods to call)
+	- Output: a tuple containing the technique used and traceability value for the observed pair of artifacts
 
+**SecureReqNet** - *Only requirement files are tested; currently checking all natural language (.txt) files in the repo*
+- Create POST request to SecureReqNet
+	- Input: raw contents of artifact as string
+	- Output: Boolean or string value that indicates whether or not artifact is security related
+		- True: is security-related
+		- False: is NOT security-related
+		- “Not a requirements file”
 
-## Web-App Navigation
+## Flask/React Front-End
+**Front-End** - Node.js server with React JS library
+- 3 Views
+	- Traceability
+		- View either Requirements or Source Code, artifact content, and associated Trace Links
+	- Analysis
+		- Display overall data analysis, including Number of Documents for various artifact types, vocabulary insight, and token analysis
+	- Link Browser
+		- Shows Trace Links across all artifacts, filterable by Link/Non-Links, Security/Non-security related, and Requirements/Source Code/Test Cases
+- Updates with latest data from database
+
+## Web-App Navigation & Usage
+Pages
+Filters
+Search bar
+Refresh
