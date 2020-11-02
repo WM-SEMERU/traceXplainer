@@ -18,7 +18,7 @@ security -- boolean representing security-relatedness of the artifact
 
 returns an InsertOneResult object
 """
-def insert_record_into_collection(db_collection, name, artifact_type, content, links, security):
+def insert_record_into_collection(db_collection, name, artifact_type, content, links, security, orphan):
 
     record = {}
     record["name"] = name
@@ -26,6 +26,7 @@ def insert_record_into_collection(db_collection, name, artifact_type, content, l
     record["content"] = content
     record["links"] = links
     record["security"] = security
+    record["orphan"] = orphan
 
     result = db_collection.insert_one(record)
 
