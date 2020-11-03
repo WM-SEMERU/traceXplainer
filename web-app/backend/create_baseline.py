@@ -28,7 +28,8 @@ Computes the traceability values across all techniques for a given source and ta
 
 Parameters: the raw contents of a source file and those of a target file
 
-Return: a tuple containing the name of the target file and a list of all the traceability values
+Return: a tuple containing the name of the target file and a list of all the traceability values or None
+        if the file could not be decoded
 '''
 def calculate_traceability_value(source_contents_raw, target_file):
     #get target file contents, if possible
@@ -36,8 +37,8 @@ def calculate_traceability_value(source_contents_raw, target_file):
         try:
             target_contents_raw = target_contents.read()
         except UnicodeDecodeError as e:
-            print("could not decode target file:", target_file)
-
+            return None
+            
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
         trace_val = 0 # facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
@@ -74,7 +75,7 @@ Creates a record for a given file in the given collection in the db.
 Parameters: the name of the record, the name of the git repo (filepath), the name of the collection
 a list of all the requirement files and a list of all the source code files
 
-Return: the result from inserting the record into the db
+Return: the result from inserting the record into the db or None if the file could not be decoded
 '''
 def create_records(filename, gitRepo, collection, req_list, src_list):
     # make all .txt files requirements and everything else source
@@ -82,15 +83,14 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     if filename[-4:] == ".txt":
         artifact_type = "req"
 
-    print(filename)
-
     # read contents of file as a string
     artifact_content = ""
     with open(gitRepo + filename.replace('./', '/'), "r") as artifact:
         try:
             artifact_content = artifact.read()
         except UnicodeDecodeError as e:
-            print("could not decode file:", filename)
+            return None
+            
 
     #add files to their corresponding lists
     #as of now, we are only working with requirement files and source code files; are there more file types?
@@ -113,7 +113,7 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
             trace_value = calculate_traceability_value(artifact_content, target_file)
             
             # if the link is nonzero, then we know this artifact is not an orphan
-            if len([link for link in trace_value[1] if link[1] > 0]) > 0:
+            if trace_value and len([link for link in trace_value[1] if link[1] > 0]) > 0:
                 orphan = 0
             
             trace_target_list.append(trace_value)
@@ -127,6 +127,8 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
         links=trace_target_list,
         security=is_security,
         orphan=orphan)
+
+
     return result
 
 '''
@@ -178,10 +180,13 @@ if __name__ == "__main__":
 
     # gather all the files
     all_files = []
+    filetypes_to_ignore = [".png", ".pack", ".jar", ".idx", ".md", ".jpg", ""]
     for dirpath, directories, filenames in os.walk("."):
         if dirpath[0:3] != "./.": # ignore hidden directories
             for filename in filenames:
-                all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
+                extension = os.path.splitext(filename)[1]
+                if extension not in filetypes_to_ignore:
+                    all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
 
     req_list = []
     src_list = []
@@ -198,10 +203,7 @@ if __name__ == "__main__":
 
 
     # Write the database name and the most recent commit timestamp to a file
-    print(script_location)
-    print()
     path = os.path.join(script_location, "../tminerWebApp/api")
-    print(path)
     os.chdir(path)
     with open("repoName_version.txt", "w") as f:
         f.writelines([db_name + "\n", timestamp + "\n"])
