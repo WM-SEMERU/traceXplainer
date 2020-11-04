@@ -33,7 +33,7 @@ The team is going to be divided into 3 domains:
 - A probabilistic approach to Traceability [paper](https://arxiv.org/pdf/2005.09046.pdf)
 - The page of the project [link](https://semeru-code-public.gitlab.io/Project-Websites/comet-website/)
 
-# T-Miner Documentation (Team #1)
+# T-Miner (Team #1)
 Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krupka, and Nicholas Wright
 
 "We expect that the team documents the architecture, methodology, deployment, components, and navigation of the tool in a markdown file."
@@ -45,9 +45,10 @@ T-Miner Web-App Link: http://rocco.cs.wm.edu:8080/tminer/%20
 T-Miner Jenkins Link: http://rocco.cs.wm.edu:8080/jenkins
 
 ### High-Level Overview
-The T-Miner web-application displays the content of the most recent version of a repository, alongside analysis data. The traceability page displays the artifacts within the repository and selecting an artifact will display the artifact’s details, including traceability links to other artifacts, whether it is security-related, and more. There is also a general analytic metrics page that provides an overview of information regarding the overall repository, and a link browser page that displays trace links across all artifacts.
 
-Web-app, Jenkins, and MongoDB are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
+The T-Miner web-application analyzes traceability links among requirements and source code files in a git repository and displays the analysis in a user-friendly manner. Users can navigate through software artifacts and view artifact contents, traceability link values to other artifacts, and measures of security-relatedness (for natural language requirements files). Also available is a high-level view of general analytic metrics for the entire repository, as well as a link-browser view that displays trace links across all artifacts. As changes are pushed to the repository, the web-app updates its information automatically.
+
+The web-app involves a number of components: a Flask/React frontend, a MongoDB noSQL database, the [DS4SE](https://pypi.org/project/ds4se/) and [SecureReqNet](https://github.com/WM-SEMERU/SecureReqNet) libraries, and the Jenkins CI/CD tool. All these components are installed and set up on the local machine. Jenkins in particular can be set up to connect to a repository of your choosing.  When a developer makes a commit and pushes changes to the repository, Jenkins notifies the backend of the change and initiates an update to the database. All files in the repository are re-evaluated for traceability and security-relatedness prior to being stored in the database. Once the database is up-to-date, the latest version of data is displayed on the web-app for the user to view.
 
 ## Diagrams
 ### Processes:
@@ -67,19 +68,19 @@ This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupe
 ## Linux Services
 Linux services allow us to immediately run programs when the host computer boots up. This is used to start the webserver for T-Miner. It is important to note that Jenkins is also started this way, but this was completed automatically during the download. 
 
-For more details regarding Linux Services, view `Linux_Services.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Linux_Services.md)
+For more details regarding Linux Services, view `Linux_Services.md` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Linux_Services.md)
 
 ## Jenkins
 Jenkins notifies the web-application of when a developer commits and pushes changes to the repository. This notification is what triggers an update of the database with the newly updated repository, which will in turn, update the content displayed on the web-application.
 
 Jenkins' was installed using the official installation [guidelines](https://www.jenkins.io/doc/book/installing/). Setup of Jenkins required installation of Maven and Java JDK 8. The setup of Jenkins required installations of Maven and Java JDK 8. Note that Java JDK 8 must be used.
 
-For more details regarding setup, view `Jenkins Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.md).
+For more details regarding setup, view `Jenkins Setup.md` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Jenkins%20Setup.md).
 
 ## MongoDB
 MongoDB was chosen for the document-like storage of data. Every artifact in the repo would need to be stored along with analysis results, such as traceability values, whether the artifact is security-related, etc. In this sense, having a dictionary of information per artifact was the most comprehensive structure for the team. MongoDB’s structure of databases and collections also allows for an organization of repository versions as collections and the storage of multiple repositories as different databases.
 
-For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.txt` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/MongoDB%20Setup.md).
+For more details regarding installation and Mongo Shell commands, view `MongoDB Setup.md` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/MongoDB%20Setup.md).
 
 ## Database Structure
 As mentioned in the MongoDB section above, the database is organized such that a repository has an individual database named after the repository. That database then has a separate collection for each commit or verion, named using the timestamp of the commit made. A collection stores an analysis metrics document as a dictionary of that version, and has an individual entry for each artifact in the repository.
@@ -135,10 +136,10 @@ As mentioned in the MongoDB section above, the database is organized such that a
 - Traceability links
 	- Key: "links"
 		- List of Tuples: [(target1, [(tech1, val)...(tech7, val)]), … (targetN, [(tech1, val)...(tech7, val)])]
-- Orphan - there are no traceability links to other artifacts
+- Orphan (i.e. whether or not traceability links to other artifacts exist)
 	- Key: “orphan”
 		- True/False
-- Security-related
+- Security-relatedness
 	- Key: "security"
 		- True/False/Not a requirements file
 
