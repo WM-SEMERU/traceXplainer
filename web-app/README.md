@@ -34,7 +34,7 @@ The team is going to be divided into 3 domains:
 - The page of the project [link](https://semeru-code-public.gitlab.io/Project-Websites/comet-website/)
 
 # T-Miner Documentation (Team #1)
-Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krupka, and Nicholas Write
+Project Contributors: Jade Chen, Alex Fantine, John Garst, Chase Jones, Ben Krupka, and Nicholas Wright
 
 "We expect that the team documents the architecture, methodology, deployment, components, and navigation of the tool in a markdown file."
 
