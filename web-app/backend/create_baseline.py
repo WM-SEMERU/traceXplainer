@@ -17,7 +17,7 @@ import datetime
 import requests
 
 from database_insert import insert_record_into_collection, insert_metrics_into_collection
-#import ds4se.facade as facade
+import ds4se.facade as facade
 import pandas as pd
 
 #taken from the DS4SE documentation
@@ -40,7 +40,7 @@ def calculate_traceability_value(source_contents_raw, target_file):
 
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
-        trace_val = 0 # facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
+        trace_val = facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
         #adds trace values as a tuple in the form "(technique name, value)"
         trace_val_list.append((technique, trace_val))
     return (target_file, trace_val_list)
@@ -101,7 +101,7 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
 
     #retrieve security info from SecureReqNet
     if artifact_type == "req":
-        is_security = 1 # get_security(artifact_content)
+        is_security = get_security(artifact_content)
     else:
         is_security = "Not a requirements file."
 
@@ -131,12 +131,12 @@ Note: source_df should be the requirement files, target_df should be the source 
 Return: the result from inserting the record into the db
 '''
 def compute_metrics(db_collection, source_df, target_df):
-    num_doc_data = 1 #facade.NumDoc(source_df, target_df)
-    vocab_size_data = 1 #facade.VocabSize(source_df, target_df)
-    avg_tokens_data = 1 #facade.AverageToken(source_df, target_df)
-    rec_vocab_data = 1 #facade.Vocab(source_df)
-    src_vocab_data = 1 #facade.Vocab(target_df)
-    shared_vocab_data = 1 #facade.VocabShared(source_df, target_df)
+    num_doc_data = facade.NumDoc(source_df, target_df)
+    vocab_size_data = facade.VocabSize(source_df, target_df)
+    avg_tokens_data = facade.AverageToken(source_df, target_df)
+    rec_vocab_data = facade.Vocab(source_df)
+    src_vocab_data = facade.Vocab(target_df)
+    shared_vocab_data = facade.VocabShared(source_df, target_df)
 
     result = insert_metrics_into_collection(
         db_collection,
