@@ -36,7 +36,7 @@ function App() {
 	<div class="page-title">
 		<Switch>
           <Route exact path="/tminer">
-            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability {dbitem}
+            T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Traceability
           </Route>
 		  <Route path="/analysis">
             T-MINER &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Analysis

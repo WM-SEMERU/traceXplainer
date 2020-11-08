@@ -4,14 +4,50 @@ import {HTMLSelect, InputGroup} from '@blueprintjs/core';
 
 import React from 'react';
 import { getAllArtifactInfos } from '../interfaces/ArtifactInterface';
+import { getAnalysisMetrics } from '../interfaces/ArtifactInterface'; //ADDED
 
 export default class SharedMetrics extends React.Component {
 
 	state = {
 		artifactInfos: null,
+		//ADDED ATTRIBUTES
+		analysisMetrics: null,
+		numberDocs: 0,
+		vocabSize: 0,
+		avgNumTokens: 0,
+		reqVocab: {},
+		srcVocab: {},
+		sharedVocab: {},
 	}
 
 	currentArtifactClass = 'req';
+	
+	//ADDED to retrieve data using api methods and update state 
+	componentDidMount() {
+		getAnalysisMetrics().then((analysisMetrics) => {
+			console.log(analysisMetrics);
+			this.setState({
+				numberDocs: analysisMetrics.num_doc //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
+				//vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
+				//avgNumTokens: analysisMetrics.avg_tokens,
+				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
+				//reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
+			});
+		});
+	}
+
+	//reloadContent() {
+		//this.setState({loading: true});
+	//	getAnalysisMetrics().then((analysisMetrics) => {
+	//		this.setState({
+	//			numberDocs: analysisMetrics.num_doc, //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
+	//			vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
+	//			avgNumTokens: analysisMetrics.avg_tokens,
+				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
+	//			reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
+	//                })
+	//        });
+        //}
 
 	constructor(props) {
 		super(props);
@@ -56,7 +92,7 @@ export default class SharedMetrics extends React.Component {
 						</tr>
 						<tr>
 							<td>Number of Documents</td>
-							<td>66</td>
+							<td>{this.state.num_doc}</td>
 							<td>+14</td>
 						</tr>
 						<tr>
