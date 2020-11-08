@@ -1,7 +1,9 @@
 from flask import Flask
+import json
+from bson import ObjectId
 from pymongo import MongoClient
 from flask_cors import CORS, cross_origin
-from database_retrieve import get_artifacts
+#from database_retrieve import get_artifacts
 
 client = MongoClient("mongodb://localhost:27017/")
 
@@ -26,6 +28,28 @@ mycol = mydb[collection]
 app = Flask(__name__)
 CORS(app)
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
+# TODO: retrieve analysis metrics document (for all artifacts)
+@app.route('/tminer/api/getAnalysisMetrics')
+def get_analysis_info():
+    return_dict = mycol.find_one({"num_doc":{"$exists":True}})
+    #print(return_dict)
+    return JSONEncoder().encode(return_dict)
+
+@app.route('/tminer/api/getArtifactInfo')
+def get_artifact_info():
+    return_dict = {'src': [], 'req': []}
+    for artifact in mycol.find():
+        if "name" in artifact:
+            artifact_id = artifact["name"]
+            return_dict[artifact['type']].append({artifact_id: artifact})
+    #print(return_dict)
+    return JSONEncoder().encode(return_dict)
 
 @app.route('/tminer/api/getdb')
 def get_db_item():
