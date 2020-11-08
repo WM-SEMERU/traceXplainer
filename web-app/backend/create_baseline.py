@@ -28,7 +28,8 @@ Computes the traceability values across all techniques for a given source and ta
 
 Parameters: the raw contents of a source file and those of a target file
 
-Return: a tuple containing the name of the target file and a list of all the traceability values
+Return: a tuple containing the name of the target file and a list of all the traceability values or None
+        if the file could not be decoded
 '''
 def calculate_traceability_value(source_contents_raw, target_file):
     #get target file contents, if possible
@@ -36,8 +37,8 @@ def calculate_traceability_value(source_contents_raw, target_file):
         try:
             target_contents_raw = target_contents.read()
         except UnicodeDecodeError as e:
-            print("could not decode target file:", target_file)
-
+            return None
+            
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
         trace_val = facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
@@ -74,7 +75,7 @@ Creates a record for a given file in the given collection in the db.
 Parameters: the name of the record, the name of the git repo (filepath), the name of the collection
 a list of all the requirement files and a list of all the source code files
 
-Return: the result from inserting the record into the db
+Return: the result from inserting the record into the db or None if the file could not be decoded
 '''
 def create_records(filename, gitRepo, collection, req_list, src_list):
     # make all .txt files requirements and everything else source
@@ -82,15 +83,14 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     if filename[-4:] == ".txt":
         artifact_type = "req"
 
-    print(filename)
-
     # read contents of file as a string
     artifact_content = ""
     with open(gitRepo + filename.replace('./', '/'), "r") as artifact:
         try:
             artifact_content = artifact.read()
         except UnicodeDecodeError as e:
-            print("could not decode file:", filename)
+            return None
+            
 
     #add files to their corresponding lists
     #as of now, we are only working with requirement files and source code files; are there more file types?
@@ -107,9 +107,16 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
 
     #build the list of traceability values between this file (source) and all other files (targets)
     trace_target_list = []
+    orphan = 1 # assume the file is an orphan (has no links)
     for target_file in all_files:
         if filename != target_file:
-            trace_target_list.append(calculate_traceability_value(artifact_content, target_file))
+            trace_value = calculate_traceability_value(artifact_content, target_file)
+            
+            # if the link is nonzero, then we know this artifact is not an orphan
+            if trace_value and len([link for link in trace_value[1] if link[1] > 0]) > 0:
+                orphan = 0
+            
+            trace_target_list.append(trace_value)
 
     #inserts record for the current file into the collection, stored under the timestamp
     result = insert_record_into_collection(
@@ -118,7 +125,10 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
         artifact_type=artifact_type,
         content=artifact_content,
         links=trace_target_list,
-        security=is_security)
+        security=is_security,
+        orphan=orphan)
+
+
     return result
 
 '''
@@ -153,11 +163,12 @@ if __name__ == "__main__":
     # get repository name and db name from command line
     if len(sys.argv) != 3:
         sys.exit("usage: python create_baseline.py [repo_name] [database_name]")
+    script_location = os.path.dirname(sys.argv[0]) # for Jenkins, this is an absolute path
     gitRepo = sys.argv[1]
     db_name = sys.argv[2]
     os.chdir(gitRepo)
 
-    # get a timestamp to use as a collection name. This will be different than the commit timestamp that will be used
+    # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
     timestamp = timestamp.strftime("%Y-%m-%d- %H:%M:%S")
     print(timestamp)
@@ -169,10 +180,13 @@ if __name__ == "__main__":
 
     # gather all the files
     all_files = []
+    filetypes_to_ignore = [".png", ".pack", ".jar", ".idx", ".md", ".jpg", ""]
     for dirpath, directories, filenames in os.walk("."):
         if dirpath[0:3] != "./.": # ignore hidden directories
             for filename in filenames:
-                all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
+                extension = os.path.splitext(filename)[1]
+                if extension not in filetypes_to_ignore:
+                    all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
 
     req_list = []
     src_list = []
@@ -186,3 +200,11 @@ if __name__ == "__main__":
 
     #compute metrics with requirement files as source and source code files as the target
     compute_metrics(collection, req_df, src_df)
+
+
+    # Write the database name and the most recent commit timestamp to a file
+    path = os.path.join(script_location, "../tminerWebApp/api")
+    os.chdir(path)
+    with open("repoName_version.txt", "w") as f:
+        f.writelines([db_name + "\n", timestamp + "\n"])
+
