@@ -4,12 +4,19 @@ import {HTMLSelect, InputGroup} from '@blueprintjs/core';
 
 import React from 'react';
 import { getAllArtifactInfos } from '../interfaces/ArtifactInterface';
+import { getAnalysisMetrics } from '../interfaces/ArtifactInterface'; //ADDED
 import { Icon } from '@blueprintjs/core';
 
 export default class SourceBrowser extends React.Component {
 
 	state = {
 		artifactInfos: null,
+                numberDocs: 0,
+		vocabSize: 0,
+		averageNumTokens: 0,
+		reqVocab: 0,
+		srcVocab: 0,
+		sharedVocab: 0,
 	}
 
 	currentArtifactClass = 'req';
