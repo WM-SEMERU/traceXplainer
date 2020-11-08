@@ -38,10 +38,12 @@ def calculate_traceability_value(source_contents_raw, target_file):
             target_contents_raw = target_contents.read()
         except UnicodeDecodeError as e:
             return None
-            
+
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
         trace_val = facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
+        if isinstance(trace_val, tuple):
+            trace_val = trace_val[1]
         #adds trace values as a tuple in the form "(technique name, value)"
         trace_val_list.append((technique, trace_val))
     return (target_file, trace_val_list)
@@ -90,7 +92,7 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
             artifact_content = artifact.read()
         except UnicodeDecodeError as e:
             return None
-            
+
 
     #add files to their corresponding lists
     #as of now, we are only working with requirement files and source code files; are there more file types?
@@ -111,11 +113,11 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     for target_file in all_files:
         if filename != target_file:
             trace_value = calculate_traceability_value(artifact_content, target_file)
-            
+
             # if the link is nonzero, then we know this artifact is not an orphan
-            if trace_value and len([link for link in trace_value[1] if link[1] > 0]) > 0:
+            if trace_value and len([link for link in trace_value[1] if link[1] > 0]):
                 orphan = 0
-            
+
             trace_target_list.append(trace_value)
 
     #inserts record for the current file into the collection, stored under the timestamp
@@ -207,4 +209,3 @@ if __name__ == "__main__":
     os.chdir(path)
     with open("repoName_version.txt", "w") as f:
         f.writelines([db_name + "\n", timestamp + "\n"])
-
