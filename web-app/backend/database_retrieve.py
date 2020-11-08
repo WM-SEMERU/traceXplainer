@@ -110,7 +110,7 @@ def search_artifacts(database, timestamp_key, search):
         for key in artifact:
             content = artifact[key]
             # convert content to string for check if not already
-            if not iisinstance(content, str):
+            if not isinstance(content, str):
                 content = str(content)
             # case-insensitive check 
             if search.lower() in content.lower():
@@ -210,7 +210,7 @@ def get_nonorphan_artifacts(database, timestamp_key):
 
     # retrieve all requirements that have traceability
     # links 
-    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": False }]}):
+    for artifact in collection.find({"$and": [{"num_doc": {'$exists': False}}, {"orphan": False}]}):
         arts.append(artifact)
 
     return arts

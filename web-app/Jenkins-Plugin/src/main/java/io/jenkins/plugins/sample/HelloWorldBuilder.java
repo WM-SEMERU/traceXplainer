@@ -52,7 +52,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         }
 
         //This is where the fun begins. Run a console command to find the difference between this commit and the last one.
-        Process process = Runtime.getRuntime().exec("cmd /c cd C:\\Users\\User\\Desktop\\TestRepo && name-only HEAD HEAD~1");
+        Process process = Runtime.getRuntime().exec("cmd /c cd C:\\Users\\User\\Desktop\\TestRepo && git diff name-only HEAD HEAD~1");
 
         Process testProcess = Runtime.getRuntime().exec("cmd /c echo multiple word command", null, new File("C:\\Users\\User\\Desktop\\TestRepo"));
 
