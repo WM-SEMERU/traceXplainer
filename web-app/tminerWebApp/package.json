@@ -1,5 +1,6 @@
 {
   "name": "react-flask-app",
+  "homepage": "http://localhost:8080/tminer",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

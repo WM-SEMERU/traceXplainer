@@ -2,10 +2,15 @@
   "ExpandedNodes": [
     "",
     "\\web-app",
-    "\\web-app\\flask-server",
-    "\\web-app\\test_db",
-    "\\web-app\\trace-web-app"
+    "\\web-app\\docs",
+    "\\web-app\\tminerWebApp",
+    "\\web-app\\tminerWebApp\\public",
+    "\\web-app\\tminerWebApp\\public\\libest",
+    "\\web-app\\tminerWebApp\\public\\libest\\libest",
+    "\\web-app\\tminerWebApp\\src",
+    "\\web-app\\tminerWebApp\\src\\AnalysisView",
+    "\\web-app\\tminerWebApp\\src\\ArtifactNavigator"
   ],
-  "SelectedNode": "\\web-app\\test_db",
+  "SelectedNode": "\\web-app\\tminerWebApp\\src\\ArtifactNavigator\\ArtifactDetails.jsx",
   "PreviewInSolutionExplorer": false
 }

@@ -4,12 +4,19 @@ import {HTMLSelect, InputGroup} from '@blueprintjs/core';
 
 import React from 'react';
 import { getAllArtifactInfos } from '../interfaces/ArtifactInterface';
+import { getAnalysisMetrics } from '../interfaces/ArtifactInterface'; //ADDED
 import { Icon } from '@blueprintjs/core';
 
 export default class SourceBrowser extends React.Component {
 
 	state = {
 		artifactInfos: null,
+                numberDocs: 0,
+		vocabSize: 0,
+		averageNumTokens: 0,
+		reqVocab: 0,
+		srcVocab: 0,
+		sharedVocab: 0,
 	}
 
 	currentArtifactClass = 'req';
@@ -28,18 +35,22 @@ export default class SourceBrowser extends React.Component {
 		this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
 	}
 
+	deselectCurrentlySelectedArtifact() {
+
+	}
+
 	render() {
 		return (
 			<div className="artifactBrowserContainer">
 				<div className="artifactBrowser">
-					
+
 					<div className="sourceTitle">
 					<div className="sourceTitleRow">
-					
+
 					<div className="leftTitle">
 						&nbsp; &nbsp; &nbsp; Source
 					</div>
-					
+
 					<div className="artifactClassSelectorContainer">
 						<HTMLSelect onChange={(event) => {
 							this.deselectCurrentlySelectedArtifact();
@@ -51,10 +62,10 @@ export default class SourceBrowser extends React.Component {
 							<option value="src">Source Code</option>
 						</HTMLSelect>
 					</div>
-					
+
 					</div>
 					</div>
-					
+
 					<table className="metricTable">
 						<tr>
 							<th>Metric</th>
@@ -77,11 +88,11 @@ export default class SourceBrowser extends React.Component {
 							<td>+435</td>
 						</tr>
 					</table>
-					
+
 					<div className="heading">
 						Vocab
 					</div>
-					
+
 					<table className="metricTable">
 						<tr>
 							<th>Token</th>
