@@ -23,8 +23,8 @@ function App() {
   const [dbitem, setDbItem] = useState([]);
 
   useEffect(() => {
-    fetch('/api/getdb').then(res => res.json()).then(data => {
-      setDbItem(data.item);
+    fetch('tminer/api/getdb').then(data => data.text()).then(data => {
+      setDbItem(data);
     });
   }, []);
 

@@ -2,7 +2,7 @@
 export default class TraceModel {
 
 	constructor(model) {
-		this.__model = model
+		this.__model = model;
 		this.__sourceNames = new Set();
 		this.__targetNames = new Set();
 
@@ -12,6 +12,7 @@ export default class TraceModel {
 				this.__targetNames.add(targetName);
 			})
 		})
+		console.log(this.__model);
 	}
 
 	getTracesForArtifact(artifactName) {
