@@ -207,5 +207,5 @@ if __name__ == "__main__":
     # Write the database name and the most recent commit timestamp to a file
     path = os.path.join(script_location, "../tminerWebApp/api")
     os.chdir(path)
-    with open("repoName_version.txt", "w") as f:
+    with open("repoName_version.log", "w") as f:
         f.writelines([db_name + "\n", timestamp + "\n"])
