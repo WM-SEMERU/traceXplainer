@@ -175,6 +175,7 @@ if __name__ == "__main__":
 
     os.system('git pull')
     print('pulled')
+    gitDiffList = subprocess.check_output(['git', 'diff', '--name-only', 'HEAD', 'HEAD~1']).split('\n')
 
     # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
@@ -192,9 +193,10 @@ if __name__ == "__main__":
     for dirpath, directories, filenames in os.walk("."):
         if dirpath[0:3] != "./.": # ignore hidden directories
             for filename in filenames:
-                extension = os.path.splitext(filename)[1]
-                if extension not in filetypes_to_ignore:
-                    all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
+                if filename in gitDiffList:
+                    extension = os.path.splitext(filename)[1]
+                    if extension not in filetypes_to_ignore:
+                        all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
 
     req_list = []
     src_list = []
