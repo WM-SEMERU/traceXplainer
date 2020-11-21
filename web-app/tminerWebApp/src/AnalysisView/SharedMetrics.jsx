@@ -12,7 +12,7 @@ export default class SharedMetrics extends React.Component {
 		artifactInfos: null,
 		//ADDED ATTRIBUTES
 		analysisMetrics: null,
-		numberDocs: 0,
+		numberDocs: 5,
 		vocabSize: 0,
 		avgNumTokens: 0,
 		reqVocab: {},
@@ -20,48 +20,37 @@ export default class SharedMetrics extends React.Component {
 		sharedVocab: {},
 	}
 
-	currentArtifactClass = 'req';
+	//currentArtifactClass = 'req';
 	
 	//ADDED to retrieve data using api methods and update state 
 	componentDidMount() {
+		console.log("initial numdocs: " + this.state.numberDocs);
 		getAnalysisMetrics().then((analysisMetrics) => {
-			console.log(analysisMetrics);
+			console.log("imported numdocs: " + analysisMetrics);
 			this.setState({
-				numberDocs: analysisMetrics.num_doc //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
+				//numberdocs: analysisMetrics.hi
+				//numberDocs: analysisMetrics.num_doc, //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
 				//vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
-				//avgNumTokens: analysisMetrics.avg_tokens,
-				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
+				//avgNumTokens: analysisMetrics.avg_tokens, //avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
 				//reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
 			});
 		});
+		console.log("reassigned numbdocs: " + this.state.numberDocs);
 	}
 
-	//reloadContent() {
-		//this.setState({loading: true});
-	//	getAnalysisMetrics().then((analysisMetrics) => {
-	//		this.setState({
-	//			numberDocs: analysisMetrics.num_doc, //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
-	//			vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
-	//			avgNumTokens: analysisMetrics.avg_tokens,
-				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
-	//			reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
-	//                })
-	//        });
-        //}
+	//constructor(props) {
+	//	super(props);
 
-	constructor(props) {
-		super(props);
+	//	this.artifactCardRefs = [];
+	//	this.currentlySelectedArtifactIndex = -1;
 
-		this.artifactCardRefs = [];
-		this.currentlySelectedArtifactIndex = -1;
+	//	const artifactInfos = getAllArtifactInfos(this.currentArtifactClass);
+	//	this.state = {
+	//		artifactInfos: artifactInfos,
+	//	};
 
-		const artifactInfos = getAllArtifactInfos(this.currentArtifactClass);
-		this.state = {
-			artifactInfos: artifactInfos,
-		};
-
-		this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
-	}
+	//	this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
+	//}
 
 	render() {
 		return (
@@ -92,7 +81,7 @@ export default class SharedMetrics extends React.Component {
 						</tr>
 						<tr>
 							<td>Number of Documents</td>
-							<td>{this.state.num_doc}</td>
+							<td>{this.state.numberDocs}</td>
 							<td>+14</td>
 						</tr>
 						<tr>
