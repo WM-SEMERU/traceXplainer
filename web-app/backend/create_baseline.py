@@ -17,7 +17,7 @@ import datetime
 import requests
 
 from database_insert import insert_record_into_collection, insert_metrics_into_collection
-import ds4se.facade as facade
+#import ds4se.facade as facade
 import pandas as pd
 
 #taken from the DS4SE documentation
@@ -41,7 +41,7 @@ def calculate_traceability_value(source_contents_raw, target_file):
 
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
-        trace_val = facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
+        trace_val = 0 #facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
         if isinstance(trace_val, tuple):
             trace_val = trace_val[1]
         #adds trace values as a tuple in the form "(technique name, value)"
@@ -146,12 +146,12 @@ Note: source_df should be the requirement files, target_df should be the source 
 Return: the result from inserting the record into the db
 '''
 def compute_metrics(db_collection, source_df, target_df):
-    num_doc_data = facade.NumDoc(source_df, target_df)
-    vocab_size_data = facade.VocabSize(source_df, target_df)
-    avg_tokens_data = facade.AverageToken(source_df, target_df)
-    rec_vocab_data = facade.Vocab(source_df)
-    src_vocab_data = facade.Vocab(target_df)
-    shared_vocab_data = facade.VocabShared(source_df, target_df)
+    num_doc_data = 0 #facade.NumDoc(source_df, target_df)
+    vocab_size_data = 0 #facade.VocabSize(source_df, target_df)
+    avg_tokens_data = 0 #facade.AverageToken(source_df, target_df)
+    rec_vocab_data = 0 #facade.Vocab(source_df)
+    src_vocab_data = 0 #facade.Vocab(target_df)
+    shared_vocab_data = 0 #facade.VocabShared(source_df, target_df)
 
     result = insert_metrics_into_collection(
         db_collection,
@@ -173,7 +173,8 @@ if __name__ == "__main__":
     db_name = sys.argv[2]
     os.chdir(gitRepo)
 
-    #os.system('')        --- I will add this later
+    os.system('git pull')
+    print('pulled')
 
     # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
