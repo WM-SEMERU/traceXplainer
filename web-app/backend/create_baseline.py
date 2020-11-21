@@ -101,11 +101,14 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     else:
         req_list.append({'contents':artifact_content})
 
+
+    is_security = 0
     #retrieve security info from SecureReqNet
     if artifact_type == "req":
-        is_security = get_security(artifact_content)
+        is_security = 0
+        #is_security = get_security(artifact_content)
     else:
-        is_security = "Not a requirements file."
+        is_security = 1 #"Not a requirements file."
 
     #build the list of traceability values between this file (source) and all other files (targets)
     trace_target_list = []
@@ -170,6 +173,8 @@ if __name__ == "__main__":
     db_name = sys.argv[2]
     os.chdir(gitRepo)
 
+    #os.system('')        --- I will add this later
+
     # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
     timestamp = timestamp.strftime("%Y-%m-%d- %H:%M:%S")
@@ -207,5 +212,5 @@ if __name__ == "__main__":
     # Write the database name and the most recent commit timestamp to a file
     path = os.path.join(script_location, "../tminerWebApp/api")
     os.chdir(path)
-    with open("repoName_version.txt", "w") as f:
+    with open("repoName_version.log", "w") as f:
         f.writelines([db_name + "\n", timestamp + "\n"])
