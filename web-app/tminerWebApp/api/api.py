@@ -34,13 +34,10 @@ class JSONEncoder(json.JSONEncoder):
             return str(o)
         return json.JSONEncoder.default(self, o)
 
-# TODO: retrieve analysis metrics document (for all artifacts)
+# retrieve analysis metrics document for commit version
 @app.route('/tminer/api/getAnalysisMetrics')
 def get_analysis_info():
-    #return_dict = mycol.find_one({"num_doc":{"$exists":True}}) # TODO
-    #print(return_dict)
-    return_dict = {"hi": 1}
-    #console.log("api.py: " + str(return_dict))
+    return_dict = mycol.find_one({"num_doc":{"$exists":True}})
     return JSONEncoder().encode(return_dict)
 
 @app.route('/tminer/api/getArtifactInfo/<type>')
