@@ -19,33 +19,24 @@ let artifactContentCache = {
 //	return artifactContentCache[artifactClass][id];
 //}
 
-//TODO: ADDED ANALYSIS METRICS METHOD
+// method to retrieve analysis metrics json
 export async function getAnalysisMetrics() {
-    const idPath = 'tminer/api/getAnalysisMetrics' // url to api method
-    //const metrics = fetch(idPath).then(data => data.json()) //.then(data => data.json()) // fetch data from method
-    	//.then(data => data.text()
-	//.then(text => console.log(text));
-    const metrics = fetch(idPath)
-        .then(function(response) {
-	    if(response.ok) {
-	        //console.log("interface check: " + response.json());
-	        return response.json();
-	    }
-	    throw new Error("Something went wrong.");
-	})
-	//.then(response => response.json())
-	//.then(text => {
-	//    console.log("new check" + text);
-	//})
-	.then(function(text) {
-	    console.log("Request successful", text);
-	    return(text);
-	})
-	.catch(function(error) {
-	    console.log("Request failed", error);
-	});
-    console.log("metrics: " + metrics);
-    return metrics;
+	const idPath = 'tminer/api/getAnalysisMetrics' // url to api method
+	const metrics = fetch(idPath)
+		.then(function (response) { // return json if the response is ok
+			if (response.ok) {
+				return response.json();
+			}
+			throw new Error("Something went wrong.");
+		})
+		.then(function (text) {
+			console.log("Request successful", text);
+			return (text);
+		})
+		.catch(function (error) {
+			console.log("Request failed", error);
+		});
+	return metrics;
 }
 
 export async function getArtifactContent(artifactClass, id) {
