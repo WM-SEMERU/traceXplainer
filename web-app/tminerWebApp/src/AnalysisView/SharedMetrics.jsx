@@ -31,20 +31,41 @@ export default class SharedMetrics extends React.Component {
 
 	//currentArtifactClass = 'req';
 	
-	//ADDED to retrieve data using api methods and update state 
+	//ADDED to retrieve data using api methods and update state
 	componentDidMount() {
-		console.log("initial numdocs: " + this.state.numberDocs);
 		getAnalysisMetrics().then((analysisMetrics) => {
-			console.log("imported numdocs: " + analysisMetrics);
+			//RETRIEVE DATA
+			var avNumTkn = ((analysisMetrics.avg_tokens[0] + analysisMetrics.avg_tokens[1]) / 2).toFixed(10);
+			//retrieve shared vocab
+			var v1 = Object.keys(analysisMetrics.shared_vocab)[0];
+			var v2 = Object.keys(analysisMetrics.shared_vocab)[1];
+			var v3 = Object.keys(analysisMetrics.shared_vocab)[2];
+			//retrieve shared vocab counts/frequencies
+			var v1_ct = (analysisMetrics.shared_vocab)[v1][0];
+			var v1_fr = ((analysisMetrics.shared_vocab)[v1][1]).toFixed(10);
+			var v2_ct = (analysisMetrics.shared_vocab)[v2][0];
+			var v2_fr = ((analysisMetrics.shared_vocab)[v2][1]).toFixed(10);
+			var v3_ct = (analysisMetrics.shared_vocab)[v3][0];
+			var v3_fr = ((analysisMetrics.shared_vocab)[v3][1]).toFixed(10);
+
 			this.setState({
-				//numberdocs: analysisMetrics.hi
-				//numberDocs: analysisMetrics.num_doc, //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
-				//vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
-				//avgNumTokens: analysisMetrics.avg_tokens, //avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
-				//reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
+				numberDocs: analysisMetrics.num_doc[0] + analysisMetrics.num_doc[1], //add num_req and num_src
+				vocabSize: analysisMetrics.vocab_size[0] + analysisMetrics.vocab_size[1], //add vocab_req and vocab_src
+				avgNumTokens: avNumTkn,
+				//set vocab
+				vocab1: v1,
+				vocab2: v2,
+				vocab3: v3,
+				//set vocab counts
+				vocab1_count: v1_ct,
+				vocab2_count: v2_ct,
+				vocab3_count: v3_ct,
+				//set vocab frequencies
+				vocab1_freq: v1_fr,
+				vocab2_freq: v2_fr,
+				vocab3_freq: v3_fr
 			});
 		});
-		console.log("reassigned numbdocs: " + this.state.numberDocs);
 	}
 
 	//constructor(props) {
