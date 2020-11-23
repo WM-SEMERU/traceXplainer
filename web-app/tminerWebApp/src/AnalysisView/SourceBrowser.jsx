@@ -45,11 +45,12 @@ export default class SourceBrowser extends React.Component {
 		getAnalysisMetrics().then((analysisMetrics) => {
 			//console.log("in mount method: " + currentArtifactClass);
 			var index = 0;
+			var vocab = analysisMetrics.rec_vocab;
 			if (currentArtifactClass == "src") {
 				index = 1;
+				vocab = analysisMetrics.src_vocab;
 			}
 			console.log("index: " + index);
-			var vocab = analysisMetrics.src_vocab;
 			var v1 = Object.keys(vocab)[0];
 			var v2 = Object.keys(vocab)[1];
 			var v3 = Object.keys(vocab)[2];
