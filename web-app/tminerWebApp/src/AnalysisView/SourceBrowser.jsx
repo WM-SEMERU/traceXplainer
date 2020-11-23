@@ -38,9 +38,17 @@ export default class SourceBrowser extends React.Component {
 		return diff;
 	}
 
+	currentArtifactClass = "req";
+
 	//RETRIEVE DATA
-	componentDidMount() {
+	componentDidMount(currentArtifactClass) {
 		getAnalysisMetrics().then((analysisMetrics) => {
+			//console.log("in mount method: " + currentArtifactClass);
+			var index = 0;
+			if (currentArtifactClass == "src") {
+				index = 1;
+			}
+			console.log("index: " + index);
 			var vocab = analysisMetrics.src_vocab;
 			var v1 = Object.keys(vocab)[0];
 			var v2 = Object.keys(vocab)[1];
@@ -54,11 +62,11 @@ export default class SourceBrowser extends React.Component {
 
 			this.setState({
 				// set source fields
-				numberDocs: analysisMetrics.num_doc[0],
+				numberDocs: analysisMetrics.num_doc[index],
 				numberDocs_diff: this.convertDiffToString(analysisMetrics.num_doc[2]),
-				vocabSize: analysisMetrics.vocab_size[0],
+				vocabSize: analysisMetrics.vocab_size[index],
 				vocabSize_diff: this.convertDiffToString(analysisMetrics.vocab_size[2]),
-				avgNumTokens: (analysisMetrics.avg_tokens[0]).toFixed(10),
+				avgNumTokens: (analysisMetrics.avg_tokens[index]).toFixed(10),
 				avgNumTokens_diff: this.convertDiffToString((analysisMetrics.avg_tokens[2]).toFixed(10)),
 				// set vocab
 				vocab1: v1,
@@ -111,9 +119,11 @@ export default class SourceBrowser extends React.Component {
 					<div className="artifactClassSelectorContainer">
 						<HTMLSelect onChange={(event) => {
 							this.deselectCurrentlySelectedArtifact();
-							this.props.onArtifactDeselect();
-							this.currentArtifactClass = event.currentTarget.value;
-							this.fetchArtifacts(event.currentTarget.value);
+							//this.props.onArtifactDeselect();
+							var currentArtifactClass = event.currentTarget.value;
+							//this.fetchArtifacts(event.currentTarget.value);
+							//console.log("change to: " + currentArtifactClass);
+							this.componentDidMount(currentArtifactClass);
 						}}>
 							<option value="req">Requirements</option>
 							<option value="src">Source Code</option>
