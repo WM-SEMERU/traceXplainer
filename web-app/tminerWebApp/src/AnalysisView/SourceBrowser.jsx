@@ -10,13 +10,21 @@ import { Icon } from '@blueprintjs/core';
 export default class SourceBrowser extends React.Component {
 
 	state = {
-		artifactInfos: null,
-                numberDocs: 0,
+		numberDocs: 0,
+		numberDocs_diff: 0,
 		vocabSize: 0,
-		averageNumTokens: 0,
-		reqVocab: 0,
-		srcVocab: 0,
-		sharedVocab: 0,
+		vocabSize_diff: 0,
+		avgNumTokens: 0,
+		avgNumTokens_diff: 0,
+		vocab1: "",
+		vocab1_count: 0,
+		vocab1_freq: 0,
+		vocab2: "",
+		vocab2_count: 0,
+		vocab2_freq: 0,
+		vocab3: "",
+		vocab3_count: 0,
+		vocab3_freq: 0
 	}
 
 	currentArtifactClass = 'req';
