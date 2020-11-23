@@ -41,7 +41,6 @@ export default class SourceBrowser extends React.Component {
 	//RETRIEVE DATA
 	componentDidMount() {
 		getAnalysisMetrics().then((analysisMetrics) => {
-			var numDoc_diff = this.convertDiffToString(analysisMetrics.num_doc[2]);
 			var vocab = analysisMetrics.src_vocab;
 			var v1 = Object.keys(vocab)[0];
 			var v2 = Object.keys(vocab)[1];
@@ -132,18 +131,18 @@ export default class SourceBrowser extends React.Component {
 						</tr>
 						<tr>
 							<td>Number of Documents</td>
-							<td>66</td>
-							<td>+14</td>
+							<td>{this.state.numberDocs}</td>
+							<td>{this.state.numberDocs_diff}</td>
 						</tr>
 						<tr>
 							<td>Vocabulary Size</td>
-							<td>3516</td>
-							<td>+1057</td>
+							<td>{this.state.vocabSize}</td>
+							<td>{this.state.vocabSize_diff}</td>
 						</tr>
 						<tr>
 							<td>Avg. Number of Tokens per Document</td>
-							<td>568</td>
-							<td>+435</td>
+							<td>{this.state.avgNumTokens}</td>
+							<td>{this.state.avgNumTokens_diff}</td>
 						</tr>
 					</table>
 
@@ -158,19 +157,19 @@ export default class SourceBrowser extends React.Component {
 							<th>Frequency</th>
 						</tr>
 						<tr>
-							<td>est</td>
-							<td>4082</td>
-							<td>0.12</td>
+							<td>{this.state.vocab1}</td>
+							<td>{this.state.vocab1_count}</td>
+							<td>{this.state.vocab1_freq}</td>
 						</tr>
 						<tr>
-							<td>http</td>
-							<td>1065</td>
-							<td>0.05</td>
+							<td>{this.state.vocab2}</td>
+							<td>{this.state.vocab2_count}</td>
+							<td>{this.state.vocab2_freq}</td>
 						</tr>
 						<tr>
-							<td>client</td>
-							<td>1023</td>
-							<td>0.05</td>
+							<td>{this.state.vocab3}</td>
+							<td>{this.state.vocab3_count}</td>
+							<td>{this.state.vocab3_freq}</td>
 						</tr>
 					</table>
 
