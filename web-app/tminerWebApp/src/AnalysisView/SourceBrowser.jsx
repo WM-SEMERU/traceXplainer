@@ -101,9 +101,8 @@ export default class SourceBrowser extends React.Component {
 		this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
 	}*/
 
-	deselectCurrentlySelectedArtifact() {
-
-	}
+	//deselectCurrentlySelectedArtifact() {
+	//}
 
 	render() {
 		return (
@@ -119,7 +118,7 @@ export default class SourceBrowser extends React.Component {
 
 					<div className="artifactClassSelectorContainer">
 						<HTMLSelect onChange={(event) => {
-							this.deselectCurrentlySelectedArtifact();
+							//this.deselectCurrentlySelectedArtifact();
 							//this.props.onArtifactDeselect();
 							var currentArtifactClass = event.currentTarget.value;
 							//this.fetchArtifacts(event.currentTarget.value);
