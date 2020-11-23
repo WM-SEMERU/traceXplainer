@@ -12,12 +12,8 @@ export default class SharedMetrics extends React.Component {
 		//artifactInfos: null,
 		//ADDED ATTRIBUTES
 		numberDocs: 0,
-		numberDocs_diff: 0,
 		vocabSize: 0,
-		vocabSize_diff: 0,
 		avgNumTokens: 0,
-		avgNumTokens_diff: 0,
-		sharedVocab: {},
 		vocab1: "",
 		vocab1_count: 0,
 		vocab1_freq: 0,
@@ -36,17 +32,18 @@ export default class SharedMetrics extends React.Component {
 		getAnalysisMetrics().then((analysisMetrics) => {
 			//RETRIEVE DATA
 			var avNumTkn = ((analysisMetrics.avg_tokens[0] + analysisMetrics.avg_tokens[1]) / 2).toFixed(10);
+			var vocab = analysisMetrics.shared_vocab;
 			//retrieve shared vocab
-			var v1 = Object.keys(analysisMetrics.shared_vocab)[0];
-			var v2 = Object.keys(analysisMetrics.shared_vocab)[1];
-			var v3 = Object.keys(analysisMetrics.shared_vocab)[2];
+			var v1 = Object.keys(vocab)[0];
+			var v2 = Object.keys(vocab)[1];
+			var v3 = Object.keys(vocab)[2];
 			//retrieve shared vocab counts/frequencies
-			var v1_ct = (analysisMetrics.shared_vocab)[v1][0];
-			var v1_fr = ((analysisMetrics.shared_vocab)[v1][1]).toFixed(10);
-			var v2_ct = (analysisMetrics.shared_vocab)[v2][0];
-			var v2_fr = ((analysisMetrics.shared_vocab)[v2][1]).toFixed(10);
-			var v3_ct = (analysisMetrics.shared_vocab)[v3][0];
-			var v3_fr = ((analysisMetrics.shared_vocab)[v3][1]).toFixed(10);
+			var v1_ct = (vocab)[v1][0];
+			var v1_fr = ((vocab)[v1][1]).toFixed(10);
+			var v2_ct = (vocab)[v2][0];
+			var v2_fr = ((vocab)[v2][1]).toFixed(10);
+			var v3_ct = (vocab)[v3][0];
+			var v3_fr = ((vocab)[v3][1]).toFixed(10);
 
 			this.setState({
 				numberDocs: analysisMetrics.num_doc[0] + analysisMetrics.num_doc[1], //add num_req and num_src
