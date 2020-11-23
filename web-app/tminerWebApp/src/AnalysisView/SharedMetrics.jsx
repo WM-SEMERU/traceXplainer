@@ -9,15 +9,24 @@ import { getAnalysisMetrics } from '../interfaces/ArtifactInterface'; //ADDED
 export default class SharedMetrics extends React.Component {
 
 	state = {
-		artifactInfos: null,
+		//artifactInfos: null,
 		//ADDED ATTRIBUTES
-		analysisMetrics: null,
-		numberDocs: 5,
+		numberDocs: 0,
+		numberDocs_diff: 0,
 		vocabSize: 0,
+		vocabSize_diff: 0,
 		avgNumTokens: 0,
-		reqVocab: {},
-		srcVocab: {},
+		avgNumTokens_diff: 0,
 		sharedVocab: {},
+		vocab1: "",
+		vocab1_count: 0,
+		vocab1_freq: 0,
+		vocab2: "",
+		vocab2_count: 0,
+		vocab2_freq: 0,
+		vocab3: "",
+		vocab3_count: 0,
+		vocab3_freq: 0
 	}
 
 	//currentArtifactClass = 'req';
