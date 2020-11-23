@@ -107,22 +107,18 @@ export default class SharedMetrics extends React.Component {
 						<tr>
 							<th>Metric</th>
 							<th>Value</th>
-							<th>Target Difference</th>
 						</tr>
 						<tr>
 							<td>Number of Documents</td>
 							<td>{this.state.numberDocs}</td>
-							<td>+14</td>
 						</tr>
 						<tr>
 							<td>Vocabulary Size</td>
-							<td>3516</td>
-							<td>+1057</td>
+							<td>{this.state.vocabSize}</td>
 						</tr>
 						<tr>
 							<td>Avg. Number of Tokens per Document</td>
-							<td>568</td>
-							<td>+435</td>
+							<td>{this.state.avgNumTokens}</td>
 						</tr>
 					</table>
 										
@@ -133,19 +129,19 @@ export default class SharedMetrics extends React.Component {
 							<th>Frequency</th>
 						</tr>
 						<tr>
-							<td>est</td>
-							<td>4082</td>
-							<td>0.12</td>
+							<td>{this.state.vocab1}</td>
+							<td>{this.state.vocab1_count}</td>
+							<td>{this.state.vocab1_freq}</td>
 						</tr>
 						<tr>
-							<td>http</td>
-							<td>1065</td>
-							<td>0.05</td>
+							<td>{this.state.vocab2}</td>
+							<td>{this.state.vocab2_count}</td>
+							<td>{this.state.vocab2_freq}</td>
 						</tr>
 						<tr>
-							<td>client</td>
-							<td>1023</td>
-							<td>0.05</td>
+							<td>{this.state.vocab3}</td>
+							<td>{this.state.vocab3_count}</td>
+							<td>{this.state.vocab3_freq}</td>
 						</tr>
 					</table>
 					
