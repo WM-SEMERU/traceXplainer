@@ -24,7 +24,7 @@ export default class TraceModel {
 			return this.getTracesForTarget(artifactName);
 		}
 
-		throw new Error("Invalid artifact name");
+		throw new Error("Invalid artifact name" + artifactName);
 	}
 
 	getTracesForSource(sourceName) {
@@ -66,9 +66,11 @@ export default class TraceModel {
 	}
 
 	static async getInstanceFromFile(tmFileURL) {
+		//const idPath = 'tminer/api/getTraceability'
+		//const tmFile = await fetch(idPath);
+		//const fileContent = await tmFile.text();
 		const tmFile = await fetch(tmFileURL, {mode: 'no-cors'});
 		const fileContent = await tmFile.text();
-
 		const model = {};
 		const lines = fileContent.split(/\r?\n/);
 

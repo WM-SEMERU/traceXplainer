@@ -173,3 +173,8 @@ Pages,
 Filters,
 Search bar,
 Refresh
+
+## Deployment
+Deploying the web-app requires a user to start the web-app and database connection from the hosting machine (i.e. Tower1).
+
+For more detailed steps, view the documentation on GitHub [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Deployment.txt).
