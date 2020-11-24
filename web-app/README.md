@@ -162,10 +162,18 @@ As mentioned in the MongoDB section above, the database is organized such that a
 - 3 Views
 	- Traceability
 		- View either Requirements or Source Code, artifact content, and associated Trace Links
+    - ![Traceability View 1](docs/traceabilityview1.png)
+    - This image can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/traceabilityview1.png).
+    - ![Traceability View 2](docs/traceabilityview2.png)
+    - This image can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/traceabilityview2.png).
 	- Analysis
 		- Display overall data analysis, including Number of Documents for various artifact types, vocabulary insight, and token analysis
+    - ![Analysis View](docs/analysis.png)
+    - This image can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/analysis.png).
 	- Link Browser
 		- Shows Trace Links across all artifacts, filterable by Link/Non-Links, Security/Non-security related, and Requirements/Source Code/Test Cases
+    - ![Traceability View 1](docs/linkbrowser.png)
+    - This image can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/linkbrowser.png).
 - Updates with latest data from database
 
 ## Web-App Navigation & Usage
