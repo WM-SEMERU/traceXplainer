@@ -1,7 +1,9 @@
 from flask import Flask
+import json
+from bson import ObjectId
 from pymongo import MongoClient
 from flask_cors import CORS, cross_origin
-from database_retrieve import get_artifacts
+#from database_retrieve import get_artifacts
 
 client = MongoClient("mongodb://localhost:27017/")
 
@@ -15,7 +17,7 @@ client = MongoClient("mongodb://localhost:27017/")
 # some loop to go through contents and display on screen?
 
 
-dbNameFile = open('/home/semeru/Neural-Unsupervised-Software-Traceability/web-app/tminerWebApp/api/repoName_version.txt', 'r')
+dbNameFile = open('/home/semeru/Neural-Unsupervised-Software-Traceability/web-app/tminerWebApp/api/repoName_version.log', 'r')
 database = dbNameFile.readline().rstrip()
 collection = dbNameFile.readline().rstrip()
 
@@ -26,17 +28,36 @@ mycol = mydb[collection]
 app = Flask(__name__)
 CORS(app)
 
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
 
+# retrieve analysis metrics document for commit version
+@app.route('/tminer/api/getAnalysisMetrics')
+def get_analysis_info():
+    return_dict = mycol.find_one({"num_doc":{"$exists":True}})
+    return JSONEncoder().encode(return_dict)
+
+@app.route('/tminer/api/getArtifactInfo/<type>')
+def get_artifact_info(type):
+    return_dict = {}
+    for artifact in mycol.find({"type": type}):
+        return_dict[artifact['name']] = artifact
+    return JSONEncoder().encode(return_dict)
+
+@app.route('/tminer/api/getTraceability')
+def get_traceability():
+    return_string = ""
+    for artifact in mycol.find({"type": "req"}):
+    	for target_file in artifact["links"]:
+    	    return_string += artifact["name"] + ' ' + target_file[0] + ' ' + str(target_file[1][0][1]) + '\n'
+    return return_string
+    
 @app.route('/tminer/api/getdb')
 def get_db_item():
-    x = get_artifacts(mydb, collection)
-    content = mycol.find({})
-    for document in content:
-        print(document["name"])
-    retStr = ""
-    for i in range(5):
-        retStr += x[i]["name"] + " " + str(x[i]["type"][1])
-    return retStr
+    return "remove later"
 
 #Return the contents of the files directly from the database
 #The way we deal with files is specific to the libest repo. 
