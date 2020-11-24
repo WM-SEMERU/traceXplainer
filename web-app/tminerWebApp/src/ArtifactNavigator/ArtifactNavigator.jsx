@@ -22,7 +22,7 @@ export default class ArtifactNavigator extends React.Component {
 	render() {
 		return (
 		<div className="window">
-			<ArtifactBrowser 
+			<ArtifactBrowser
 				onArtifactSelect={(artifactInfo, artifactClass) => {
 					this.loadSelectedArtifact(artifactInfo, artifactClass);
 				}}
