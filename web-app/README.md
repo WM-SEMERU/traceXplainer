@@ -1,24 +1,24 @@
 # A Traceability Tool (T-Miner) Based on Unsupervised Learners
 Project Leads: @danaderp, Carlos
- 
-Description: Traceability is a fundamental component of modern software development processes that helps to ensure properly functioning, secure software systems. 
-Agile workflows tend to emphasize rapid iteration and working prototypes over rigorous documentation, leaving little time to perform intellectually intensive traceability tasks. 
-Furthermore, the highly iterative nature of agile development leads to the generation of enormous sets of interconnected artifacts that capture disparate pieces of information about the underlying system. 
-Generally, past work on automating the traceability process has involved drawing relationships between development artifacts of interest, such as requirements and code, using some form of textual similarity measure. 
-SEMERU lab has been developing automated approaches based on Natural Language Processing that suggest a candidate set of trace links. 
-The main goal of this project is to extend the functionality of a Traceability Tool in order to integrate new components based on unsupervised learning. 
-You are required to implement and refactor components in the front- and back-end. 
-The team is going to be divided into 3 domains: 
-- DataBase Integration, 
-- Front-End Development, and 
-- Back-End Development. 
+
+Description: Traceability is a fundamental component of modern software development processes that helps to ensure properly functioning, secure software systems.
+Agile workflows tend to emphasize rapid iteration and working prototypes over rigorous documentation, leaving little time to perform intellectually intensive traceability tasks.
+Furthermore, the highly iterative nature of agile development leads to the generation of enormous sets of interconnected artifacts that capture disparate pieces of information about the underlying system.
+Generally, past work on automating the traceability process has involved drawing relationships between development artifacts of interest, such as requirements and code, using some form of textual similarity measure.
+SEMERU lab has been developing automated approaches based on Natural Language Processing that suggest a candidate set of trace links.
+The main goal of this project is to extend the functionality of a Traceability Tool in order to integrate new components based on unsupervised learning.
+You are required to implement and refactor components in the front- and back-end.
+The team is going to be divided into 3 domains:
+- DataBase Integration,
+- Front-End Development, and
+- Back-End Development.
 
 ## Project Description for CSCI 435/535
 
 ### Project Goals:
 
-- [ ] Complete the navigation of the web-app 
-- [ ] Consume and adapt services from the  library DS4SE. This task will need a fluent communication with the Team of Project#2, which is in charge of the Data Science interfaces, and 
+- [ ] Complete the navigation of the web-app
+- [ ] Consume and adapt services from the  library DS4SE. This task will need a fluent communication with the Team of Project#2, which is in charge of the Data Science interfaces, and
 - [ ] Consume and adapt services from the library SecureReqNet. This task will need a fluent communication with the Team of Project#3, which is in charge of the security interfaces
 
 
@@ -53,11 +53,11 @@ The web-app involves a number of components: a Flask/React frontend, a MongoDB n
 ## Diagrams
 ### Processes:
 
-![Processes Diagram](docs/Processes%20Diagram.png) 
+![Processes Diagram](docs/Processes%20Diagram.png)
 
 This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/master/web-app/docs/Processes%20Diagram.png).
 
-### Components: 
+### Components:
 
 ![Components Diagram](docs/Component%20Diagram.png)
 
@@ -66,7 +66,7 @@ This diagram can also be found [here](https://github.com/WM-SEMERU/Neural-Unsupe
 *Note: all components are hosted on the Tower1 machine*
 
 ## Linux Services
-Linux services allow us to immediately run programs when the host computer boots up. This is used to start the webserver for T-Miner. It is important to note that Jenkins is also started this way, but this was completed automatically during the download. 
+Linux services allow us to immediately run programs when the host computer boots up. This is used to start the webserver for T-Miner. It is important to note that Jenkins is also started this way, but this was completed automatically during the download.
 
 For more details regarding Linux Services, view `Linux_Services.md` [here](https://github.com/WM-SEMERU/Neural-Unsupervised-Software-Traceability/blob/dev-branch/web-app/docs/Linux_Services.md)
 
@@ -145,7 +145,7 @@ As mentioned in the MongoDB section above, the database is organized such that a
 
 ## Integration of DS4SE & SecureReqNet
 **DS4SE** - *All possible artifact file pairs in the repo are checked*
-- Import DS4SE Python Library 
+- Import DS4SE Python Library
 	- Input: pass in a source file and target file to a technique method (7 possible techniques methods to call)
 	- Output: a tuple containing the technique used and traceability value for the observed pair of artifacts
 
@@ -169,10 +169,18 @@ As mentioned in the MongoDB section above, the database is organized such that a
 - Updates with latest data from database
 
 ## Web-App Navigation & Usage
-Pages,
-Filters,
-Search bar,
-Refresh
+- Pages
+  - Traceability, Analysis, Link browser (same as above)
+  - Each can either be accessed by clicking on the appropriate side-navigation link, or by going to the appropriate routed URL (http://rocco.cs.wm.edu:8080/tminer, http://rocco.cs.wm.edu:8080/analysis, http://rocco.cs.wm.edu:8080/linkbrowser)
+- Filters
+  - Source code and requirements can be filtered by Security/non-security related, whether they are a .txt file, and if they are orphans/non-orphans (i.e. no positive trace links)
+  - Trace Links can be filtered by Links/Non-Links (i.e. whether their traceability value is above the specified threshold), and/or whether they are from Source Code or Test Cases
+  - The Link Browser can be filtered by all of these parameters
+  - Filters are also combinable
+- Search bar
+  - The Traceability view has a search bar that the user can enter text into, to find certain artifacts matching the input
+- Refresh
+  - Refreshing the webpage is currently the way to update the database with any new Github pushes and associated artifacts/traceability links
 
 ## Deployment
 Deploying the web-app requires a user to start the web-app and database connection from the hosting machine (i.e. Tower1).
