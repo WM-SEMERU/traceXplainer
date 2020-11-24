@@ -2,7 +2,6 @@ import {TM_FILE_LOCATION} from './InterfaceConsts';
 import TraceModel from './TraceModel';
 
 let traceModel = null;
-//let thisModel = null;
 
 async function loadTraceModel() {
 	traceModel = await TraceModel.getInstanceFromFile(TM_FILE_LOCATION);

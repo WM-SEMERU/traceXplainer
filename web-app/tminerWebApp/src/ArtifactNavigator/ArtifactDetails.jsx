@@ -10,7 +10,7 @@ import { Icon } from '@blueprintjs/core';
 import Prism from 'prismjs';
 import React from 'react';
 
-const OPTIONS = ["Links", "Non-Links", "Source Code", "Test Cases"];
+const LINK_OPTIONS = ["Links", "Non-Links", "Source Code", "Test Cases"];
 
 
 export default class ArtifactDetails extends React.Component {
@@ -19,7 +19,7 @@ export default class ArtifactDetails extends React.Component {
 		artifactInfo: null,
 		artifactContent: null,
 		traceLinks: null,
-		checkboxes: OPTIONS.reduce(
+		checkboxes: LINK_OPTIONS.reduce(
       (options, option) => ({
         ...options,
         [option]: true
@@ -218,7 +218,7 @@ export default class ArtifactDetails extends React.Component {
 		/>
 	);
 
-	createCheckboxes = () => OPTIONS.map(this.createCheckbox);
+	createCheckboxes = () => LINK_OPTIONS.map(this.createCheckbox);
 
 	getDetailsComponent() {
 		return (
@@ -240,7 +240,6 @@ export default class ArtifactDetails extends React.Component {
 				<div className="checkboxes">
 				<form onSubmit={this.handleFormSubmit}>
 							{this.createCheckboxes()}
-
 				</form>
 				</div>
 					<h2 style={{margin: 0}}>Trace Links</h2>
