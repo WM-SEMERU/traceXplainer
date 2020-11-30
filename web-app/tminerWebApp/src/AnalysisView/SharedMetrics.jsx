@@ -9,59 +9,75 @@ import { getAnalysisMetrics } from '../interfaces/ArtifactInterface'; //ADDED
 export default class SharedMetrics extends React.Component {
 
 	state = {
-		artifactInfos: null,
+		//artifactInfos: null,
 		//ADDED ATTRIBUTES
-		analysisMetrics: null,
 		numberDocs: 0,
 		vocabSize: 0,
 		avgNumTokens: 0,
-		reqVocab: {},
-		srcVocab: {},
-		sharedVocab: {},
+		vocab1: "",
+		vocab1_count: 0,
+		vocab1_freq: 0,
+		vocab2: "",
+		vocab2_count: 0,
+		vocab2_freq: 0,
+		vocab3: "",
+		vocab3_count: 0,
+		vocab3_freq: 0
 	}
 
-	currentArtifactClass = 'req';
+	//currentArtifactClass = 'req';
 	
-	//ADDED to retrieve data using api methods and update state 
+	//ADDED to retrieve data using api methods and update state
 	componentDidMount() {
 		getAnalysisMetrics().then((analysisMetrics) => {
-			console.log(analysisMetrics);
+			//RETRIEVE DATA
+			var avNumTkn = ((analysisMetrics.avg_tokens[0] + analysisMetrics.avg_tokens[1]) / 2).toFixed(10);
+			var vocab = analysisMetrics.shared_vocab;
+			//retrieve shared vocab
+			var v1 = Object.keys(vocab)[0];
+			var v2 = Object.keys(vocab)[1];
+			var v3 = Object.keys(vocab)[2];
+			//retrieve shared vocab counts/frequencies
+			var v1_ct = (vocab)[v1][0];
+			var v1_fr = ((vocab)[v1][1]).toFixed(10);
+			var v2_ct = (vocab)[v2][0];
+			var v2_fr = ((vocab)[v2][1]).toFixed(10);
+			var v3_ct = (vocab)[v3][0];
+			var v3_fr = ((vocab)[v3][1]).toFixed(10);
+
 			this.setState({
-				numberDocs: analysisMetrics.num_doc //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
-				//vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
-				//avgNumTokens: analysisMetrics.avg_tokens,
-				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
-				//reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
+				numberDocs: analysisMetrics.num_doc[0] + analysisMetrics.num_doc[1], //add num_req and num_src
+				vocabSize: analysisMetrics.vocab_size[0] + analysisMetrics.vocab_size[1], //add vocab_req and vocab_src
+				avgNumTokens: avNumTkn,
+				//set vocab
+				vocab1: v1,
+				vocab2: v2,
+				vocab3: v3,
+				//set vocab counts
+				vocab1_count: v1_ct,
+				vocab2_count: v2_ct,
+				vocab3_count: v3_ct,
+				//set vocab frequencies
+				vocab1_freq: v1_fr,
+				vocab2_freq: v2_fr,
+				vocab3_freq: v3_fr
 			});
 		});
 	}
 
-	//reloadContent() {
-		//this.setState({loading: true});
-	//	getAnalysisMetrics().then((analysisMetrics) => {
-	//		this.setState({
-	//			numberDocs: analysisMetrics.num_doc, //(metrics.num_doc) //[0] + metrics.num_doc[1]), //add num_req and num_src
-	//			vocabSize: analysisMetrics.vocab_size, //(metrics.vocab_size[0] + metrics.vocab_size[1]), //add vocab_req and vocab_src
-	//			avgNumTokens: analysisMetrics.avg_tokens,
-				//avgNumTokens: (metrics.avg_tokens[0] + metrics.avg_tokens[1]), //add token_req and token_src
-	//			reqVocab: analysisMetrics.rec_vocab //recVocab: metrics.rec_vocab
-	//                })
-	//        });
-        //}
+	//constructor(props) {
+	//	super(props);
 
-	constructor(props) {
-		super(props);
+	//	this.artifactCardRefs = [];
+	//	this.currentlySelectedArtifactIndex = -1;
 
-		this.artifactCardRefs = [];
-		this.currentlySelectedArtifactIndex = -1;
+	//	const artifactInfos = getAllArtifactInfos(this.currentArtifactClass);
+	//	this.state = {
+	//		artifactInfos: artifactInfos,
+	//	};
 
-		const artifactInfos = getAllArtifactInfos(this.currentArtifactClass);
-		this.state = {
-			artifactInfos: artifactInfos,
-		};
-
-		this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
-	}
+	//	this.artifactCardRefs = artifactInfos.map((artifactInfo) => React.createRef());
+	//}
 
 	render() {
 		return (
@@ -88,22 +104,18 @@ export default class SharedMetrics extends React.Component {
 						<tr>
 							<th>Metric</th>
 							<th>Value</th>
-							<th>Target Difference</th>
 						</tr>
 						<tr>
 							<td>Number of Documents</td>
-							<td>{this.state.num_doc}</td>
-							<td>+14</td>
+							<td>{this.state.numberDocs}</td>
 						</tr>
 						<tr>
 							<td>Vocabulary Size</td>
-							<td>3516</td>
-							<td>+1057</td>
+							<td>{this.state.vocabSize}</td>
 						</tr>
 						<tr>
 							<td>Avg. Number of Tokens per Document</td>
-							<td>568</td>
-							<td>+435</td>
+							<td>{this.state.avgNumTokens}</td>
 						</tr>
 					</table>
 										
@@ -114,19 +126,19 @@ export default class SharedMetrics extends React.Component {
 							<th>Frequency</th>
 						</tr>
 						<tr>
-							<td>est</td>
-							<td>4082</td>
-							<td>0.12</td>
+							<td>{this.state.vocab1}</td>
+							<td>{this.state.vocab1_count}</td>
+							<td>{this.state.vocab1_freq}</td>
 						</tr>
 						<tr>
-							<td>http</td>
-							<td>1065</td>
-							<td>0.05</td>
+							<td>{this.state.vocab2}</td>
+							<td>{this.state.vocab2_count}</td>
+							<td>{this.state.vocab2_freq}</td>
 						</tr>
 						<tr>
-							<td>client</td>
-							<td>1023</td>
-							<td>0.05</td>
+							<td>{this.state.vocab3}</td>
+							<td>{this.state.vocab3_count}</td>
+							<td>{this.state.vocab3_freq}</td>
 						</tr>
 					</table>
 					

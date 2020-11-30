@@ -19,12 +19,24 @@ let artifactContentCache = {
 //	return artifactContentCache[artifactClass][id];
 //}
 
-//TODO: ADDED ANALYSIS METRICS METHOD
+// method to retrieve analysis metrics json
 export async function getAnalysisMetrics() {
-    const idPath = 'tminer/api/getAnalysisMetrics' // url to api method
-    const metrics = fetch(idPath).then(data => data.json()) // fetch data from method
-	//.then(data => console.log(data);
-    return metrics;
+	const idPath = 'tminer/api/getAnalysisMetrics' // url to api method
+	const metrics = fetch(idPath)
+		.then(function (response) { // return json if the response is ok
+			if (response.ok) {
+				return response.json();
+			}
+			throw new Error("Something went wrong.");
+		})
+		.then(function (text) {
+			console.log("Request successful", text);
+			return (text);
+		})
+		.catch(function (error) {
+			console.log("Request failed", error);
+		});
+	return metrics;
 }
 
 export async function getArtifactContent(artifactClass, id) {
@@ -46,8 +58,15 @@ export function getAllArtifactInfos(artifactClass) {
 	//console.log("NOW ARTIFACT INFO FOR GIVEN CLASS");
 	//const artifactJSON = JSON.parse(artifactInfoText);
 	//console.log(artifactInfoText[artifactClass]);
-	//return Object.values(artifactJSON[artifactClass]);
 	return Object.values(artifactMetadataJSON[artifactClass]);
+	//const idPath = 'tminer/api/getArtifactInfo/' + artifactClass
+	//const artifactInfos = await fetch(idPath).then(data => data.json())
+	//console.log(artifactInfos)
+	//const artifactJSON = artifactInfos.json()
+	//console.log(artifactJSON)
+	//console.log("PRINTING METADATA JSON")
+	//console.log(artifactMetadataJSON)
+	//return  Object.values(artifactInfos);
 }
 
 export function getNumberOfArtifacts(artifactClass) {
