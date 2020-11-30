@@ -38,3 +38,17 @@
 	padding: 10px 20px;
 	display: flex;
 }
+
+.checkboxes {
+	color: white;
+}
+
+.search-bar{
+	padding:0;
+}
+.search-bar .input-group-addon{
+	padding:0;
+}
+.search-bar .search-btn{
+	padding:5px  12px;
+}

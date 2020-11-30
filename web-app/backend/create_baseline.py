@@ -17,7 +17,7 @@ import datetime
 import requests
 
 from database_insert import insert_record_into_collection, insert_metrics_into_collection
-import ds4se.facade as facade
+#import ds4se.facade as facade
 import pandas as pd
 
 #taken from the DS4SE documentation
@@ -41,7 +41,7 @@ def calculate_traceability_value(source_contents_raw, target_file):
 
     trace_val_list = []
     for technique in TRACE_TECHNIQUES:
-        trace_val = facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
+        trace_val = 0 #facade.TraceLinkValue(source_contents_raw, target_contents_raw, technique)
         if isinstance(trace_val, tuple):
             trace_val = trace_val[1]
         #adds trace values as a tuple in the form "(technique name, value)"
@@ -101,11 +101,14 @@ def create_records(filename, gitRepo, collection, req_list, src_list):
     else:
         req_list.append({'contents':artifact_content})
 
+
+    is_security = 0
     #retrieve security info from SecureReqNet
     if artifact_type == "req":
-        is_security = get_security(artifact_content)
+        is_security = 0
+        #is_security = get_security(artifact_content)
     else:
-        is_security = "Not a requirements file."
+        is_security = 1 #"Not a requirements file."
 
     #build the list of traceability values between this file (source) and all other files (targets)
     trace_target_list = []
@@ -143,12 +146,12 @@ Note: source_df should be the requirement files, target_df should be the source 
 Return: the result from inserting the record into the db
 '''
 def compute_metrics(db_collection, source_df, target_df):
-    num_doc_data = facade.NumDoc(source_df, target_df)
-    vocab_size_data = facade.VocabSize(source_df, target_df)
-    avg_tokens_data = facade.AverageToken(source_df, target_df)
-    rec_vocab_data = facade.Vocab(source_df)
-    src_vocab_data = facade.Vocab(target_df)
-    shared_vocab_data = facade.VocabShared(source_df, target_df)
+    num_doc_data = 0 #facade.NumDoc(source_df, target_df)
+    vocab_size_data = 0 #facade.VocabSize(source_df, target_df)
+    avg_tokens_data = 0 #facade.AverageToken(source_df, target_df)
+    rec_vocab_data = 0 #facade.Vocab(source_df)
+    src_vocab_data = 0 #facade.Vocab(target_df)
+    shared_vocab_data = 0 #facade.VocabShared(source_df, target_df)
 
     result = insert_metrics_into_collection(
         db_collection,
@@ -170,6 +173,10 @@ if __name__ == "__main__":
     db_name = sys.argv[2]
     os.chdir(gitRepo)
 
+    os.system('git pull')
+    print('pulled')
+    gitDiffList = subprocess.check_output(['git', 'diff', '--name-only', 'HEAD', 'HEAD~1']).split('\n')
+
     # get a timestamp to use as a collection name
     timestamp = datetime.datetime.now()
     timestamp = timestamp.strftime("%Y-%m-%d- %H:%M:%S")
@@ -186,9 +193,10 @@ if __name__ == "__main__":
     for dirpath, directories, filenames in os.walk("."):
         if dirpath[0:3] != "./.": # ignore hidden directories
             for filename in filenames:
-                extension = os.path.splitext(filename)[1]
-                if extension not in filetypes_to_ignore:
-                    all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
+                if filename in gitDiffList:
+                    extension = os.path.splitext(filename)[1]
+                    if extension not in filetypes_to_ignore:
+                        all_files.append(os.path.join(dirpath, filename[:])) # ignore the "./" in the filenames
 
     req_list = []
     src_list = []
@@ -207,5 +215,5 @@ if __name__ == "__main__":
     # Write the database name and the most recent commit timestamp to a file
     path = os.path.join(script_location, "../tminerWebApp/api")
     os.chdir(path)
-    with open("repoName_version.txt", "w") as f:
+    with open("repoName_version.log", "w") as f:
         f.writelines([db_name + "\n", timestamp + "\n"])

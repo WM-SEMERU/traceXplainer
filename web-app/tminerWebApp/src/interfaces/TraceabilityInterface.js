@@ -2,7 +2,6 @@ import {TM_FILE_LOCATION} from './InterfaceConsts';
 import TraceModel from './TraceModel';
 
 let traceModel = null;
-//let thisModel = null;
 
 async function loadTraceModel() {
 	traceModel = await TraceModel.getInstanceFromFile(TM_FILE_LOCATION);
@@ -12,8 +11,13 @@ export async function getTraceLinks(artifactName) {
 	if (!traceModel) {
 		await loadTraceModel();
 	}
+	try{
 
 	return traceModel.getTracesForArtifact(artifactName);
+	}
+	catch(err) {
+		console.log(err.message);
+	}
 }
 
 export async function getAllTraceLinks() {
