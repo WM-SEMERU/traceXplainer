@@ -1,0 +1,91 @@
+.metricBrowserContainer {
+	padding: 10px;
+	padding-right: 5px;
+	align-items: stretch;
+	float: left;
+	width: calc(100% - 10px);
+	max-height: 100%;
+
+}
+
+.artifactBrowser {
+	max-width: 100%;
+	background-color: rgba(39,41,61,1);
+	border-radius: 20px;
+}
+
+.artifactClassSelectorContainer {
+	padding: 20px;
+	display: table-cell;
+	text-align: right;
+}
+
+
+.artifactFiltersContainer {
+	padding: 20px;
+}
+
+.artifactFilters {
+	size: 25;
+}
+
+.artifactPreviewsContainer {
+	overflow-y: scroll;
+	max-height: calc(100vh - 260px);
+	overflow-x: hidden;
+	margin-right: 10px;
+}
+
+.artifactPreviewContainer {
+	padding: 10px 20px;
+	display: flex;
+}
+
+.targetTitle {
+	width: 100%; 
+	display: table;
+}
+
+.targetTitleRow {
+	display: table-row;
+	height: 50px;
+}
+
+.metricsTitle { 
+	color: white;
+	font-size: 30px;
+	font-weight: bold;
+	padding-top: 15px;
+	margin-bottom: 15px;
+	display: table-cell;
+}
+
+.sharedTable {
+	width: 100%; 
+	display: table;
+	border-collapse: separate;
+    border-spacing: 0 15px;
+}
+
+.sharedTitleRow {
+	display: table-row;
+	height: 50px;
+}
+
+.headingSharedMetric {
+	display: table-cell;
+}
+
+.leftTable {
+	display: table-cell;
+	padding-left: 30px;
+	width: 53%;
+}
+
+.rightTable {
+	display: table-cell;
+}
+
+.sharedContentRow {
+	display: table-row;
+}

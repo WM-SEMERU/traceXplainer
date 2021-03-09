@@ -1,0 +1,482 @@
+Evaluating: vsm (n = 8)
+==============================
+Testing whether link_est outperforms ['infer_samples', 'gt_sample', 'min-max', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - infer_samples -> P-val: 0.779434528427 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.483839851394 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.326989349598 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.326989349598 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.400814169383 -> Difference is not statistically significant.
+
+Testing whether infer_samples outperforms ['gt_sample', 'min-max', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.400814169383 -> Difference is not statistically significant.
+infer_samples - min-max -> P-val: 0.674424072235 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.207578442336 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['min-max', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+gt_sample - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.262618290443 -> Difference is not statistically significant.
+
+Testing whether min-max outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: min-max and compared technique have same distribution)
+-----------------------------------------
+min-max - mean -> P-val: 0.483839851394 -> Difference is not statistically significant.
+min-max - sigmoid -> P-val: 0.483839851394 -> Difference is not statistically significant.
+min-max - median -> P-val: 0.400814169383 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['sigmoid', 'median']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.0499499764547 -> Statistically significant! Removing sigmoid as a potential technique.
+mean - median -> P-val: 0.0356919001168 -> Statistically significant! Removing median as a potential technique.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.824078   stdev: 0.190401
+infer_samples   mean: 0.805661   stdev: 0.231927
+gt_sample       mean: 0.780321   stdev: 0.223322
+min-max         mean: 0.763526   stdev: 0.221846
+mean            mean: 0.649807   stdev: 0.314321
+
+Evaluating: lsi (n = 8)
+==============================
+Testing whether infer_samples outperforms ['gt_sample', 'median', 'sigmoid', 'mean', 'link_est', 'min-max']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.326989349598 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.326989349598 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - link_est -> P-val: 0.161429462367 -> Difference is not statistically significant.
+infer_samples - min-max -> P-val: 0.0687035743229 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['median', 'sigmoid', 'mean', 'link_est', 'min-max']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - median -> P-val: 0.888637860895 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.674424072235 -> Difference is not statistically significant.
+gt_sample - mean -> P-val: 0.674424072235 -> Difference is not statistically significant.
+gt_sample - link_est -> P-val: 0.326989349598 -> Difference is not statistically significant.
+gt_sample - min-max -> P-val: 0.207578442336 -> Difference is not statistically significant.
+
+Testing whether median outperforms ['sigmoid', 'mean', 'link_est', 'min-max']
+(Null Hypothesis: median and compared technique have same distribution)
+-----------------------------------------
+median - sigmoid -> P-val: 1.0 -> Difference is not statistically significant.
+median - mean -> P-val: 0.888637860895 -> Difference is not statistically significant.
+median - link_est -> P-val: 0.483839851394 -> Difference is not statistically significant.
+median - min-max -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+
+Testing whether sigmoid outperforms ['mean', 'link_est', 'min-max']
+(Null Hypothesis: sigmoid and compared technique have same distribution)
+-----------------------------------------
+sigmoid - mean -> P-val: 0.888637860895 -> Difference is not statistically significant.
+sigmoid - link_est -> P-val: 0.575403022913 -> Difference is not statistically significant.
+sigmoid - min-max -> P-val: 0.0499499764547 -> Statistically significant! Removing min-max as a potential technique.
+
+Testing whether mean outperforms ['link_est']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - link_est -> P-val: 0.674424072235 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+infer_samples   mean: 0.810319   stdev: 0.220684
+gt_sample       mean: 0.780205   stdev: 0.226001
+median          mean: 0.765893   stdev: 0.202090
+sigmoid         mean: 0.760786   stdev: 0.204424
+mean            mean: 0.754603   stdev: 0.205638
+link_est        mean: 0.705692   stdev: 0.171145
+
+Evaluating: js (n = 8)
+==============================
+Testing whether link_est outperforms ['infer_samples', 'min-max', 'gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - infer_samples -> P-val: 0.326989349598 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.483839851394 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+
+Testing whether infer_samples outperforms ['min-max', 'gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+infer_samples - gt_sample -> P-val: 0.400814169383 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether min-max outperforms ['gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: min-max and compared technique have same distribution)
+-----------------------------------------
+min-max - gt_sample -> P-val: 0.674424072235 -> Difference is not statistically significant.
+min-max - mean -> P-val: 0.123485272145 -> Difference is not statistically significant.
+min-max - sigmoid -> P-val: 0.123485272145 -> Difference is not statistically significant.
+min-max - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['sigmoid', 'median']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.0356919001168 -> Statistically significant! Removing sigmoid as a potential technique.
+mean - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.827079   stdev: 0.191993
+infer_samples   mean: 0.793227   stdev: 0.228501
+min-max         mean: 0.781557   stdev: 0.170833
+gt_sample       mean: 0.778550   stdev: 0.225630
+mean            mean: 0.629348   stdev: 0.319432
+median          mean: 0.612780   stdev: 0.332151
+
+Evaluating: lda (n = 8)
+==============================
+Testing whether infer_samples outperforms ['min-max', 'gt_sample', 'mean', 'sigmoid', 'median', 'link_est']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+infer_samples - gt_sample -> P-val: 0.0250618443439 -> Statistically significant! Removing gt_sample as a potential technique.
+infer_samples - mean -> P-val: 0.123485272145 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.123485272145 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+infer_samples - link_est -> P-val: 0.0172902805929 -> Statistically significant! Removing link_est as a potential technique.
+
+Testing whether min-max outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: min-max and compared technique have same distribution)
+-----------------------------------------
+min-max - mean -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+min-max - sigmoid -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+min-max - median -> P-val: 0.0117186855998 -> Statistically significant! Removing median as a potential technique.
+
+Testing whether mean outperforms ['sigmoid']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.326989349598 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+infer_samples   mean: 0.754570   stdev: 0.279427
+min-max         mean: 0.737291   stdev: 0.294810
+mean            mean: 0.535304   stdev: 0.386017
+sigmoid         mean: 0.527599   stdev: 0.381660
+
+Evaluating: nmf (n = 8)
+==============================
+Testing whether infer_samples outperforms ['gt_sample', 'median', 'link_est', 'sigmoid', 'mean', 'min-max']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.161429462367 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+infer_samples - link_est -> P-val: 0.483839851394 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.0687035743229 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.0250618443439 -> Statistically significant! Removing mean as a potential technique.
+infer_samples - min-max -> P-val: 0.0117186855998 -> Statistically significant! Removing min-max as a potential technique.
+
+Testing whether gt_sample outperforms ['median', 'link_est', 'sigmoid']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - median -> P-val: 0.779434528427 -> Difference is not statistically significant.
+gt_sample - link_est -> P-val: 0.888637860895 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+
+Testing whether median outperforms ['link_est', 'sigmoid']
+(Null Hypothesis: median and compared technique have same distribution)
+-----------------------------------------
+median - link_est -> P-val: 0.779434528427 -> Difference is not statistically significant.
+median - sigmoid -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+
+Testing whether link_est outperforms ['sigmoid']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - sigmoid -> P-val: 0.400814169383 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+infer_samples   mean: 0.810136   stdev: 0.241801
+gt_sample       mean: 0.762736   stdev: 0.229136
+median          mean: 0.740165   stdev: 0.193880
+link_est        mean: 0.699847   stdev: 0.220945
+sigmoid         mean: 0.485986   stdev: 0.378606
+
+Evaluating: jslda (n = 8)
+==============================
+Testing whether link_est outperforms ['median', 'infer_samples', 'sigmoid', 'mean', 'min-max', 'gt_sample']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - median -> P-val: 1.0 -> Difference is not statistically significant.
+link_est - infer_samples -> P-val: 0.483839851394 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.779434528427 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.779434528427 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.674424072235 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.207578442336 -> Difference is not statistically significant.
+
+Testing whether median outperforms ['infer_samples', 'sigmoid', 'mean', 'min-max', 'gt_sample']
+(Null Hypothesis: median and compared technique have same distribution)
+-----------------------------------------
+median - infer_samples -> P-val: 0.674424072235 -> Difference is not statistically significant.
+median - sigmoid -> P-val: 0.326989349598 -> Difference is not statistically significant.
+median - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+median - min-max -> P-val: 0.207578442336 -> Difference is not statistically significant.
+median - gt_sample -> P-val: 0.262618290443 -> Difference is not statistically significant.
+
+Testing whether infer_samples outperforms ['sigmoid', 'mean', 'min-max', 'gt_sample']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - sigmoid -> P-val: 0.674424072235 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.674424072235 -> Difference is not statistically significant.
+infer_samples - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+infer_samples - gt_sample -> P-val: 0.0356919001168 -> Statistically significant! Removing gt_sample as a potential technique.
+
+Testing whether sigmoid outperforms ['mean', 'min-max']
+(Null Hypothesis: sigmoid and compared technique have same distribution)
+-----------------------------------------
+sigmoid - mean -> P-val: 0.123485272145 -> Difference is not statistically significant.
+sigmoid - min-max -> P-val: 0.176296374441 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['min-max']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - min-max -> P-val: 0.207578442336 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.819090   stdev: 0.137892
+median          mean: 0.792797   stdev: 0.246946
+infer_samples   mean: 0.792793   stdev: 0.230814
+sigmoid         mean: 0.782310   stdev: 0.245304
+mean            mean: 0.780390   stdev: 0.243697
+min-max         mean: 0.754704   stdev: 0.252070
+
+Evaluating: jsnmf (n = 8)
+==============================
+Testing whether link_est outperforms ['infer_samples', 'gt_sample', 'mean', 'sigmoid', 'median', 'min-max']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - infer_samples -> P-val: 0.888637860895 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.779434528427 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.0117186855998 -> Statistically significant! Removing min-max as a potential technique.
+
+Testing whether infer_samples outperforms ['gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.575403022913 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - mean -> P-val: 0.161429462367 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.161429462367 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.0928919408837 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['sigmoid', 'median']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.0117186855998 -> Statistically significant! Removing sigmoid as a potential technique.
+mean - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.817315   stdev: 0.212547
+infer_samples   mean: 0.804733   stdev: 0.228833
+gt_sample       mean: 0.799380   stdev: 0.203648
+mean            mean: 0.632080   stdev: 0.311054
+median          mean: 0.611438   stdev: 0.326961
+
+Evaluating: vsmjs (n = 8)
+==============================
+Testing whether link_est outperforms ['min-max', 'infer_samples', 'gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - min-max -> P-val: 0.888637860895 -> Difference is not statistically significant.
+link_est - infer_samples -> P-val: 0.575403022913 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.400814169383 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether min-max outperforms ['infer_samples', 'gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: min-max and compared technique have same distribution)
+-----------------------------------------
+min-max - infer_samples -> P-val: 0.779434528427 -> Difference is not statistically significant.
+min-max - gt_sample -> P-val: 0.575403022913 -> Difference is not statistically significant.
+min-max - mean -> P-val: 0.400814169383 -> Difference is not statistically significant.
+min-max - sigmoid -> P-val: 0.326989349598 -> Difference is not statistically significant.
+min-max - median -> P-val: 0.262618290443 -> Difference is not statistically significant.
+
+Testing whether infer_samples outperforms ['gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.483839851394 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.207578442336 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['sigmoid', 'median']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+mean - median -> P-val: 0.0687035743229 -> Difference is not statistically significant.
+
+Testing whether sigmoid outperforms ['median']
+(Null Hypothesis: sigmoid and compared technique have same distribution)
+-----------------------------------------
+sigmoid - median -> P-val: 0.0117186855998 -> Statistically significant! Removing median as a potential technique.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.823229   stdev: 0.183166
+min-max         mean: 0.804779   stdev: 0.180888
+infer_samples   mean: 0.799588   stdev: 0.240963
+gt_sample       mean: 0.775180   stdev: 0.245952
+mean            mean: 0.636310   stdev: 0.329668
+sigmoid         mean: 0.632418   stdev: 0.335917
+
+Evaluating: vsmlda (n = 8)
+==============================
+Testing whether link_est outperforms ['infer_samples', 'gt_sample', 'min-max', 'median', 'sigmoid', 'mean']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - infer_samples -> P-val: 0.326989349598 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.207578442336 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.161429462367 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.161429462367 -> Difference is not statistically significant.
+
+Testing whether infer_samples outperforms ['gt_sample', 'min-max', 'median', 'sigmoid', 'mean']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - min-max -> P-val: 0.262618290443 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.123485272145 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['min-max', 'median', 'sigmoid', 'mean']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - min-max -> P-val: 0.326989349598 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+gt_sample - mean -> P-val: 0.262618290443 -> Difference is not statistically significant.
+
+Testing whether min-max outperforms ['median', 'sigmoid', 'mean']
+(Null Hypothesis: min-max and compared technique have same distribution)
+-----------------------------------------
+min-max - median -> P-val: 0.779434528427 -> Difference is not statistically significant.
+min-max - sigmoid -> P-val: 0.674424072235 -> Difference is not statistically significant.
+min-max - mean -> P-val: 0.674424072235 -> Difference is not statistically significant.
+
+Testing whether median outperforms ['sigmoid', 'mean']
+(Null Hypothesis: median and compared technique have same distribution)
+-----------------------------------------
+median - sigmoid -> P-val: 0.575403022913 -> Difference is not statistically significant.
+median - mean -> P-val: 0.398024719507 -> Difference is not statistically significant.
+
+Testing whether sigmoid outperforms ['mean']
+(Null Hypothesis: sigmoid and compared technique have same distribution)
+-----------------------------------------
+sigmoid - mean -> P-val: 0.326989349598 -> Difference is not statistically significant.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.812678   stdev: 0.156029
+infer_samples   mean: 0.779994   stdev: 0.234589
+gt_sample       mean: 0.722623   stdev: 0.259857
+min-max         mean: 0.616571   stdev: 0.322891
+median          mean: 0.592290   stdev: 0.327100
+sigmoid         mean: 0.588674   stdev: 0.333852
+mean            mean: 0.587495   stdev: 0.333484
+
+Evaluating: vsmnmf (n = 8)
+==============================
+Testing whether link_est outperforms ['infer_samples', 'gt_sample', 'mean', 'sigmoid', 'median', 'min-max']
+(Null Hypothesis: link_est and compared technique have same distribution)
+-----------------------------------------
+link_est - infer_samples -> P-val: 0.888637860895 -> Difference is not statistically significant.
+link_est - gt_sample -> P-val: 0.575403022913 -> Difference is not statistically significant.
+link_est - mean -> P-val: 0.400814169383 -> Difference is not statistically significant.
+link_est - sigmoid -> P-val: 0.262618290443 -> Difference is not statistically significant.
+link_est - median -> P-val: 0.326989349598 -> Difference is not statistically significant.
+link_est - min-max -> P-val: 0.0117186855998 -> Statistically significant! Removing min-max as a potential technique.
+
+Testing whether infer_samples outperforms ['gt_sample', 'mean', 'sigmoid', 'median']
+(Null Hypothesis: infer_samples and compared technique have same distribution)
+-----------------------------------------
+infer_samples - gt_sample -> P-val: 0.207578442336 -> Difference is not statistically significant.
+infer_samples - mean -> P-val: 0.161429462367 -> Difference is not statistically significant.
+infer_samples - sigmoid -> P-val: 0.161429462367 -> Difference is not statistically significant.
+infer_samples - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether gt_sample outperforms ['mean', 'sigmoid', 'median']
+(Null Hypothesis: gt_sample and compared technique have same distribution)
+-----------------------------------------
+gt_sample - mean -> P-val: 0.207578442336 -> Difference is not statistically significant.
+gt_sample - sigmoid -> P-val: 0.207578442336 -> Difference is not statistically significant.
+gt_sample - median -> P-val: 0.123485272145 -> Difference is not statistically significant.
+
+Testing whether mean outperforms ['sigmoid', 'median']
+(Null Hypothesis: mean and compared technique have same distribution)
+-----------------------------------------
+mean - sigmoid -> P-val: 0.0499499764547 -> Statistically significant! Removing sigmoid as a potential technique.
+mean - median -> P-val: 0.0499499764547 -> Statistically significant! Removing median as a potential technique.
+
+Remaining potential techniques cannot be statistically proven to outperform one another. Recommend using the technique with the lowest standard deviation.
+
+Results
+-----------------------------
+link_est        mean: 0.803777   stdev: 0.205575
+infer_samples   mean: 0.803743   stdev: 0.250222
+gt_sample       mean: 0.763342   stdev: 0.225560
+mean            mean: 0.646411   stdev: 0.304985

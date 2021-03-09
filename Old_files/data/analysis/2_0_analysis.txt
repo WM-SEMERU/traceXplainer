@@ -1,0 +1,75 @@
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/use_cases_with_translation
+Getting artifacts by file from directory
+Read 58 artifacts from directory
+
+Finding artifacts in: /Users/danielmccrystal/git/semeru/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/source_code
+Getting artifacts by file from directory
+Read 116 artifacts from directory
+
+Found stop words file: english_stop_words.txt
+Detected natural language: [english], generating stemmer
+Found stop words file: italian_stop_words.txt
+Detected natural language: [italian], generating stemmer
+Found stop words file: java_stop_words.txt
+No natural language stemmer detected for language: [java]
+====================================
+Corpus analysis for: eTOUR (2_0)
+
+Total num documents:	174
+Num source documents:	58
+Num target documents:	116
+
+Total num trace links:	6728
+
+Total vocabulary size:	1980
+Source vocabulary size:	602
+Target vocabulary size:	1655
+Shared vocabulary size:	277
+
+Avg num tokens per document:	156
+Avg num tokens per source doc:	80
+Avg num tokens per target doc:	193
+
+Most frequent tokens:
+	set : 1534
+	dat : 1113
+	turist : 818
+	tag : 745
+	punt : 740
+
+Least frequent tokens:
+	receipt : 2
+	prepar : 2
+	post : 2
+	medi : 2
+	instead : 2
+
+Most frequent source tokens:
+	dat : 161
+	oper : 156
+	event : 121
+	condit : 116
+	server : 104
+
+Least frequent source tokens:
+	area : 1
+	given : 1
+	part : 1
+	s : 1
+	perform : 1
+
+Most frequent target tokens:
+	set : 1532
+	dat : 952
+	turist : 778
+	tag : 718
+	punt : 685
+
+Least frequent target tokens:
+	placement : 1
+	verif : 1
+	prepar : 1
+	si : 1
+	logout : 1
+
+====================================
