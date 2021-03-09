@@ -1,0 +1,1428 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<unit xmlns="http://www.srcML.org/srcML/src" xmlns:cpp="http://www.srcML.org/srcML/cpp" revision="0.9.5" language="C" filename="est_proxy.c"><comment type="block">/** @file */</comment>
+<comment type="block">/*------------------------------------------------------------------
+ * est/est_proxy.c - EST Proxy specific code
+ *
+ *	       Assumptions:  - Web server using this module utilizes
+ *	                       OpenSSL for HTTPS services.
+ *	                     - OpenSSL is linked along with this
+ *	                       modulue.
+ *
+ * May, 2013
+ *
+ * Copyright (c) 2013, 2016 by cisco Systems, Inc.
+ * All rights reserved.
+ **------------------------------------------------------------------
+ */</comment>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;string.h&gt;</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;stdlib.h&gt;</cpp:file></cpp:include>
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>WIN32</name></cpp:ifdef> 
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;WS2tcpip.h&gt;</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> 
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_PTHREADS</name></cpp:ifndef>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>&lt;pthread.h&gt;</cpp:file></cpp:include>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"safe_mem_lib.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"safe_str_lib.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est_server_http.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est_locl.h"</cpp:file></cpp:include>
+<cpp:include>#<cpp:directive>include</cpp:directive> <cpp:file>"est_server.h"</cpp:file></cpp:include>
+
+<cpp:ifdef>#<cpp:directive>ifdef</cpp:directive> <name>WIN32</name></cpp:ifdef>
+<cpp:define>#<cpp:directive>define</cpp:directive> <cpp:macro><name>GETPID</name></cpp:macro> <cpp:value>_getpid</cpp:value></cpp:define>
+<cpp:else>#<cpp:directive>else</cpp:directive></cpp:else>
+<cpp:define>#<cpp:directive>define</cpp:directive> <cpp:macro><name>GETPID</name></cpp:macro> <cpp:value>getpid</cpp:value></cpp:define>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif> 
+
+<comment type="block">/*
+ * Since we hijack the OpenSSL BUF_MEM with our
+ * own data, this utility function allows us
+ * to free the BUF_MEM without freeing the
+ * underlying data.
+ */</comment>
+<function><specifier>static</specifier> <type><name>void</name></type> <name>est_proxy_free_ossl_bufmem</name> <parameter_list>(<parameter><decl><type><name>BUF_MEM</name> <modifier>*</modifier></type><name>b</name></decl></parameter>)</parameter_list>
+<block>{
+    <expr_stmt><expr><name><name>b</name><operator>-&gt;</operator><name>data</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>BUF_MEM_free</name><argument_list>(<argument><expr><name>b</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+}</block></function>
+
+<comment type="block">/*
+ * The following code implements the lookup operation for obtaining the client
+ * context pointers when calling into the EST client code to communincate with
+ * the upstream server.
+ */</comment>
+
+<decl_stmt><decl><specifier>static</specifier> <type><name>int</name></type> <name>cur_max_ctx_array</name> <init>= <expr><name>INITIAL_PROXY_CLIENT_CTXS</name></expr></init></decl>;</decl_stmt>
+
+
+<comment type="block">/*
+ * bsearch_compare is used by the bsearch function to perform the
+ * comparison of the nodes within the client context array.
+ */</comment>
+<function><specifier>static</specifier> <type><name>int</name></type> <name>bsearch_compare</name><parameter_list>(<parameter><decl><type><specifier>const</specifier> <name>void</name> <modifier>*</modifier></type><name>pa</name></decl></parameter>, <parameter><decl><type><specifier>const</specifier> <name>void</name> <modifier>*</modifier></type><name>pb</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>result</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>CLIENT_CTX_LU_NODE_T</name> <modifier>*</modifier></type><name>a</name> <init>= <expr><operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator><name>pa</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>CLIENT_CTX_LU_NODE_T</name> <modifier>*</modifier></type><name>b</name> <init>= <expr><operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator><name>pb</name></expr></init></decl>;</decl_stmt>
+    
+    <if>if <condition>(<expr><name><name>a</name><operator>-&gt;</operator><name>threadid</name></name> <operator>&gt;</operator> <name><name>b</name><operator>-&gt;</operator><name>threadid</name></name></expr>)</condition><then> <block type="pseudo"><expr_stmt><expr><name>result</name> <operator>=</operator> <literal type="number">1</literal></expr>;</expr_stmt></block></then></if>
+    <if>if <condition>(<expr><name><name>a</name><operator>-&gt;</operator><name>threadid</name></name> <operator>&lt;</operator> <name><name>b</name><operator>-&gt;</operator><name>threadid</name></name></expr>)</condition><then> <block type="pseudo"><expr_stmt><expr><name>result</name> <operator>=</operator> <operator>-</operator><literal type="number">1</literal></expr>;</expr_stmt></block></then></if>
+    <if>if <condition>(<expr><name><name>a</name><operator>-&gt;</operator><name>threadid</name></name> <operator>==</operator> <name><name>b</name><operator>-&gt;</operator><name>threadid</name></name></expr>)</condition><then> <block type="pseudo"><expr_stmt><expr><name>result</name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt></block></then></if>
+
+    <return>return <expr><operator>(</operator><name>result</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * get_client_ctx() performs a search through a ordered array.
+ * The key for the search is the current thread id and the value returned
+ * is the client context that's been created for this thread.  If no
+ * entry exists in the array for this thread id, a new one is created.
+ */</comment>
+<function><specifier>static</specifier> <type><name>EST_CTX</name> <modifier>*</modifier></type><name>get_client_ctx</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>p_ctx</name></decl></parameter>)</parameter_list> 
+<block>{
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>c_ctx</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>long</name></type> <name>cur_threadid</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>long</name></type> <name>cur_pid</name> <init>= <expr><call><name>GETPID</name><argument_list>()</argument_list></call></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>CLIENT_CTX_LU_NODE_T</name> <modifier>*</modifier></type><name>found_node</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>long</name></type> <name>zero_threadid</name> <init>= <expr><literal type="number">0x0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>CLIENT_CTX_LU_NODE_T</name> <modifier>*</modifier></type><name>empty_node</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>empty_index</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Windows TODO: This will likely need to be replaced with
+     * GetCurrentThreadId()
+     * In addition, this is really returning a pointer to an opaque value, so
+     * what's being used here is typically a pointer in pthread based
+     * environments and not the actual pthread id.  The only helper API to
+     * access the actual id is pthread_equal().  If this must be used, then
+     * the array search would best be changed to a linear search.
+     * We mix in the PID of the current process with the thread ID in
+     * case the application is forking new processes (e.g. NGINX).  
+     */</comment>
+<cpp:ifndef>#<cpp:directive>ifndef</cpp:directive> <name>DISABLE_PTHREADS</name></cpp:ifndef>
+    <expr_stmt><expr><name>cur_threadid</name> <operator>=</operator> <operator>(</operator><name>unsigned</name> <name>long</name><operator>)</operator> <call><name>pthread_self</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+    <expr_stmt><expr><name>cur_threadid</name> <operator>+=</operator> <name>cur_pid</name></expr>;</expr_stmt>
+
+    <expr_stmt><expr><name>found_node</name> <operator>=</operator> <operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator> <call><name>bsearch</name><argument_list>(<argument><expr><operator>&amp;</operator><name>cur_threadid</name></expr></argument>,
+                                                  <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>,
+                                                  <argument><expr><name>cur_max_ctx_array</name></expr></argument>,
+                                                  <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof></expr></argument>,
+                                                  <argument><expr><name>bsearch_compare</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>found_node</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        
+        <comment type="block">/*
+         * need to allocate a context and get it ready to be used.
+         */</comment>
+        <expr_stmt><expr><name>c_ctx</name> <operator>=</operator> <call><name>est_client_init</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>ca_chain_raw_len</name></name></expr></argument>,
+                                <argument><expr><name>EST_CERT_FORMAT_PEM</name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>c_ctx</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to allocate and initialize EST client context for Proxy use"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <comment type="block">/*
+         * The name is a bit misleading.  The identity cert and private
+         * key used for proxy mode are the ones stored in the server_cert and
+         * server_priv_key, however they are used in both directions, so here
+         * when setting up the client side, it looks mixed up.  Might want to
+         * change the name in context to hold these.
+         */</comment>
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_set_auth</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>userid</name></name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>password</name></name></expr></argument>,
+                                 <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>server_cert</name></name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>server_priv_key</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to set authentication configuration in the client context for Proxy use"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+	}</block></then></if>        
+
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_set_auth_cred_cb</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>auth_credentials_cb</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to register authentication credential callback."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <comment type="block">/*
+         * wrt path segment, unlike true client mode, the path segment will
+         * be changing on every request going upstream, so no need to
+         * obtain it locally at a proxy and set it one time, so it
+         * should be left NULL.
+         */</comment>
+	<expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_set_server</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>est_server</name></name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>est_port_num</name></name></expr></argument>, <argument><expr><name>NULL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to set the upstream server configuration in the client context for Proxy use"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+	}</block></then></if>
+
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_set_read_timeout</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>, <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>read_timeout</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to set the SSL read timeout in the client context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name>c_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>NULL</name><operator>)</operator></expr>;</return>
+	}</block></then></if>        
+
+        <comment type="block">/*
+         * make sure there's room for another entry
+         */</comment>
+        <expr_stmt><expr><name>empty_node</name> <operator>=</operator> <operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator> <call><name>bsearch</name><argument_list>(<argument><expr><operator>&amp;</operator><name>zero_threadid</name></expr></argument>,
+                                                      <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>,
+                                                      <argument><expr><name>cur_max_ctx_array</name></expr></argument>,
+                                                      <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof></expr></argument>,
+                                                      <argument><expr><name>bsearch_compare</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+        <if>if <condition>(<expr><name>empty_node</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <comment type="block">/*
+             * we're out of space.  allocate a new array and copy over what's
+             * already there.  Double the size of the current one.
+             */</comment>
+            <decl_stmt><decl><type><name>CLIENT_CTX_LU_NODE_T</name> <modifier>*</modifier></type><name>temp_array</name></decl>;</decl_stmt>
+            
+            <expr_stmt><expr><name>cur_max_ctx_array</name> <operator>*=</operator> <literal type="number">2</literal></expr>;</expr_stmt>
+            <expr_stmt><expr><name>temp_array</name> <operator>=</operator> <operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator> <call><name>malloc</name><argument_list>(<argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>temp_array</name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name></expr></argument>)</argument_list></call></expr>;</expr_stmt> 
+            <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><name>temp_array</name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name></expr></argument>,
+                     <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>,<argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name><operator>/</operator><literal type="number">2</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name> <operator>=</operator> <name>temp_array</name></expr>;</expr_stmt>
+            
+            <expr_stmt><expr><call><name>qsort</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>, <argument><expr><name>cur_max_ctx_array</name></expr></argument>,
+                  <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof></expr></argument>, 
+                  <argument><expr><name>bsearch_compare</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+            <expr_stmt><expr><name>empty_node</name> <operator>=</operator> <operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator> <call><name>bsearch</name><argument_list>(<argument><expr><operator>&amp;</operator><name>zero_threadid</name></expr></argument>,
+                                                          <argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>,
+                                                          <argument><expr><name>cur_max_ctx_array</name></expr></argument>,
+                                                          <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof></expr></argument>,
+                                                          <argument><expr><name>bsearch_compare</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+        <expr_stmt><expr><name>empty_index</name> <operator>=</operator> <call>(<name>int</name>) <argument_list>(<argument><expr><name>empty_node</name> <operator>-</operator> <name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+        <comment type="block">/*
+         * add to the array and sort it into its proper place
+         */</comment>
+        <expr_stmt><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name><index>[<expr><name>empty_index</name></expr>]</index></name><operator>.</operator><name>threadid</name> <operator>=</operator> <name>cur_threadid</name></expr>;</expr_stmt>
+        <expr_stmt><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name><index>[<expr><name>empty_index</name></expr>]</index></name><operator>.</operator><name>client_ctx</name> <operator>=</operator> <name>c_ctx</name></expr>;</expr_stmt>
+        
+        <expr_stmt><expr><call><name>qsort</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>, <argument><expr><name>cur_max_ctx_array</name></expr></argument>,
+              <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof></expr></argument>, 
+              <argument><expr><name>bsearch_compare</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then> <else>else <block>{
+        <comment type="block">/*
+         * the entry was found in the tree, return the client context for this
+         * pid
+         */</comment>
+        <expr_stmt><expr><name>c_ctx</name> <operator>=</operator> <name><name>found_node</name><operator>-&gt;</operator><name>client_ctx</name></name></expr>;</expr_stmt>
+    }</block></else></if>
+    
+    <return>return<expr><operator>(</operator><name>c_ctx</name><operator>)</operator></expr>;</return>   
+}</block></function>        
+
+<comment type="block">/*
+ * proxy_cleanup() is invoked from est_destroy when the
+ * current context is for proxy mode.
+ */</comment>
+<function><type><name>void</name></type> <name>proxy_cleanup</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>p_ctx</name></decl></parameter>)</parameter_list> 
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>i</name></decl>;</decl_stmt>
+    
+    <if>if <condition>(<expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return;</return>
+    }</block></then></if>
+
+    <for>for <control>(<init><expr><name>i</name><operator>=</operator><literal type="number">0</literal></expr>;</init> <condition><expr><name>i</name><operator>&lt;</operator><name>cur_max_ctx_array</name></expr>;</condition> <incr><expr><name>i</name><operator>++</operator></expr></incr>)</control> <block>{
+        <if>if <condition>(<expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name><index>[<expr><name>i</name></expr>]</index></name><operator>.</operator><name>client_ctx</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name><index>[<expr><name>i</name></expr>]</index></name><operator>.</operator><name>client_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+    }</block></for>
+    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>p_ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+}</block></function>
+
+<comment type="block">/*****************************************************************************
+* EST proxy operations
+*****************************************************************************/</comment>
+
+
+<comment type="block">/*
+ * This routine will check the result code from an enroll
+ * attempt and propagate the retry-after message to the 
+ * client if needed.
+ */</comment>
+<function><specifier>static</specifier> <type><name>EST_ERROR</name></type> <name>est_proxy_propagate_retry</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>)</parameter_list>
+<block>{
+    <comment type="block">/*
+     * The CA did not sign the request and has asked the
+     * client to retry in the future.  This may occur if
+     * the CA is not configured for automatic enrollment.
+     * Send the HTTP retry response to the client.
+     * We need to propagate the retry-after response to
+     * the client.
+     */</comment>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"CA server requests retry, propagate this to the client (%d)"</literal></expr></argument>, 
+        <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>retry_after_delay</name></name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>EST_ERR_NONE</name> <operator>!=</operator> <call><name>est_server_send_http_retry_after</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>retry_after_delay</name></name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_WRITE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This routine will send a PKCS7 encoded certificate to
+ * the EST client via HTTP. 
+ */</comment>
+<function><specifier>static</specifier> <type><name>EST_ERROR</name></type> <name>est_proxy_propagate_pkcs7</name> <parameter_list>(<parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>pkcs7</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>pkcs7_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>char</name></type> <name><name>http_hdr</name><index>[<expr><name>EST_HTTP_HDR_MAX</name></expr>]</index></name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>hdrlen</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Send HTTP header
+     */</comment>
+    <expr_stmt><expr><call><name>snprintf</name><argument_list>(<argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>, <argument><expr><literal type="string">"%s%s%s%s"</literal></expr></argument>, <argument><expr><name>EST_HTTP_HDR_200</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>,
+             <argument><expr><name>EST_HTTP_HDR_STAT_200</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>hdrlen</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>snprintf</name><argument_list>(<argument><expr><name>http_hdr</name> <operator>+</operator> <name>hdrlen</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>, <argument><expr><literal type="string">"%s: %s%s"</literal></expr></argument>, <argument><expr><name>EST_HTTP_HDR_CT</name></expr></argument>,
+             <argument><expr><name>EST_HTTP_CT_PKCS7_CO</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>hdrlen</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>snprintf</name><argument_list>(<argument><expr><name>http_hdr</name> <operator>+</operator> <name>hdrlen</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>, <argument><expr><literal type="string">"%s: %s%s"</literal></expr></argument>, <argument><expr><name>EST_HTTP_HDR_CE</name></expr></argument>,
+             <argument><expr><name>EST_HTTP_CE_BASE64</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>hdrlen</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>snprintf</name><argument_list>(<argument><expr><name>http_hdr</name> <operator>+</operator> <name>hdrlen</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>, <argument><expr><literal type="string">"%s: %d%s%s"</literal></expr></argument>, <argument><expr><name>EST_HTTP_HDR_CL</name></expr></argument>,
+             <argument><expr><name>pkcs7_len</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_EOL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><call><name>mg_write</name><argument_list>(<argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><call><name>strnlen_s</name><argument_list>(<argument><expr><name>http_hdr</name></expr></argument>, <argument><expr><name>EST_HTTP_HDR_MAX</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+            <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_WRITE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Send the signed PKCS7 certificate in the body
+     */</comment>
+    <if>if <condition>(<expr><operator>!</operator><call><name>mg_write</name><argument_list>(<argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>pkcs7</name></expr></argument>, <argument><expr><name>pkcs7_len</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"HTTP write error while propagating pkcs7"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_HTTP_WRITE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * est_proxy_retrieve_cacerts() issues a request to the server to obtain the
+ * CA Certs chain to be used for Get CA Certs requests from clients.
+ * The CA Cert chain returned from the server are passed back to the caller.
+ *
+ * It's the responsibility of the caller to free up this buffer.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_retrieve_cacerts</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier><modifier>*</modifier></type><name>cacerts_rtn</name></decl></parameter>,
+                                      <parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>cacerts_rtn_len</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>client_ctx</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>rcvd_cacerts_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>rcvd_cacerts</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><name>ctx</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Ctx not passed to %s"</literal></expr></argument>, <argument><expr><name>__FUNCTION__</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>cacerts_rtn</name> <operator>==</operator> <name>NULL</name> <operator>||</operator> <name>cacerts_rtn_len</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Ctx not passed to %s"</literal></expr></argument>, <argument><expr><name>__FUNCTION__</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_INVALID_PARAMETERS</name><operator>)</operator></expr>;</return>        
+    }</block></then></if>
+    
+    <expr_stmt><expr><operator>*</operator><name>cacerts_rtn</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>*</operator><name>cacerts_rtn_len</name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Get the client context for this thread
+     */</comment>
+    <expr_stmt><expr><name>client_ctx</name> <operator>=</operator> <call><name>get_client_ctx</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>client_ctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to obtain client context for proxy operation"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_get_cacerts</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>rcvd_cacerts_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to retrieve CA Certs from upstream server RC = %s"</literal></expr></argument>,
+                    <argument><expr><call><name>EST_ERR_NUM_TO_STR</name><argument_list>(<argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    
+    <comment type="block">/*
+     * Allocate a buffer to retrieve the CA certs
+     * and get them copied in
+     */</comment>
+    <expr_stmt><expr><name>rcvd_cacerts</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>rcvd_cacerts_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rcvd_cacerts</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to malloc buffer for cacerts received from server"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_copy_cacerts</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>rcvd_cacerts</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to copy CA Certs from upstream server RC = %s"</literal></expr></argument>,
+                    <argument><expr><call><name>EST_ERR_NUM_TO_STR</name><argument_list>(<argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>rcvd_cacerts</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * The retrieving of the CA certs through the normal client
+     * interface causes the client to go back into an uninitialized state.
+     * In this case though, we're getting it just for passing it back
+     * to the downstream clients, so we're going to put this client
+     * context back into the initialized state
+     */</comment>
+    <expr_stmt><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>est_client_initialized</name></name> <operator>=</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+    
+    <expr_stmt><expr><operator>*</operator><name>cacerts_rtn</name> <operator>=</operator> <name>rcvd_cacerts</name></expr>;</expr_stmt>
+    <expr_stmt><expr><operator>*</operator><name>cacerts_rtn_len</name> <operator>=</operator> <name>rcvd_cacerts_len</name></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This routine will connect to the EST server and attempt
+ * to enroll the CSR in the *pkcs10 buffer. Upon success
+ * it will return the X509 cert in the *pkcs7 buffer.  The
+ * length of the returned cert will be in *pkcs7_len.  
+ * The *pkcs7 buffer should be allocated by the caller.
+ */</comment>
+<function><specifier>static</specifier> <type><name>EST_ERROR</name></type> <name>est_proxy_send_enroll_request</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>clnt_ctx</name></decl></parameter>, 
+	                                        <parameter><decl><type><name>BUF_MEM</name> <modifier>*</modifier></type><name>pkcs10</name></decl></parameter>, <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>pkcs7</name></decl></parameter>,
+						<parameter><decl><type><name>int</name> <modifier>*</modifier></type><name>pkcs7_len</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>reenroll</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>SSL</name> <modifier>*</modifier></type><name>ssl_client</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * Connect to the server
+     */</comment>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_connect</name><argument_list>(<argument><expr><name>clnt_ctx</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>ssl_client</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Send the enroll request
+     */</comment>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_send_enroll_request</name><argument_list>(<argument><expr><name>clnt_ctx</name></expr></argument>, <argument><expr><name>ssl_client</name></expr></argument>,
+                                        <argument><expr><name>pkcs10</name></expr></argument>, <argument><expr><name>pkcs7</name></expr></argument>, <argument><expr><name>pkcs7_len</name></expr></argument>, <argument><expr><name>reenroll</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Disconnect from the server
+     */</comment>
+    <expr_stmt><expr><call><name>est_client_disconnect</name><argument_list>(<argument><expr><name>clnt_ctx</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>ssl_client</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<function><specifier>static</specifier> <type><name>EST_ERROR</name></type> <name>est_proxy_set_path_segment</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>client_ctx</name></decl></parameter>,
+                                             <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>path_segment</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>path_segment_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rc</name></decl>;</decl_stmt>
+
+    <expr_stmt><expr><name>path_segment_len</name> <operator>=</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>path_segment</name></expr></argument>, <argument><expr><name>EST_MAX_PATH_SEGMENT_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    
+    <expr_stmt><expr><name>rc</name> <operator>=</operator> <call><name>est_store_path_segment</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>path_segment</name></expr></argument>, <argument><expr><name>path_segment_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rc</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to store URI path segment."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>rc</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    <return>return <expr><name>EST_ERR_NONE</name></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This function is used by the server side of the EST proxy to respond to an
+ * incoming Simple Enroll request.  This function is similar to the Client API
+ * function, est_client_enroll_req(), except it bypasses some things that are
+ * not done when functioning as a proxy, such as signing the CSR, not
+ * inserting the TLS unique id and instead including the id-kp-cmcRA usage
+ * extension.
+ */</comment>
+<function><specifier>static</specifier> <type><name>EST_ERROR</name></type> <name>est_proxy_handle_simple_enroll</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>,
+                                                 <parameter><decl><type><name>SSL</name> <modifier>*</modifier></type><name>ssl</name></decl></parameter>, <parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>ct</name></decl></parameter>,
+                                                 <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>body</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>body_len</name></decl></parameter>,
+					         <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>path_seg</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>reenroll</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>BUF_MEM</name> <modifier>*</modifier></type><name>pkcs10</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>pkcs7</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>pkcs7_len</name> <init>= <expr><literal type="number">0</literal></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>diff</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>X509_REQ</name> <modifier>*</modifier></type><name>csr</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>client_ctx</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>errno_t</name></type> <name>safec_rc</name></decl>;</decl_stmt>
+     
+    <comment type="block">/*
+     * Make sure the client has sent us a PKCS10 CSR request
+     */</comment>
+
+    <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>memcmp_s</name><argument_list>(<argument><expr><name>ct</name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><literal type="string">"application/pkcs10"</literal></expr></argument>)</argument_list></sizeof></expr></argument>, <argument><expr><literal type="string">"application/pkcs10"</literal></expr></argument>,
+        <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><literal type="string">"application/pkcs10"</literal></expr></argument>)</argument_list></sizeof></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"memcmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>diff</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_CONTENT_TYPE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Authenticate the client
+     */</comment>
+    <switch>switch <condition>(<expr><call><name>est_enroll_auth</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>, <argument><expr><name>reenroll</name></expr></argument>)</argument_list></call></expr>)</condition> <block>{
+    <case>case <expr><name>EST_HTTP_AUTH</name></expr>:</case>
+    <case>case <expr><name>EST_SRP_AUTH</name></expr>:</case>
+    <case>case <expr><name>EST_CERT_AUTH</name></expr>:</case>
+        <break>break;</break>
+    <case>case <expr><name>EST_HTTP_AUTH_PENDING</name></expr>:</case>
+        <return>return <expr><operator>(</operator><name>EST_ERR_AUTH_PENDING</name><operator>)</operator></expr>;</return>
+        <break>break;</break>
+    <case>case <expr><name>EST_UNAUTHORIZED</name></expr>:</case>
+    <default>default:</default>
+        <return>return <expr><operator>(</operator><name>EST_ERR_AUTH_FAIL</name><operator>)</operator></expr>;</return>
+        <break>break;</break>
+    }</block></switch>
+
+    <comment type="block">/*
+     * Parse the PKCS10 CSR from the client
+     */</comment>
+    <expr_stmt><expr><name>csr</name> <operator>=</operator> <call><name>est_server_parse_csr</name><argument_list>(<argument><expr><operator>(</operator><name>unsigned</name> <name>char</name><operator>*</operator><operator>)</operator><name>body</name></expr></argument>, <argument><expr><name>body_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>csr</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to parse the PKCS10 CSR sent by the client"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_BAD_PKCS10</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    
+    <comment type="block">/*
+     * Perform a sanity check on the CSR
+     */</comment>
+    <if>if <condition>(<expr><call><name>est_server_check_csr</name><argument_list>(<argument><expr><name>csr</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"PKCS10 CSR sent by the client failed sanity check"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>X509_REQ_free</name><argument_list>(<argument><expr><name>csr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_BAD_PKCS10</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Do the PoP check (Proof of Possession).  The challenge password
+     * in the pkcs10 request should match the TLS unique ID.
+     */</comment>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_tls_uid_auth</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>csr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>X509_REQ_free</name><argument_list>(<argument><expr><name>csr</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_AUTH_FAIL_TLSUID</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * body now points to the pkcs10 data, pass
+     * this to the enrollment routine.  Need to hi-jack
+     * a BUF_MEM.  Attach the body to a new BUF_MEM
+     */</comment>
+    <expr_stmt><expr><name>pkcs10</name> <operator>=</operator> <call><name>BUF_MEM_new</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>pkcs10</name><operator>-&gt;</operator><name>data</name></name> <operator>=</operator> <name>body</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>pkcs10</name><operator>-&gt;</operator><name>length</name></name> <operator>=</operator> <name>body_len</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>pkcs10</name><operator>-&gt;</operator><name>max</name></name> <operator>=</operator> <name>body_len</name></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * get the client context for this thread
+     */</comment>
+    <expr_stmt><expr><name>client_ctx</name> <operator>=</operator> <call><name>get_client_ctx</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>client_ctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to obtain client context for proxy operation"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>est_proxy_free_ossl_bufmem</name><argument_list>(<argument><expr><name>pkcs10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * path_segment.  The path seg value is coming in from the
+     * downstream client on this request.  It's already been validated,
+     * place it in ctx for use by client code.
+     */</comment>
+    <if>if <condition>(<expr><name>path_seg</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>est_proxy_set_path_segment</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Allocate some space to hold the cert that we
+     * expect to receive from the EST server.
+     */</comment>
+    <expr_stmt><expr><name>pkcs7</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>EST_CA_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt> 
+
+    <comment type="block">/*
+     * Attempt to enroll the CSR from the client
+     */</comment>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_send_enroll_request</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>pkcs10</name></expr></argument>, <argument><expr><name>pkcs7</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>pkcs7_len</name></expr></argument>,
+                                       <argument><expr><name>reenroll</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Handle any errors that likely occurred
+     */</comment>
+    <switch>switch <condition>(<expr><name>rv</name></expr>)</condition> <block>{
+    <case>case <expr><name>EST_ERR_AUTH_FAIL</name></expr>:</case>
+        <comment type="block">/* Try one more time if we're doing Digest auth */</comment>
+        <if>if <condition>(<expr><operator>(</operator><name><name>ctx</name><operator>-&gt;</operator><name>auth_mode</name></name> <operator>==</operator> <name>AUTH_DIGEST</name> <operator>||</operator>
+             <name><name>ctx</name><operator>-&gt;</operator><name>auth_mode</name></name> <operator>==</operator> <name>AUTH_BASIC</name>  <operator>||</operator>
+             <name><name>ctx</name><operator>-&gt;</operator><name>auth_mode</name></name> <operator>==</operator> <name>AUTH_TOKEN</name><operator>)</operator></expr>)</condition><then> <block>{
+            
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"HTTP Auth failed, trying again with digest/basic parameters"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+            <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_send_enroll_request</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>pkcs10</name></expr></argument>, <argument><expr><name>pkcs7</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>pkcs7_len</name></expr></argument>, <argument><expr><name>reenroll</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>rv</name> <operator>==</operator> <name>EST_ERR_CA_ENROLL_RETRY</name></expr>)</condition><then> <block>{
+	        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_propagate_retry</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    }</block></then> <elseif>else <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+                <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"EST enrollment failed, error code is %d"</literal></expr></argument>, <argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            }</block></then></if></elseif></if>
+        }</block></then></if>
+        <break>break;</break>
+    <case>case <expr><name>EST_ERR_CA_ENROLL_RETRY</name></expr>:</case>
+	<expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_propagate_retry</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<break>break;</break>
+    <default>default:</default>
+        <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Initial EST enrollment request error code is %d"</literal></expr></argument>, <argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<break>break;</break>
+    }</block></switch>
+
+    <expr_stmt><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>auth_mode</name></name> <operator>=</operator> <name>AUTH_NONE</name></expr>;</expr_stmt>
+    
+    <comment type="block">/*
+     * Prevent OpenSSL from freeing our data
+     */</comment>
+    <expr_stmt><expr><call><name>est_proxy_free_ossl_bufmem</name><argument_list>(<argument><expr><name>pkcs10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * If we have a cert response from the EST server, let's forward
+     * it back to the EST client
+     */</comment>
+    <if>if <condition>(<expr><name>pkcs7_len</name> <operator>&gt;</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_propagate_pkcs7</name><argument_list>(<argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>pkcs7</name></expr></argument>, <argument><expr><name>pkcs7_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>pkcs7</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+    <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<cpp:if>#<cpp:directive>if</cpp:directive> <expr><literal type="number">0</literal></expr></cpp:if>
+static int est_proxy_handle_keygen (EST_CTX *ctx)
+{
+    <comment type="line">//TODO</comment>
+    return (EST_ERR_NONE);
+}
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+
+
+<comment type="block">/*
+ * This function is used by the server side of the EST proxy to respond to an
+ * incoming cacerts request.  If the CA certs response has been set locally
+ * then respond with this locally set buffer.  If not set, then issue a
+ * request to the upstream server.
+ */</comment>
+<function><specifier>static</specifier> <type><name>int</name></type> <name>est_proxy_handle_cacerts</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>,
+                                     <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>path_seg</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name> <init>= <expr><name>EST_ERR_NONE</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>client_ctx</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>cacerts_len</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name> <operator>!=</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Proxy: CA certs set locally, responding with locally set CA certs response"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return<expr><operator>(</operator><call><name>est_handle_cacerts</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs</name></name></expr></argument>, <argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_certs_len</name></name></expr></argument>,
+                                  <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+    }</block></then> <else>else <block>{
+        
+        <comment type="block">/*
+         * get the client context for this thread
+         */</comment>
+        <expr_stmt><expr><name>client_ctx</name> <operator>=</operator> <call><name>get_client_ctx</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><operator>!</operator><name>client_ctx</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to obtain client context for proxy operation"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <comment type="block">/*
+         * path_segment.  The path seg value is coming in from the
+         * downstream client on this request.  It's already been validated,
+         * place it in ctx for use by client code.
+         */</comment>
+        <if>if <condition>(<expr><name>path_seg</name></expr>)</condition><then> <block>{    
+            <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_set_path_segment</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+                <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to save the path segment from the URI into the client context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+                <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+            }</block></then></if>
+        }</block></then></if>        
+
+        <comment type="block">/*
+         * Invoke client code to retrieve the cacerts.
+         * Note: there is no need to authenticate the client (see sec 4.5)
+         */</comment>
+        <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Proxy: Attempting to retrieve CA certs from upstream server"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_get_cacerts</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>cacerts_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+
+        <comment type="block">/*
+         * If the upstream request was successful, the retrieved CA certs will be
+         * in the context
+         */</comment>
+        <if>if <condition>(<expr><name>rv</name> <operator>==</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Proxy: CA certs retrieved successfully from server. Forwarding to EST client."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return<expr><operator>(</operator><call><name>est_handle_cacerts</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>retrieved_ca_certs</name></name></expr></argument>,
+                                      <argument><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>retrieved_ca_certs_len</name></name></expr></argument>,
+                                      <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+        }</block></then> <else>else <block>{
+            <comment type="block">/*
+             * Something went wrong with the upstream request to the
+             * server.  Treat this as a not found condition.
+             */</comment>
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Proxy: Server not reachable or sent corrupt CA Certs"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>rv</name> <operator>=</operator> <name>EST_ERR_HTTP_NOT_FOUND</name></expr>;</expr_stmt>
+        }</block></else></if>
+    }</block></else></if>
+    
+    <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This function is used by the server side of the EST proxy to respond to an
+ * incoming CSR Attributes request.  This function is similar to the Client API
+ * function, est_client_get_csrattrs().
+  */</comment>
+<function><specifier>static</specifier> <type><name>int</name></type> <name>est_proxy_handle_csr_attrs</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>,
+                                       <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>path_seg</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>int</name></type> <name>rv</name> <init>= <expr><name>EST_ERR_NONE</name></expr></init></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>pop_present</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>csr_data</name></decl>, <modifier>*</modifier><decl><type ref="prev"/><name>csr_data_pop</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>csr_len</name></decl>, <decl><type ref="prev"/><name>csr_pop_len</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>client_ctx</name></decl>;</decl_stmt>
+
+    <comment type="block">/*
+     * get the client context for this thread
+     */</comment>
+    <expr_stmt><expr><name>client_ctx</name> <operator>=</operator> <call><name>get_client_ctx</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>client_ctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to obtain client context for proxy operation"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * path_segment.  The path seg value is coming in from the
+     * downstream client on this request.  It's already been validated,
+     * place it in ctx for use by client code.
+     */</comment>
+    <if>if <condition>(<expr><name>path_seg</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_proxy_set_path_segment</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Unable to save the path segment from the URI into the client context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Invoke client code to retrieve the CSR attributes.
+     * Note: there is no need to authenticate the client (see sec 4.5)
+     */</comment>
+    <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"Proxy: Attempting to retrieve CSR attrs from upstream server"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_client_get_csrattrs</name><argument_list>(<argument><expr><name>client_ctx</name></expr></argument>, <argument><expr><operator>(</operator><name>unsigned</name> <name>char</name> <operator>*</operator><operator>*</operator><operator>)</operator><operator>&amp;</operator><name>csr_data</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>csr_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <comment type="block">/*
+     * csr_data points to the memory allocated to hold the csr attributes,
+     * which will be freed in this call stack.  To prevent a double-free
+     * we null the to pointer on the client context.
+     */</comment>
+    <expr_stmt><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>retrieved_csrattrs</name></name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>client_ctx</name><operator>-&gt;</operator><name>retrieved_csrattrs_len</name></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>==</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>csr_pop_present</name></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+	<if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>server_enable_pop</name></name></expr>)</condition><then> <block>{
+	    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_is_challengePassword_present</name><argument_list>(<argument><expr><name>csr_data</name></expr></argument>, <argument><expr><name>csr_len</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>pop_present</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+		<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Error during PoP/sanity check"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_HTTP_NO_CONTENT</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+	    }</block></then></if>
+	    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>csr_pop_present</name></name> <operator>=</operator> <name>pop_present</name></expr>;</expr_stmt>
+
+	    <if>if <condition>(<expr><operator>!</operator><name><name>ctx</name><operator>-&gt;</operator><name>csr_pop_present</name></name></expr>)</condition><then> <block>{
+		<if>if <condition>(<expr><name>csr_len</name> <operator>==</operator> <literal type="number">0</literal></expr>)</condition><then> <block>{
+                    <expr_stmt><expr><name>csr_data</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><name>EST_CSRATTRS_POP_LEN</name> <operator>+</operator> <literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    <if>if <condition>(<expr><operator>!</operator><name>csr_data</name></expr>)</condition><then> <block>{
+			<return>return <expr><operator>(</operator><name>EST_ERR_MALLOC</name><operator>)</operator></expr>;</return>
+		    }</block></then></if>
+		    <expr_stmt><expr><call><name>strncpy_s</name><argument_list>(<argument><expr><name>csr_data</name></expr></argument>, <argument><expr><name>EST_CSRATTRS_POP_LEN</name> <operator>+</operator> <literal type="number">1</literal></expr></argument>, 
+			      <argument><expr><name>EST_CSRATTRS_POP</name></expr></argument>, <argument><expr><name>EST_CSRATTRS_POP_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    <expr_stmt><expr><name><name>csr_data</name><index>[<expr><name>EST_CSRATTRS_POP_LEN</name></expr>]</index></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+		    <expr_stmt><expr><name>csr_len</name> <operator>=</operator> <name>EST_CSRATTRS_POP_LEN</name></expr>;</expr_stmt>
+		    <return>return <expr><operator>(</operator><call><name>est_send_csrattr_data</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>csr_data</name></expr></argument>, <argument><expr><name>csr_len</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+		}</block></then></if>
+		<expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_add_challengePassword</name><argument_list>(<argument><expr><name>csr_data</name></expr></argument>, <argument><expr><name>csr_len</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>csr_data_pop</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>csr_pop_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		<if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+		    <if>if <condition>(<expr><name>csr_data</name></expr>)</condition><then> <block>{
+		        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>csr_data</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    }</block></then></if>
+		    <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Error during add PoP"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_HTTP_NO_CONTENT</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+		}</block></then></if>
+		<if>if <condition>(<expr><name>csr_data</name></expr>)</condition><then> <block>{
+		    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>csr_data</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+		}</block></then></if>
+		<expr_stmt><expr><name>csr_data</name> <operator>=</operator> <name>csr_data_pop</name></expr>;</expr_stmt>
+		<expr_stmt><expr><name>csr_len</name> <operator>=</operator> <name>csr_pop_len</name></expr>;</expr_stmt>
+	    }</block></then></if>
+	}</block></then></if>
+    }</block></then> <else>else <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Server not reachable or sent corrupt attributes"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_HTTP_NO_CONTENT</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+    }</block></else></if>
+    <return>return <expr><operator>(</operator><call><name>est_send_csrattr_data</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>csr_data</name></expr></argument>, <argument><expr><name>csr_len</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*
+ * This function should be called by the web server layer when
+ * a HTTP request arrives on the listening port of the EST proxy.
+ * It will determine the EST request type and dispatch the request
+ * to the appropriate handler.
+ *
+ * Paramters:
+ *      ctx:	    Pointer to EST_CTX
+ *      http_ctx:   Context pointer from web server
+ *      method:     The HTML method in the request, should be either "GET" or "POST"
+ *	uri:	    pointer to HTTP URI
+ *	body:	    pointer to full HTML body contents
+ *	body_len:   length of HTML body
+ *	ct:         HTML content type header
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_http_request</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>void</name> <modifier>*</modifier></type><name>http_ctx</name></decl></parameter>,
+                                  <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>method</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>uri</name></decl></parameter>,
+                                  <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>body</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>body_len</name></decl></parameter>, <parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>ct</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>SSL</name> <modifier>*</modifier></type><name>ssl</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rc</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>diff</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>errno_t</name></type> <name>safec_rc</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>EST_OPERATION</name></type> <name>operation</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>char</name> <modifier>*</modifier></type><name>path_seg</name> <init>= <expr><name>NULL</name></expr></init></decl>;</decl_stmt>    
+    <decl_stmt><decl><type><name>EST_ERROR</name></type> <name>rv</name> <init>= <expr><name>EST_ERR_NONE</name></expr></init></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <comment type="block">/*
+     * Verify the context is for a proxy, not a client or server
+     */</comment>
+    <if>if <condition>(<expr><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>!=</operator> <name>EST_PROXY</name></expr>)</condition><then> <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_BAD_MODE</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    
+    <expr_stmt><expr><name>rv</name> <operator>=</operator> <call><name>est_parse_uri</name><argument_list>(<argument><expr><name>uri</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>operation</name></expr></argument>, <argument><expr><operator>&amp;</operator><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>rv</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>rv</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>rv</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+    
+    <comment type="block">/*
+     * See if this is a cacerts request
+     */</comment>
+    <if>if <condition>(<expr><name>operation</name> <operator>==</operator> <name>EST_OP_CACERTS</name></expr>)</condition><then> <block>{
+        <comment type="block">/* Only GET is allowed */</comment>
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>strcmp_s</name><argument_list>(<argument><expr><name>method</name></expr></argument>, <argument><expr><name>MAX_HTTP_METHOD_LEN</name></expr></argument>, <argument><expr><literal type="string">"GET"</literal></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"strcmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+
+        <if>if <condition>(<expr><name>diff</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_WRONG_METHOD</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_WRONG_METHOD</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        
+        <expr_stmt><expr><name>rc</name> <operator>=</operator> <call><name>est_proxy_handle_cacerts</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rc</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>rc</name><operator>)</operator></expr>;</return>
+        }</block></then></if>            
+    }</block></then>
+
+    <comment type="block">/*
+     * See if this is a simple enrollment request
+     */</comment>
+    <elseif>else <if>if <condition>(<expr><name>operation</name> <operator>==</operator> <name>EST_OP_SIMPLE_ENROLL</name></expr>)</condition><then> <block>{
+        <comment type="block">/* Only POST is allowed */</comment>
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>strcmp_s</name><argument_list>(<argument><expr><name>method</name></expr></argument>, <argument><expr><name>MAX_HTTP_METHOD_LEN</name></expr></argument>, <argument><expr><literal type="string">"POST"</literal></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"strcmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+
+        <if>if <condition>(<expr><name>diff</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_WRONG_METHOD</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_WRONG_METHOD</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+	<if>if <condition>(<expr><operator>!</operator><name>ct</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Incoming HTTP header has no Content-Type header\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+	    <return>return <expr><operator>(</operator><name>EST_ERR_BAD_CONTENT_TYPE</name><operator>)</operator></expr>;</return> 
+	}</block></then></if>
+        <comment type="block">/*
+         * In this case body is indicating that no content was passed in, and
+         * this is a enroll request.  This cannot be correct because a CSR is
+         * required.  If this continues, and we're in proxy mode, we'll try to
+         * forward this non-existent CSR
+         */</comment>
+        <if>if <condition>(<expr><name>body</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Incoming HTTP header has no CSR content.\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_BAD_CONTENT_LEN</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        
+        <comment type="block">/*
+         * Get the SSL context, which is required for authenticating
+         * the client.
+         */</comment>
+        <expr_stmt><expr><name>ssl</name> <operator>=</operator> <operator>(</operator><name>SSL</name><operator>*</operator><operator>)</operator><call><name>mg_get_conn_ssl</name><argument_list>(<argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><operator>!</operator><name>ssl</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_NO_SSL_CTX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_NO_SSL_CTX</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <expr_stmt><expr><name>rc</name> <operator>=</operator> <call><name>est_proxy_handle_simple_enroll</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>ct</name></expr></argument>, <argument><expr><name>body</name></expr></argument>, <argument><expr><name>body_len</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>, <argument><expr><literal type="number">0</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rc</name> <operator>!=</operator> <name>EST_ERR_NONE</name> <operator>&amp;&amp;</operator> <name>rc</name> <operator>!=</operator> <name>EST_ERR_AUTH_PENDING</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Enrollment failed with rc=%d (%s)\n"</literal></expr></argument>, 
+		         <argument><expr><name>rc</name></expr></argument>, <argument><expr><call><name>EST_ERR_NUM_TO_STR</name><argument_list>(<argument><expr><name>rc</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>rc</name> <operator>==</operator> <name>EST_ERR_AUTH_FAIL</name></expr>)</condition><then> <block>{
+		<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_AUTH_FAIL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    }</block></then> <else>else <block>{
+		<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    }</block></else></if>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_BAD_PKCS10</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+    }</block></then></if></elseif>
+
+    <comment type="block">/*
+     * See if this is a re-enrollment request
+     */</comment>
+    <elseif>else <if>if <condition>(<expr><name>operation</name> <operator>==</operator> <name>EST_OP_SIMPLE_REENROLL</name></expr>)</condition><then> <block>{
+        <comment type="block">/* Only POST is allowed */</comment>
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>strcmp_s</name><argument_list>(<argument><expr><name>method</name></expr></argument>, <argument><expr><name>MAX_HTTP_METHOD_LEN</name></expr></argument>, <argument><expr><literal type="string">"POST"</literal></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"strcmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+
+        <if>if <condition>(<expr><name>diff</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_WRONG_METHOD</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_WRONG_METHOD</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+	<if>if <condition>(<expr><operator>!</operator><name>ct</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Incoming HTTP header has no Content-Type header\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+	    <return>return <expr><operator>(</operator><name>EST_ERR_BAD_CONTENT_TYPE</name><operator>)</operator></expr>;</return> 
+	}</block></then></if>
+        <comment type="block">/*
+         * In this case body is indicating that no content was passed in, and
+         * this is a enroll request.  This cannot be correct because a CSR is
+         * required.  If this continues, and we're in proxy mode, we'll try to
+         * forward this non-existent CSR
+         */</comment>
+        <if>if <condition>(<expr><name>body</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Incoming HTTP header has no CSR content.\n"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_BAD_CONTENT_LEN</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        
+        <comment type="block">/*
+         * Get the SSL context, which is required for authenticating
+         * the client.
+         */</comment>
+        <expr_stmt><expr><name>ssl</name> <operator>=</operator> <operator>(</operator><name>SSL</name><operator>*</operator><operator>)</operator><call><name>mg_get_conn_ssl</name><argument_list>(<argument><expr><name>http_ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><operator>!</operator><name>ssl</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_NO_SSL_CTX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_NO_SSL_CTX</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+
+        <expr_stmt><expr><name>rc</name> <operator>=</operator> <call><name>est_proxy_handle_simple_enroll</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>ssl</name></expr></argument>, <argument><expr><name>ct</name></expr></argument>, <argument><expr><name>body</name></expr></argument>, <argument><expr><name>body_len</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>, <argument><expr><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>rc</name> <operator>!=</operator> <name>EST_ERR_NONE</name> <operator>&amp;&amp;</operator> <name>rc</name> <operator>!=</operator> <name>EST_ERR_AUTH_PENDING</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_WARN</name><argument_list>(<argument><expr><literal type="string">"Reenroll failed with rc=%d (%s)\n"</literal></expr></argument>, 
+		         <argument><expr><name>rc</name></expr></argument>, <argument><expr><call><name>EST_ERR_NUM_TO_STR</name><argument_list>(<argument><expr><name>rc</name></expr></argument>)</argument_list></call></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    <if>if <condition>(<expr><name>rc</name> <operator>==</operator> <name>EST_ERR_AUTH_FAIL</name></expr>)</condition><then> <block>{
+		<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_AUTH_FAIL</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    }</block></then> <else>else <block>{
+		<expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_BAD_PKCS10</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	    }</block></else></if>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_BAD_PKCS10</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+    }</block></then></if></elseif>
+
+<cpp:if>#<cpp:directive>if</cpp:directive> <expr><literal type="number">0</literal></expr></cpp:if>
+    <comment type="block">/*
+     * See if this is a keygen request
+     * FIXME: this is currently not implemented
+     */</comment>
+    else if (strncmp(uri, EST_KEYGEN_URI, EST_URI_MAX_LEN) == 0) {
+
+        <comment type="block">/* Only POST is allowed */</comment>
+        safec_rc = strcmp_s(method, MAX_HTTP_METHOD_LEN, "POST", &amp;diff);
+        if (safec_rc != EOK) {
+            EST_LOG_INFO("strcmp_s error 0x%xO\n", safec_rc);
+        }
+
+        if (diff) {
+            est_send_http_error(ctx, http_ctx, EST_ERR_WRONG_METHOD);
+            return (EST_ERR_WRONG_METHOD);
+        }
+	if (!ct) {
+            EST_LOG_WARN("Incoming HTTP header has no Content-Type header\n");
+	    return (EST_ERR_BAD_CONTENT_TYPE); 
+	}
+        if (est_proxy_handle_keygen(ctx)) {
+            est_send_http_error(ctx, http_ctx, 0); <comment type="line">//FIXME: last param should not be zero</comment>
+            return (EST_ERR_HTTP_WRITE);           <comment type="line">//FIXME: need the appropriate return code</comment>
+        }
+    }
+<cpp:endif>#<cpp:directive>endif</cpp:directive></cpp:endif>
+
+    <comment type="block">/*
+     * See if this is a CSR attributes request
+     */</comment>
+    <elseif>else <if>if <condition>(<expr><name>operation</name> <operator>==</operator> <name>EST_OP_CSRATTRS</name></expr>)</condition><then> <block>{
+        <comment type="block">/* Only GET is allowed */</comment>
+        <expr_stmt><expr><name>safec_rc</name> <operator>=</operator> <call><name>strcmp_s</name><argument_list>(<argument><expr><name>method</name></expr></argument>, <argument><expr><name>MAX_HTTP_METHOD_LEN</name></expr></argument>, <argument><expr><literal type="string">"GET"</literal></expr></argument>, <argument><expr><operator>&amp;</operator><name>diff</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>safec_rc</name> <operator>!=</operator> <name>EOK</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_INFO</name><argument_list>(<argument><expr><literal type="string">"strcmp_s error 0x%xO\n"</literal></expr></argument>, <argument><expr><name>safec_rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        }</block></then></if>
+
+        <if>if <condition>(<expr><name>diff</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_WRONG_METHOD</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>EST_ERR_WRONG_METHOD</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+        <expr_stmt><expr><name>rc</name> <operator>=</operator> <call><name>est_proxy_handle_csr_attrs</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	 <if>if <condition>(<expr><name>rc</name> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>rc</name></expr></argument>)</argument_list></call></expr>;</expr_stmt> 
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+            <return>return <expr><operator>(</operator><name>rc</name><operator>)</operator></expr>;</return>
+        }</block></then></if>
+    }</block></then></if></elseif>
+
+    <comment type="block">/*
+     * Send a 404 error if the URI didn't match 
+     */</comment>
+    <else>else <block>{
+        <expr_stmt><expr><call><name>est_send_http_error</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>http_ctx</name></expr></argument>, <argument><expr><name>EST_ERR_HTTP_NOT_FOUND</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></else></if>
+
+    <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>path_seg</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name>path_seg</name> <operator>=</operator> <name>NULL</name></expr>;</expr_stmt>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*
+ * This function is called by the application to start
+ * the EST proxy server HTTP services layer.
+ */</comment>
+<comment type="block">/*! @brief est_proxy_start() is used by an application to start the EST proxy
+    after est_proxy_init() and est_proxy_set_server() have been called and all
+    the required callback functions have been provided by the application.
+
+    @param ctx Pointer to the EST context
+
+    libEST uses HTTP code from the Mongoose HTTP server.
+    This function allows the application to start the HTTP
+    services layer, which is required by EST.
+ 
+    @return EST_ERROR.    
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_start</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_MG_CONTEXT</name> <modifier>*</modifier></type><name>mgctx</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Null context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>mgctx</name> <operator>=</operator> <call><name>mg_start</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>mgctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>mg_ctx</name></name> <operator>=</operator> <name>mgctx</name></expr>;</expr_stmt>
+        <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+    }</block></then> <else>else <block>{
+        <return>return <expr><operator>(</operator><name>EST_ERR_NO_SSL_CTX</name><operator>)</operator></expr>;</return>
+    }</block></else></if>
+}</block></function>
+
+<comment type="block">/*! @brief est_proxy_stop() is used by an application to stop
+    the EST proxy.  This should be called prior to est_destroy().
+ 
+    @param ctx Pointer to the EST context
+
+    libEST uses HTTP code from the Mongoose HTTP server.
+    This function allows the application to stop the HTTP
+    services layer.
+ 
+    @return EST_ERROR.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_stop</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_MG_CONTEXT</name> <modifier>*</modifier></type><name>mgctx</name></decl>;</decl_stmt>
+
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Null context"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<return>return <expr><operator>(</operator><name>EST_ERR_NO_CTX</name><operator>)</operator></expr>;</return>
+    }</block></then></if>
+
+    <expr_stmt><expr><name>mgctx</name> <operator>=</operator> <operator>(</operator><name>EST_MG_CONTEXT</name><operator>*</operator><operator>)</operator><name><name>ctx</name><operator>-&gt;</operator><name>mg_ctx</name></name></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>mgctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>mg_stop</name><argument_list>(<argument><expr><name>mgctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    }</block></then></if>
+    <return>return <expr><operator>(</operator><name>EST_ERR_NONE</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+<comment type="block">/*! @brief est_proxy_init() is used by an application to create
+    a context in the EST library.  This context is used when invoking
+    other functions in the API while in Proxy mode.
+ 
+    @param ca_chain     Char array containing PEM encoded CA certs &amp; CRL entries.
+                        This chain of certificates is used as the trust anchor when
+                        establishing a TLS connection.
+    @param ca_chain_len Length of ca_chain char array. 
+    @param cacerts_resp_chain Char array containing PEM encoded CA certs to
+                              include in the /cacerts response.  This is
+                              an optional parameter.  If it set, it contains
+                              the chain of certificates used by the proxy to
+                              respond to GET CA Certs requests from EST Clients.
+                              If this parameter is not included, then the proxy
+                              will obtain the CA certificate chain from the
+                              configured upstream EST server.  If this parameter
+                              is not NULL, then the correct length of this
+                              buffer must be specified in cacerts_resp_chain_len.
+    @param cacerts_resp_chain_len Length of cacerts_resp_chain char array
+    @param cert_format Specifies the encoding of the local and external
+                       certificate chains (PEM/DER).  
+    @param http_realm Char array containing HTTP realm name for HTTP auth
+    @param tls_id_cert Pointer to X509 that contains the proxy's certificate
+                    for the TLS layer.
+    @param tls_id_key Pointer to EVP_PKEY that contains the private key
+                   associated with the proxy's certificate.
+    @param uid  User ID to use for authenticating with server
+    @param pwd  Password to use for authenticating with server
+
+    This function allows an application to initialize an EST server context
+    for proxy mode operation, which is used when operating as an RA.  The
+    application must provide the trusted CA certificates to use for server
+    operation using the ca_chain parameter.  This certificate set should
+    include the explicit trust anchor certificate, any number of implicit
+    trust anchor certificates, and any intermediate sub-CA certificates
+    required to complete the chain of trust between the identity certificate
+    passed into the tls_id_cert parameter and the root certificate for that
+    identity certificate.  The CA certificates should be encoded using the
+    format specified in the cert_format parameter (e.g. PEM) and may contain
+    CRL entries that will be used when authenticating EST clients connecting
+    to the server.  The applications must also provide the HTTP realm to use
+    for HTTP authentication and the server cerificate/private key to use for
+    TLS.
+    
+    Warning: Including additional intermediate sub-CA certificates that are
+             not needed to complete the chain of trust may result in a
+	     potential MITM attack.  
+ 
+    @return EST_CTX.
+ */</comment>
+<function><type><name>EST_CTX</name> <modifier>*</modifier></type> <name>est_proxy_init</name> <parameter_list>(<parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>ca_chain</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>ca_chain_len</name></decl></parameter>,
+                          <parameter><decl><type><name>unsigned</name> <name>char</name> <modifier>*</modifier></type><name>cacerts_resp_chain</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>cacerts_resp_chain_len</name></decl></parameter>,
+			  <parameter><decl><type><name>EST_CERT_FORMAT</name></type> <name>cert_format</name></decl></parameter>,
+                          <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>http_realm</name></decl></parameter>, 
+			  <parameter><decl><type><name>X509</name> <modifier>*</modifier></type><name>tls_id_cert</name></decl></parameter>, <parameter><decl><type><name>EVP_PKEY</name> <modifier>*</modifier></type><name>tls_id_key</name></decl></parameter>,
+                          <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>uid</name></decl></parameter>, <parameter><decl><type><name>char</name> <modifier>*</modifier></type><name>pwd</name></decl></parameter>)</parameter_list>
+<block>{
+    <decl_stmt><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl>;</decl_stmt>
+    <decl_stmt><decl><type><name>int</name></type> <name>len</name></decl>;</decl_stmt>
+
+    <expr_stmt><expr><call><name>est_log_version</name><argument_list>()</argument_list></call></expr>;</expr_stmt>
+
+    <comment type="block">/*
+     * Sanity check the input
+     */</comment>
+    <if>if <condition>(<expr><name>ca_chain</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Trusted CA certificate set is empty"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>tls_id_cert</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"TLS cert is empty"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>tls_id_key</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"TLS private key is empty"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>http_realm</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"EST HTTP realm is NULL"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>cert_format</name> <operator>!=</operator> <name>EST_CERT_FORMAT_PEM</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Only PEM encoding of certificates is supported."</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>    
+
+    <comment type="block">/*
+     * Verify the lengths of the cert chains 
+     */</comment>
+    <expr_stmt><expr><name>len</name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>ca_chain</name></expr></argument>, <argument><expr><name>EST_CA_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><name>len</name> <operator>!=</operator> <name>ca_chain_len</name></expr>)</condition><then> <block>{
+	<expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Length of ca_chain doesn't match ca_chain_len"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>cacerts_resp_chain</name></expr>)</condition><then> <block>{    
+        <expr_stmt><expr><name>len</name> <operator>=</operator> <operator>(</operator><name>int</name><operator>)</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>cacerts_resp_chain</name></expr></argument>, <argument><expr><name>EST_CA_MAX</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <if>if <condition>(<expr><name>len</name> <operator>!=</operator> <name>cacerts_resp_chain_len</name></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Length of cacerts_resp_chain doesn't match cacerts_resp_chain_len"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><name>NULL</name></expr>;</return>
+        }</block></then></if>
+    }</block></then></if>
+    
+    <comment type="block">/*
+     * Allocate and set up the Proxy based EST Context.  This context will be
+     * use when operating as the Server to the downstream clients.  EST Proxy mode
+     * is basically a server function that requires client capabilities to
+     * communicate to the upstream server when needed. 
+     */</comment>
+    <expr_stmt><expr><name>ctx</name> <operator>=</operator> <call><name>malloc</name><argument_list>(<argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>EST_CTX</name></expr></argument>)</argument_list></sizeof></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"malloc failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>EST_CTX</name></expr></argument>)</argument_list></sizeof></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>est_mode</name></name> <operator>=</operator> <name>EST_PROXY</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>retry_period</name></name> <operator>=</operator> <name>EST_RETRY_PERIOD_DEF</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>server_enable_pop</name></name> <operator>=</operator> <literal type="number">1</literal></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>require_http_auth</name></name> <operator>=</operator> <name>HTTP_AUTH_REQUIRED</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>server_read_timeout</name></name> <operator>=</operator> <name>EST_SSL_READ_TIMEOUT_DEF</name></expr>;</expr_stmt>
+
+    <if>if <condition>(<expr><call><name>est_client_set_uid_pw</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>uid</name></expr></argument>, <argument><expr><name>pwd</name></expr></argument>)</argument_list></call> <operator>!=</operator> <name>EST_ERR_NONE</name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to store the userid and password during proxy initialization"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>        
+    
+    <comment type="block">/*
+     * Load the CA certificates into local memory and retain
+     * for future use.  This will be used for /cacerts requests.
+     */</comment>
+    <if>if <condition>(<expr><name>cacerts_resp_chain</name></expr>)</condition><then> <block>{    
+        <if>if <condition>(<expr><call><name>est_load_ca_certs</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>cacerts_resp_chain</name></expr></argument>, <argument><expr><name>cacerts_resp_chain_len</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+            <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to load CA certificates response buffer"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <expr_stmt><expr><call><name>free</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+            <return>return <expr><name>NULL</name></expr>;</return>
+        }</block></then></if>
+    }</block></then></if>
+    
+    <comment type="block">/*
+     * Load the CA certificate chain into an X509 store structure
+     * This will be used in verifying incoming certs during TLS
+     * establishement.
+     * Also save a way a raw copy of the ca_chain buffer so that
+     * it can be used when creating client contexts used to communincate
+     * to the upstream server.
+     */</comment>
+    <if>if <condition>(<expr><call><name>est_load_trusted_certs</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>ca_chain</name></expr></argument>, <argument><expr><name>ca_chain_len</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"Failed to load trusted certificate store"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name> <operator>=</operator>  <call><name>malloc</name><argument_list>(<argument><expr><name>ca_chain_len</name><operator>+</operator><literal type="number">1</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <if>if <condition>(<expr><operator>!</operator><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name></expr>)</condition><then> <block>{
+        <expr_stmt><expr><call><name>EST_LOG_ERR</name><argument_list>(<argument><expr><literal type="string">"malloc failed"</literal></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+	<expr_stmt><expr><call><name>est_destroy</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+        <return>return <expr><name>NULL</name></expr>;</return>
+    }</block></then></if>
+    <expr_stmt><expr><call><name>memcpy_s</name><argument_list>(<argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name></name></expr></argument>, <argument><expr><name>ca_chain_len</name><operator>+</operator><literal type="number">1</literal></expr></argument>, <argument><expr><operator>(</operator><name>char</name> <operator>*</operator><operator>)</operator><name>ca_chain</name></expr></argument>, <argument><expr><name>ca_chain_len</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw</name><index>[<expr><name>ca_chain_len</name></expr>]</index></name> <operator>=</operator> <literal type="char">'\0'</literal></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>ca_chain_raw_len</name></name> <operator>=</operator> <name>ca_chain_len</name></expr>;</expr_stmt>
+    
+    <expr_stmt><expr><call><name>strncpy_s</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>realm</name></name></expr></argument>, <argument><expr><name>MAX_REALM</name></expr></argument>, <argument><expr><name>http_realm</name></expr></argument>, <argument><expr><name>MAX_REALM</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>server_cert</name></name> <operator>=</operator> <name>tls_id_cert</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>server_priv_key</name></name> <operator>=</operator> <name>tls_id_key</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>auth_mode</name></name> <operator>=</operator> <name>AUTH_BASIC</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>read_timeout</name></name> <operator>=</operator> <name>EST_SSL_READ_TIMEOUT_DEF</name></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>retry_after_delay</name></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>retry_after_date</name></name> <operator>=</operator> <literal type="number">0</literal></expr>;</expr_stmt>
+
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name> <operator>=</operator> <operator>(</operator><name>CLIENT_CTX_LU_NODE_T</name> <operator>*</operator><operator>)</operator> <call><name>malloc</name><argument_list>( <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><call><name>memzero_s</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>client_ctx_array</name></name></expr></argument>, <argument><expr><sizeof>sizeof<argument_list>(<argument><expr><name>CLIENT_CTX_LU_NODE_T</name></expr></argument>)</argument_list></sizeof><operator>*</operator><name>cur_max_ctx_array</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    
+    <return>return <expr><operator>(</operator><name>ctx</name><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*! @brief est_proxy_set_auth_mode() is used by an application layer to
+    configure the HTTP authentication method to use for validating the
+    identity of an EST client.
+ 
+    @param ctx Pointer to the EST proxy context.  This was returned from
+    est_proxy_init().
+    @param amode Should be either AUTH_BASIC or AUTH_DIGEST
+
+    This function can optionally be invoked by the application layer to change
+    the default HTTP authentication mode.  The default mode is HTTP Basic
+    authentication.  An application may desire to use Digest authentication
+    instead, in which case this function can be used to set that mode.  This
+    function should be invoked prior to starting the EST proxy.
+
+    @return EST_ERROR.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_set_auth_mode</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>EST_HTTP_AUTH_MODE</name></type> <name>amode</name></decl></parameter>)</parameter_list>
+<block>{
+    <return>return<expr><operator>(</operator><call><name>est_server_set_auth_mode</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>amode</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*! @brief est_proxy_set_auth_cred_cb() is used by an application to register
+  its callback function. 
+    
+  @param ctx EST context obtained from the est_proxy_init() call.
+  @param auth_credentials_cb  Function pointer to the application layer callback
+
+  The registered callback function is used by the EST client library to obtain
+  authentication credentials.  The application can provide authentication
+  credentials during initialization if they are available, such as the userid
+  and password used with HTTP basic authentication.  During the processing of
+  a request, the EST client library will call this application callback in the
+  event that it does not have the authentication credentials that are being
+  requested by the EST server.
+
+  The callback function definition must match the following function
+  prototype,
+
+  int (*auth_credentials_cb)(EST_HTTP_AUTH_HDR *auth_credentials);
+
+  auth_credentials - A pointer to a EST_HTTP_AUTH_HDR structure.  The
+                     structure is provided by the EST library and the callback
+                     function fills in the specific credentials being
+                     requested.  These credential values must be passed in the
+                     format in which they will be sent to the server, that is,
+                     the EST client library will perform no reformatting of
+                     these credentials.  Ownership of the memory holding these
+                     credential values is transferred from the application
+                     layer to the EST library when the application layer
+                     returns these values to the EST library.  This allows the
+                     EST library to free up this memory as soon as it is done
+                     using these values.
+                         
+  The return value from the callback must be one of the following values:
+
+  EST_HTTP_AUTH_CRED_SUCCESS - If the callback was able to provide the
+                               requested credentials.
+  EST_HTTP_AUTH_CRED_NOT_AVAILABLE - If the callback could not provide the
+                                     requested credentials.
+
+  The auth_credentials_cb parameter can be set to NULL to reset the callback
+  function.
+  
+  All string parameters are NULL terminated strings.
+    
+  @return EST_ERROR.
+  EST_ERR_NONE - Success.
+  EST_ERR_NO_CTX
+*/</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_set_auth_cred_cb</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>auth_credentials_cb</name></type> <name>callback</name></decl></parameter>)</parameter_list>
+<block>{
+    <return>return<expr><operator>(</operator><call><name>est_client_set_auth_cred_cb</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>callback</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*! @brief est_proxy_set_read_timeout() is used by an application to set
+    timeout value of read operations.  After the EST proxy sends a request to
+    the EST server it will attempt to read the response from the server.  This
+    timeout value limits the amount of time the proxy will wait for the
+    response.
+
+    @param ctx Pointer to the EST context
+    @param timeout Integer value representing the read timeout in seconds.
+    The minimum value is EST_SSL_READ_TIMEOUT_MIN and the maximum value is
+    EST_SSL_READ_TIMEOUT_MAX.
+ 
+    @return EST_ERROR.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_set_read_timeout</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>timeout</name></decl></parameter>)</parameter_list>
+<block>{
+    <return>return<expr><operator>(</operator><call><name>est_client_set_read_timeout</name><argument_list>(<argument><expr><name>ctx</name></expr></argument>, <argument><expr><name>timeout</name></expr></argument>)</argument_list></call><operator>)</operator></expr>;</return>
+}</block></function>
+
+
+<comment type="block">/*! @brief est_proxy_set_server() is called by the application layer to
+     specify the address/port of the EST server. It must be called after
+     est_proxy_init() and prior to issuing any EST commands.
+ 
+    @param ctx Pointer to EST context for a client session
+    @param server Name of the EST server to connect to.  The ASCII string
+    representing the name of the server is limited to 254 characters
+    @param port TCP port on the EST server to connect
+ 
+    @return EST_ERROR
+    EST_ERR_NONE - Success.
+    EST_ERR_NO_CTX - NULL value passed for EST context
+    EST_ERR_INVALID_SERVER_NAME - NULL value passed for EST server name, or
+    server name string too long
+    EST_ERR_INVALID_PORT_NUM - Invalid port number input, less than zero or
+    greater than 65535
+
+    est_proxy_set_server error checks its input parameters and then stores
+    both the hostname and port number into the EST context.
+ */</comment>
+<function><type><name>EST_ERROR</name></type> <name>est_proxy_set_server</name> <parameter_list>(<parameter><decl><type><name>EST_CTX</name> <modifier>*</modifier></type><name>ctx</name></decl></parameter>, <parameter><decl><type><specifier>const</specifier> <name>char</name> <modifier>*</modifier></type><name>server</name></decl></parameter>, <parameter><decl><type><name>int</name></type> <name>port</name></decl></parameter>)</parameter_list>
+<block>{
+    
+    <if>if <condition>(<expr><operator>!</operator><name>ctx</name></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_NO_CTX</name></expr>;</return>
+    }</block></then></if>
+
+    <if>if <condition>(<expr><name>server</name> <operator>==</operator> <name>NULL</name></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_INVALID_SERVER_NAME</name></expr>;</return>
+    }</block></then></if>
+    <if>if <condition>(<expr><name>EST_MAX_SERVERNAME_LEN</name><operator>-</operator><literal type="number">1</literal> <operator>&lt;</operator> <call><name>strnlen_s</name><argument_list>(<argument><expr><name>server</name></expr></argument>, <argument><expr><name>EST_MAX_SERVERNAME_LEN</name></expr></argument>)</argument_list></call></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_INVALID_SERVER_NAME</name></expr>;</return>
+    }</block></then></if>   
+    
+    <if>if <condition>(<expr><name>port</name> <operator>&lt;=</operator> <literal type="number">0</literal> <operator>||</operator> <name>port</name> <operator>&gt;</operator> <literal type="number">65535</literal></expr>)</condition><then> <block>{
+        <return>return <expr><name>EST_ERR_INVALID_PORT_NUM</name></expr>;</return>
+    }</block></then></if>
+    
+    <expr_stmt><expr><call><name>strncpy_s</name><argument_list>(<argument><expr><name><name>ctx</name><operator>-&gt;</operator><name>est_server</name></name></expr></argument>, <argument><expr><name>EST_MAX_SERVERNAME_LEN</name></expr></argument>, <argument><expr><name>server</name></expr></argument>, 
+              <argument><expr><name>EST_MAX_SERVERNAME_LEN</name></expr></argument>)</argument_list></call></expr>;</expr_stmt>
+    <expr_stmt><expr><name><name>ctx</name><operator>-&gt;</operator><name>est_port_num</name></name> <operator>=</operator> <name>port</name></expr>;</expr_stmt>
+    
+    <return>return <expr><name>EST_ERR_NONE</name></expr>;</return>
+}</block></function>
+</unit>

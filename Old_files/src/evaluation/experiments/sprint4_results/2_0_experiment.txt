@@ -1,0 +1,174 @@
+Finding artifacts in: /home/drmccr/swe/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/use_cases_with_translation
+Getting artifacts by file from directory
+Read 58 artifacts from directory
+
+Finding artifacts in: /home/drmccr/swe/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/source_code
+Getting artifacts by file from directory
+Read 116 artifacts from directory
+
+Found stop words file: english_stop_words.txt
+Detected natural language: [english], generating stemmer
+Found stop words file: italian_stop_words.txt
+Detected natural language: [italian], generating stemmer
+Found stop words file: java_stop_words.txt
+No natural language stemmer detected for language: [java]
+START TESTS FOR eTOUR (2_0)
+Generating new VSM model
+Done generating VSM model
+/home/drmccr/swe/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/2_0_raw_corpus.txt
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.07347437974056277 -> word2vec: Trained on corpus
+AP: 0.05865292121351153 -> word2vec: Pretrained
+AP: 0.06336173996767543 -> word2vec: Fine-tuned
+AP: 0.04583368747339138 -> Random
+=========================
+Reusing existing preprocessed artifacts
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.06692792404309522 -> word2vec: Trained on corpus
+AP: 0.05988148166147228 -> word2vec: Pretrained
+AP: 0.06005661298302559 -> word2vec: Fine-tuned
+AP: 0.048992537319996116 -> Random
+=========================
+/home/drmccr/swe/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/2_0_raw_corpus.txt
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.07349538741895002 -> word2vec: Trained on corpus
+AP: 0.061143867718591136 -> word2vec: Pretrained
+AP: 0.06641407341693949 -> word2vec: Fine-tuned
+AP: 0.048677451044949104 -> Random
+=========================
+Reusing existing preprocessed artifacts
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.06654308080270037 -> word2vec: Trained on corpus
+AP: 0.06215348447649995 -> word2vec: Pretrained
+AP: 0.06215855579708896 -> word2vec: Fine-tuned
+AP: 0.05019976108007203 -> Random
+=========================
+/home/drmccr/swe/Neural-Unsupervised-Software-Traceability/src/evaluation/../../data/raw/eTOUR_semeru_format/2_0_raw_corpus.txt
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.07385021834217878 -> word2vec: Trained on corpus
+AP: 0.06286727097605364 -> word2vec: Pretrained
+AP: 0.06942988368876565 -> word2vec: Fine-tuned
+AP: 0.04819092019674765 -> Random
+=========================
+Reusing existing preprocessed artifacts
+Generating new word2vec model
+Training word2vec model on corpus
+Done training word2vec model on corpus
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Populating trace models
+Done generating word2vec model
+Generating new word2vec model
+Loading pretrained word2vec model
+Done loading pretrained word2vec model
+Fine tuning pretrained word2vec model to corpus
+Done fine tuning pretrained word2vec model to corpus
+Populating trace models
+Done generating word2vec model
+Reusing existing preprocessed artifacts
+=== w2v-sg, bpe: 2000 ===
+AP: 0.3943649379192057 -> VSM: baseline
+AP: 0.06697824534761604 -> word2vec: Trained on corpus
+AP: 0.06368043103852736 -> word2vec: Pretrained
+AP: 0.06380458246352322 -> word2vec: Fine-tuned
+AP: 0.043543506296650804 -> Random
+=========================
+END TESTS FOR eTOUR (2_0)

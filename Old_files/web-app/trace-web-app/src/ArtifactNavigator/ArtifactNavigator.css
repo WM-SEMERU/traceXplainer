@@ -1,0 +1,6 @@
+.window {
+	display: flex;
+	height: 90%;
+	align-items: stretch;
+	justify-content: center;
+  }

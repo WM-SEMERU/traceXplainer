@@ -1,0 +1,261 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+        <head>
+            <st:adjunct includes="org.kohsuke.stapler.jquery" />
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"/>
+            <script>
+                jQuery(document).ready(function(){
+                    var filter = document.getElementById('confidenceFilter');
+                    if(filter != null){
+                        filter.value = ${it.confidenceFilter};
+                    }
+
+                    var linkFilter = document.getElementById('linkFilter');
+                    if(linkFilter != null){
+                        linkFilter.value = ${it.linkFilter};
+                    }
+
+                    jQuery('[data-toggle="tooltip"]').tooltip();
+
+                    jQuery('[data-toggle="tooltip"]').mouseleave(function() {
+                        jQuery(this).css('display', 'initial');
+                    });
+
+                    jQuery('#linkFilter').change(function() {
+                        jQuery('#reloadLinkFilter').submit();
+                    });
+
+                    jQuery('#confidenceFilter').change(function() {
+                        jQuery('#reloadFilter').submit();
+                    });
+                });
+
+            </script>
+        </head>
+        <body>
+            <l:layout title="${it.displayName}">
+                <st:include it="${it.build}" page="sidepanel.jelly"/>
+                <l:main-panel>
+                    <h1>${it.displayName}</h1>
+
+                    <j:if test="${!it.isReady()}">
+                        <img src="${resURL}/plugin/traceability/img/ellipsis.gif" alt="Loading ..." height="42" width="42"
+                             style="display: ${it.visible()};"/> ${it.currentState}
+                        <form method="POST" action="reloadAsm" name="reloadAsm">
+                            <input name="Reload" value="Reload" class="btn btn-primary btn-sm" type="submit"/>
+                        </form>
+                    </j:if>
+
+                    <j:if test="${it.isReady()}">
+                        <!--<h3>Requirements Matrix</h3>-->
+                        <div class="form-group">
+                            <label for="confidenceFilter">Select type of artifacts to visualize: </label>
+                            <div class="row">
+                                <div class="col">
+                                    <form method="POST" action="reloadLinkFilter" name="reloadLinkFilter" id="reloadLinkFilter">
+                                        <select class="form-control form-control-sm" name="linkFilter" id="linkFilter">
+                                            <option value="1">Requirements to Source Code</option>
+                                            <option value="2">Requirements to Test Cases</option>
+                                            <option value="3">Test cases to Source Code </option>
+                                            <option value="4">Artifacts not Linked</option>
+                                        </select>
+                                    </form>
+                                </div>
+                                <div class="col">
+                                    <!--<input id="apply_link_filter" name="reloadLinkFilter" type="submit" class="btn btn-primary btn-sm" value="Apply Filter" data-toggle="tooltip" data-placement="top" title="Tooltip on top"/>-->
+                                    <form method="POST" action="reloadAsm" name="reloadAsm">
+                                        <input name="Reload" value="Reload" class="btn btn-primary btn-sm" type="submit"/>
+                                    </form>
+                                </div>
+                            </div>
+                            <br/>
+                            <j:if test="${it.linkFilter == 1 || it.linkFilter == 2}">
+                                <label for="confidenceFilter">Select type of relationship to visualize: </label>
+                                <form method="POST" action="reloadFilter" name="reloadFilter" id="reloadFilter">
+                                    <div class="row">
+                                        <div class="col">
+                                            <select class="form-control form-control-sm" name="confidenceFilter" id="confidenceFilter">
+                                                <option value="3">Probably Linked</option>
+                                                <option value="2">Unsure</option>
+                                                <option value="1">Probably NOT Linked</option>
+                                            </select>
+                                        </div>
+                                        <div class="col">
+                                            <!--<input id="apply_filter" name="reloadFilter" type="submit" class="btn btn-primary btn-sm" value="Apply Filter" data-toggle="tooltip" data-placement="top" title="Tooltip on top"/>-->
+                                        </div>
+                                    </div>
+                                </form>
+                            </j:if>
+                        </div>
+
+                        <!-- Beginning table 1 for requirements to source code-->
+                        <j:if test="${it.linkFilter == 1}">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr style="text-align: left;">
+                                        <th scope="col"></th>
+                                        <th scope="col">Requirement</th>
+                                        <th scope="col">[ Linked Artifact | Probability ]</th>
+                                        <th scope="col">Link Reasoning</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <j:set var="reqs" value="${it.asm.getTraceabilityMatrix(it.confidenceFilter).entrySet()}"/>
+                                    <j:forEach var="req" items="${reqs}">
+                                        <j:forEach var="target" items="${req.getValue()}" indexVar="index">
+                                            <tr>
+                                                <th scope="row"></th>
+                                                <td>
+                                                    <j:if test="${index == 0}">
+                                                        <a data-toggle="modal" data-target="#${it.getIdModal(req.getKey())}"  href="#">${req.getKey().nameId}</a>
+                                                    </j:if>
+                                                </td>
+                                                <td><j:out value="${it.getFinalProbabilityArtifact(target)}"/></td>
+                                                <td>Textual Similarity [<j:out value="${it.getProbabilityArtifact(target)}"/>] - Feedback: [<a data-toggle="modal" data-target="#${it.getIdModalDeveloper(target)}" href="#"><j:out value="${it.getFeedbackValue(target)}"/></a>]</td>
+                                            </tr>
+                                        </j:forEach>
+                                    </j:forEach>
+                                </tbody>
+                            </table>
+                        </j:if>
+                        <!-- End table 1 for requirements to source code-->
+
+                        <!-- Beginning table 2 for requirements to test cases-->
+                        <j:if test="${it.linkFilter == 2}">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr style="text-align: left;">
+                                        <th scope="col"></th>
+                                        <th scope="col">Requirement</th>
+                                        <th scope="col">[ Linked Artifact | Probability ]</th>
+                                        <th scope="col">Link Reasoning</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <j:set var="reqs" value="${it.asm2.getTraceabilityMatrix(it.confidenceFilter).entrySet()}"/>
+                                    <j:forEach var="req" items="${reqs}">
+                                        <j:forEach var="target" items="${req.getValue()}" indexVar="index">
+                                            <tr>
+                                                <th scope="row"></th>
+                                                <td>
+                                                    <j:if test="${index == 0}">
+                                                        <a data-toggle="modal" data-target="#${it.getIdModal(req.getKey())}" href="#">${req.getKey().nameId}</a>
+                                                    </j:if>
+                                                </td>
+                                                <td><j:out value="${it.getFinalProbabilityArtifact(target)}"/></td>
+                                                <td>Textual Similarity [<j:out value="${it.getProbabilityArtifact(target)}"/>] - Feedback: [<a data-toggle="modal" data-target="#${it.getIdModalDeveloper(target)}" href="#"><j:out value="${it.getFeedbackValue(target)}"/></a>]</td>
+                                            </tr>
+                                        </j:forEach>
+                                    </j:forEach>
+                                </tbody>
+                            </table>
+                        </j:if>
+                        <!-- Beginning table 2 for requirements to test cases-->
+
+                        <!-- Beginning table 3 for test cases to source code-->
+                        <j:if test="${it.linkFilter == 3}">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr style="text-align: left;">
+                                        <th scope="col"></th>
+                                        <th scope="col">Test Case</th>
+                                        <th scope="col">Source Code</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <j:set var="entryT" value="${it.test2src.entrySet()}"/>
+                                    <j:forEach var="entry" items="${entryT}">
+                                        <j:forEach var="value" items="${entry.getValue()}" indexVar="index">
+                                            <tr>
+                                                <th scope="row"></th>
+                                                <td>
+                                                    <j:if test="${index == 0}">
+                                                        <!--<a href="#">${req.getKey().nameId}</a>-->
+                                                        <j:out value="${it.getLinkArtifact(entry.getKey())}"/>
+                                                    </j:if>
+                                                </td>
+                                                <td><j:out value="${it.getLinkArtifact(value)}"/></td>
+                                            </tr>
+                                        </j:forEach>
+                                    </j:forEach>
+                                </tbody>
+                            </table>
+                        </j:if>
+                        <!-- Beginning table 3 for test cases to source code-->
+
+                        <!-- Beginning table 4 for requirements to source code-->
+                        <j:if test="${it.linkFilter == 4}">
+                            <p>This table lists all the requirements that were classified as <em>NOT LINKED</em> according to the probabilistic model. The first column consider the relationships between requirements and source code, whereas the second column considers requirements to test cases.</p>
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr style="text-align: left;">
+                                        <th scope="col"></th>
+                                        <th scope="col">Requirements to Source Code</th>
+                                        <th scope="col">Requirements to Test Cases</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th scope="row"></th>
+                                        <td>
+                                            <j:set var="notLinkedReqs1" value="${it.req2SrcNotLinkedReq}"/>
+                                            <j:if test="${!notLinkedReqs1.isEmpty()}">
+                                                <j:forEach var="notLinkedReq1" items="${notLinkedReqs1}">
+                                                    <a data-toggle="modal" data-target="#${it.getIdModal(it.asm.getSourceArtifact(notLinkedReq1))}" href="#">${notLinkedReq1}</a><br/>
+                                                </j:forEach>
+                                            </j:if>
+                                            <j:if test="${notLinkedReqs1.isEmpty()}">
+                                                All requirements are linked to at least one source code
+                                            </j:if>
+                                        </td>
+                                        <td>
+                                            <j:set var="notLinkedReqs2" value="${it.req2TestNotLinkedReq}"/>
+                                            <j:if test="${!notLinkedReqs2.isEmpty()}">
+                                                <j:forEach var="notLinkedReq2" items="${notLinkedReqs2}">
+                                                    <a data-toggle="modal" data-target="#${it.getIdModal(it.asm.getSourceArtifact(notLinkedReq2))}" href="#">${notLinkedReq2}</a><br/>
+                                                </j:forEach>
+                                            </j:if>
+                                            <j:if test="${notLinkedReqs2.isEmpty()}">
+                                                All requirements are linked to at least one test case
+                                            </j:if>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </j:if>
+                        <!-- Beginning table 4 for requirements to source code-->
+
+                        <j:set var="modals" value="${it.getModals()}"/>
+                        <j:forEach var="modal" items="${modals}">
+                            <j:out value="${modal}"/>
+                        </j:forEach>
+
+                        <j:set var="modalsTraces" value="${it.getModalsTraces()}"/>
+                        <j:forEach var="modalTraces" items="${modalsTraces}">
+                            <j:out value="${modalTraces}"/>
+                        </j:forEach>
+
+                        <j:set var="modalsDeveloper" value="${it.getModalsDeveloper()}"/>
+                        <j:forEach var="modalDeveloper" items="${modalsDeveloper}">
+                            <j:out value="${modalDeveloper}"/>
+                        </j:forEach>
+
+                    </j:if>
+                    <!--<h3>Log</h3>-->
+                    <!--<j:set var="logs" value="${it.getConsoleLog()}"/>-->
+                    <!--<j:forEach var="log" items="${logs}">-->
+                        <!--<p>${log}</p>-->
+                    <!--</j:forEach>-->
+                    <!--<form method="POST" action="reloadAsm" name="reloadAsm">-->
+                        <!--<input name="Reload" value="Reload ASM" class="btn btn-primary btn-sm" type="submit"/>-->
+                    <!--</form>-->
+                </l:main-panel>
+            </l:layout>
+            <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+            <script>var Q=jQuery.noConflict()</script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+        </body>
+    </html>
+</j:jelly>
