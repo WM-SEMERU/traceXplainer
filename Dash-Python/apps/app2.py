@@ -25,13 +25,14 @@ params = libest_params()
 v = VectorEvaluation(params)
 
 sharedInfoTable = dash_table.DataTable(
-            id="shared_info_datatable",
-            data=v.sharedInfo.to_dict("records"),
-            page_current=0,
-            sort_action='native',
-            columns=[{'id': c, 'name': c} for c in v.sharedInfo.columns],
-            filter_action="native",
-            page_size=10, )
+    id="shared_info_datatable",
+    data=v.sharedInfo.to_dict("records"),
+    page_current=0,
+    sort_action='native',
+    columns=[{'id': c, 'name': c} for c in v.sharedInfo.columns],
+    filter_action="native",
+    page_size=10, )
+
 
 @app.callback(
     Output('app-2-display-value', 'children'),
@@ -54,6 +55,7 @@ def on_click3(n_clicks, data):
     for key in data.keys():
         s += data[key] + "\n"
     return s
+
 
 layout = html.Div([
     html.H3('App 2'),
