@@ -11,12 +11,17 @@ from ds4se.ds.description.eval.traceability import VectorEvaluation
 
 def libest_params():
     return {
+        # set name and upload system, use libest for now
         "system": 'libest',
+        #uploaded by user
         "experiment_path_w2v": "artifacts/[libest-VectorizationType.word2vec-LinkType.req2tc-True-1608690009.09251].csv",
+        # uploaded by user
         "experiment_path_d2v": "artifacts/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv",
         'saving_path': 'testbeds/processed/',
         'system_long': 'libest',
+        # uploaded by user
         'timestamp': 1596063103.098236,
+        # selected by user in the future, for now it will be hard coded
         'language': 'all-corpus'
     }
 

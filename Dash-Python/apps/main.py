@@ -38,6 +38,7 @@ layout = html.Div([
     html.H3('Main Page'),
     dcc.Link('Go to App 1', href='/apps/app1', style={"marginRight": "15px"}),
     dcc.Link('Go to App 2', href='/apps/app2'),
+    dcc.Link('Go to file upload page', href='/apps/fileUploadPage'),
     html.Br(),
     html.Table([
         html.Tr([html.Td(['Operating System']), system_dropdown]),
