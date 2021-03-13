@@ -13,9 +13,12 @@ import dash_html_components as html
 import dash_table
 
 import pandas as pd
-uploadDir = "uploadedData"
 
 from app import app
+
+
+uploadDir = "uploadedData"
+
 
 layout = html.Div([
     dcc.Upload(
