@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 
 from app import app
 from apps import app1, app2, main, fileUploadPage
@@ -47,7 +47,7 @@ sidebar = html.Div(
 
 content = html.Div(id="page-content", style=CONTENT_STYLE)
 
-app.layout = html.Div([dcc.Store(id='local', storage_type='local'),dcc.Location(id="url"), sidebar, content],    )
+app.layout = html.Div([dcc.Store(id='local', storage_type='local'),dcc.Location(id="url"), sidebar, content])
 
 # app.layout = html.Div([
 #     dcc.Store(id='local', storage_type='local'),
@@ -57,10 +57,11 @@ app.layout = html.Div([dcc.Store(id='local', storage_type='local'),dcc.Location(
 
 
 @app.callback(Output('page-content', 'children'),
-              Input('url', 'pathname'))
-def display_page(pathname):
+              Input('url', 'pathname'),
+              State('local', 'data'))
+def display_page(pathname,data):
     if pathname == '/apps/app1':
-        return app1.layout
+        return app1.generateLayout(data)
     elif pathname == '/apps/app2':
         return app2.layout
     elif pathname == '/apps/fileUploadPage':

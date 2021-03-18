@@ -1,21 +1,14 @@
-# -*- coding: utf-8 -*-
-
-# Run this app with `python app1.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
-
 import dash
 import dash_core_components as dcc
 import dash_table
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.express as px
 import pandas as pd
 import os
 
 from app import app
-
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
+from tminer_source import experiment_to_df
 
 # have this read in, maybe as a first line of DummyData2.txt that gets ignored
 sim_threshold = .23
@@ -30,20 +23,24 @@ for entry in df.src.unique():
 
 desc = pd.DataFrame([desc])
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
 fig = px.scatter(df, x="src", y="sim", hover_name="tgt", labels={"color": "Linked"},
                  color=df["sim"] > sim_threshold,
                  color_discrete_sequence=["red", "blue"])
 fig.update_layout(legend_traceorder="reversed")
 
 
-# @app.callback(
-#     Output('textarea-state-example', 'value'),
-#     Input('dropdown', 'value'))
-# def update_text(selected_req):
-#     text = desc[selected_req][0]
-#     return text
+@app.callback(
+    Output('rq_datatable', 'data'),
+    Output('rq_datatable', 'columns'),
+    Input('store-button', 'n_clicks'),
+    State("local", 'data'))
+def GenerateLinkTable(_, data):
+    path = data["w2v"]
+    df = experiment_to_df(path)
+    print("called")
+    print(df.columns)
+    return df.to_dict('records'), df.columns
+
 
 @app.callback(
     Output('textarea-state-example', 'value'),
@@ -79,34 +76,84 @@ def update_figure(selected_req):
 
 # was app.layout when it was the main page
 layout = html.Div(children=[
-    html.Div(children=[
-        dash_table.DataTable(
-            id="rq_datatable",
-            data=df.to_dict('records'),
-            page_current=0,
-            sort_action='native',
-            columns=[{'id': c, 'name': c} for c in df.columns],
-            filter_action="native",
-            page_size=10, ),
-        dcc.Textarea(
-            id='textarea-state-example',
-            # value=desc["RQ38.txt"][0],
-            style={'width': '100%', 'height': 200},
-            readOnly=True,
-        ),
-    ], style={"maxWidth": "50%"}), dcc.Graph(
-        id='basic-sim-graph',
-        figure=fig,
-        style={"marginTop": "50px"}
-    ), dcc.Graph(
-        id='sub-graph',
-    ),
-    dcc.Dropdown(
-        id='dropdown',
-        options=[{'label': key, 'value': key} for key in desc.keys()],
-        value=desc.keys()[0]
-    ),
+    dcc.Tabs([
+        dcc.Tab(label='Data Description', children=[
+            dcc.Graph(
+                id='basic-sim-graph',
+                figure=fig,
+                style={"marginTop": "50px"}
+            ),
+            dcc.Graph(
+                id='sub-graph',
+            ),
+            dcc.Dropdown(
+                id='dropdown',
+                options=[{'label': key, 'value': key} for key in desc.keys()],
+                value=desc.keys()[0]
+            ),
+        ]),
+        dcc.Tab(label='Browse Links', children=[
+            html.Div(children=[
+                dash_table.DataTable(
+                    id="rq_datatable",
+                    data=df.to_dict('records'),
+                    page_current=0,
+                    sort_action='native',
+                    columns=[{'id': c, 'name': c} for c in df.columns],
+                    filter_action="native",
+                    page_size=10, ),
+                dcc.Textarea(
+                    id='textarea-state-example',
+                    # value=desc["RQ38.txt"][0],
+                    style={'width': '100%', 'height': 200},
+                    readOnly=True,
+                ),
+            ], style={"maxWidth": "50%"}),
+
+        ])
+    ])
 ])
 
-# if __name__ == '__main__':
-#     app.run_server(debug=True)
+
+def generateLayout(store_data):
+    path = "artifacts/" + store_data["w2v"]
+    path = "artifacts/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv"
+    df1 = experiment_to_df(path)
+    layout = html.Div(children=[
+        dcc.Tabs([
+            dcc.Tab(label='Data Description', children=[
+                dcc.Graph(
+                    id='basic-sim-graph',
+                    figure=fig,
+                    style={"marginTop": "50px"}
+                ),
+                dcc.Graph(
+                    id='sub-graph',
+                ),
+                dcc.Dropdown(
+                    id='dropdown',
+                    options=[{'label': key, 'value': key} for key in desc.keys()],
+                    value=desc.keys()[0]
+                ),
+            ]),
+            dcc.Tab(label='Browse Links', children=[
+                html.Div(children=[
+                    dash_table.DataTable(
+                        id="rq_datatable",
+                        data=df1.to_dict('records'),
+                        page_current=0,
+                        sort_action='native',
+                        columns=[{'id': c, 'name': c} for c in list(df1.columns)],
+                        filter_action="native",
+                        page_size=10, ),
+                    dcc.Textarea(
+                        id='textarea-state-example',
+                        style={'width': '100%', 'height': 200},
+                        readOnly=True,
+                    ),
+                ], style={"maxWidth": "50%"}),
+
+            ])
+        ])
+    ])
+    return layout
