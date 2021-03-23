@@ -2,6 +2,7 @@ import dash
 import dash_core_components as dcc
 import dash_table
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 import pandas as pd
@@ -12,9 +13,9 @@ from tminer_source import experiment_to_df
 
 # have this read in, maybe as a first line of DummyData2.txt that gets ignored
 sim_threshold = .23
-df = pd.read_table(filepath_or_buffer="DummyData2.txt", names=["src", "tgt", "sim", "security"], sep=" ")
+df_dum = pd.read_table(filepath_or_buffer="DummyData2.txt", names=["src", "tgt", "sim", "security"], sep=" ")
 desc = {}
-for entry in df.src.unique():
+for entry in df_dum.src.unique():
     f = open(os.path.join("artifacts", "req", entry))
     description = ""
     for line in f.readlines():
@@ -23,23 +24,32 @@ for entry in df.src.unique():
 
 desc = pd.DataFrame([desc])
 
-fig = px.scatter(df, x="src", y="sim", hover_name="tgt", labels={"color": "Linked"},
-                 color=df["sim"] > sim_threshold,
-                 color_discrete_sequence=["red", "blue"])
-fig.update_layout(legend_traceorder="reversed")
+shared_infometrics_table = dash_table.DataTable(
+    id="infometric_table",
+    page_current=0,
+    sort_action='native',
+    filter_action="native",
+    page_size=10,
+    style_table={"maxWidth": "50%"},
+    style_cell={
+        'whiteSpace': 'normal',
+        'height': 'auto',
+    }, )
 
 
 @app.callback(
-    Output('rq_datatable', 'data'),
-    Output('rq_datatable', 'columns'),
-    Input('store-button', 'n_clicks'),
-    State("local", 'data'))
-def GenerateLinkTable(_, data):
-    path = data["w2v"]
-    df = experiment_to_df(path)
-    print("called")
-    print(df.columns)
-    return df.to_dict('records'), df.columns
+    Output('infometric_table', 'data'),
+    Output('infometric_table', 'columns'),
+    Input('shared_info_source', 'value'),
+    Input('shared_info_target', 'value'),
+    State('local', 'data'))
+def update_infometric_table(src, tgt, data):
+    df = pd.DataFrame.from_dict(data["d2v"][1])
+    df = df[(df["Source"] == src) & (df["Target"] == tgt)]
+    df = df.drop(["Source", "Target"], axis=1)
+    table_data = df.to_dict("records")
+    columns = [{'id': c, 'name': c} for c in list(df.columns)]
+    return table_data, columns
 
 
 @app.callback(
@@ -52,81 +62,26 @@ def update_text_from_table(active_cell, page_current, derived_virtual_data):
         col = active_cell['column_id']
         row = active_cell['row'] + 10 * page_current
         cell_data = derived_virtual_data[row][col]
-        if col == "src":
+        if col == "Source":
             return desc[cell_data][0]
-        if col == "tgt":
+        if col == "Target":
             return "Printing tgt src files not implemented yet"
         else:
-            return desc[derived_virtual_data[row]["src"]][0]
+            return desc[derived_virtual_data[row]["Source"]][0]
     return 'no cell selected'
 
 
-@app.callback(
-    Output('sub-graph', 'figure'),
-    Input('dropdown', 'value'))
-def update_figure(selected_req):
-    filtered_df = df[df["src"] == selected_req]
-    figure = px.scatter(filtered_df, x="tgt", y="sim", hover_name="tgt", title=selected_req,
-                        labels={"color": "Linked"},
-                        color=filtered_df["sim"] > sim_threshold,
-                        color_discrete_sequence=["red", "blue"])
-    figure.update_layout(legend_traceorder="reversed")
-    return figure
-
-
-# was app.layout when it was the main page
-layout = html.Div(children=[
-    dcc.Tabs([
-        dcc.Tab(label='Data Description', children=[
-            dcc.Graph(
-                id='basic-sim-graph',
-                figure=fig,
-                style={"marginTop": "50px"}
-            ),
-            dcc.Graph(
-                id='sub-graph',
-            ),
-            dcc.Dropdown(
-                id='dropdown',
-                options=[{'label': key, 'value': key} for key in desc.keys()],
-                value=desc.keys()[0]
-            ),
-        ]),
-        dcc.Tab(label='Browse Links', children=[
-            html.Div(children=[
-                dash_table.DataTable(
-                    id="rq_datatable",
-                    data=df.to_dict('records'),
-                    page_current=0,
-                    sort_action='native',
-                    columns=[{'id': c, 'name': c} for c in df.columns],
-                    filter_action="native",
-                    page_size=10, ),
-                dcc.Textarea(
-                    id='textarea-state-example',
-                    # value=desc["RQ38.txt"][0],
-                    style={'width': '100%', 'height': 200},
-                    readOnly=True,
-                ),
-            ], style={"maxWidth": "50%"}),
-
-        ])
-    ])
-])
-
-
 def generateLayout(store_data):
-    path = "artifacts/" + store_data["w2v"]
-    path = "artifacts/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv"
-    df1 = experiment_to_df(path)
+    df = pd.DataFrame.from_dict(store_data["d2v"][1])
+    print(df.keys())
+    fig = px.scatter(df, x="Source", y="SimilarityMetric.EUC_sim", hover_name="Target", labels={"color": "Linked"},
+                     color=df["Linked?"] == 1,
+                     color_discrete_sequence=["red", "blue"])
+    fig.update_layout(legend_traceorder="reversed")
+    df1 = df[["Source", "Target", "Linked?"]]
     layout = html.Div(children=[
         dcc.Tabs([
             dcc.Tab(label='Data Description', children=[
-                dcc.Graph(
-                    id='basic-sim-graph',
-                    figure=fig,
-                    style={"marginTop": "50px"}
-                ),
                 dcc.Graph(
                     id='sub-graph',
                 ),
@@ -135,25 +90,70 @@ def generateLayout(store_data):
                     options=[{'label': key, 'value': key} for key in desc.keys()],
                     value=desc.keys()[0]
                 ),
+                html.Div(children=[
+                    html.P(["Shared Infometrics"]),
+                    html.Div([
+                        dbc.Row(
+                            [
+                                dbc.Col(dcc.Dropdown(
+                                    id='shared_info_source',
+                                    options=[{'label': key, 'value': key} for key in set(df["Source"])],
+                                    value=df["Source"][0],
+                                    style={"Width": "50%"}
+                                )),
+                                dbc.Col(dcc.Dropdown(
+                                    id='shared_info_target',
+                                    options=[{'label': key, 'value': key} for key in set(df["Target"])],
+                                    value=df["Target"][0],
+                                    style={"width": "100%"}
+                                ))
+                            ])
+                    ]),
+                    shared_infometrics_table
+                ], style={"maxWidth": "40%"})
             ]),
             dcc.Tab(label='Browse Links', children=[
                 html.Div(children=[
-                    dash_table.DataTable(
-                        id="rq_datatable",
-                        data=df1.to_dict('records'),
-                        page_current=0,
-                        sort_action='native',
-                        columns=[{'id': c, 'name': c} for c in list(df1.columns)],
-                        filter_action="native",
-                        page_size=10, ),
-                    dcc.Textarea(
-                        id='textarea-state-example',
-                        style={'width': '100%', 'height': 200},
-                        readOnly=True,
-                    ),
-                ], style={"maxWidth": "50%"}),
-
+                    html.Div(children=[
+                        dash_table.DataTable(
+                            id="rq_datatable",
+                            data=df1.to_dict('records'),
+                            page_current=0,
+                            sort_action='native',
+                            columns=[{'id': c, 'name': c} for c in list(df1.columns)],
+                            filter_action="native",
+                            page_size=10, ),
+                        dcc.Graph(
+                            id='basic-sim-graph',
+                            figure=fig,
+                            style={"marginTop": "50px"}
+                        ),
+                    ], style={"width": "100%", 'display': 'inline-block', "verticalAlign": "top"}),
+                    html.Div(children=[
+                        dcc.Textarea(
+                            id='textarea-state-example',
+                            style={'width': '100%', 'height': 400},
+                            contentEditable=False,
+                            readOnly=False
+                        )
+                    ], style={'width': '100%', 'display': 'inline-block', "verticalAlign": "top"}),
+                ], style={'columnCount': 2})
             ])
         ])
-    ])
+    ], style={'width': '100%'})
     return layout
+
+
+@app.callback(
+    Output('sub-graph', 'figure'),
+    Input('dropdown', 'value'),
+    State('local', 'data'), )
+def update_(selected_req, store_data):
+    df = pd.DataFrame.from_dict(store_data["d2v"][1])
+    filtered_df = df[df["Source"] == selected_req]
+    figure = px.scatter(filtered_df, x="Target", y="SimilarityMetric.EUC_sim", hover_name="Target", title=selected_req,
+                        labels={"color": "Linked"},
+                        color=filtered_df["Linked?"] == 1,
+                        color_discrete_sequence=["red", "blue"])
+    figure.update_layout(legend_traceorder="reversed")
+    return figure
