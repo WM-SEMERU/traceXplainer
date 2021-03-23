@@ -49,17 +49,11 @@ content = html.Div(id="page-content", style=CONTENT_STYLE)
 
 app.layout = html.Div([dcc.Store(id='local', storage_type='local'),dcc.Location(id="url"), sidebar, content])
 
-# app.layout = html.Div([
-#     dcc.Store(id='local', storage_type='local'),
-#     dcc.Location(id='url', refresh=False),
-#     html.Div(id='page-content')
-# ])
-
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'),
               State('local', 'data'))
-def display_page(pathname,data):
+def display_page(pathname, data):
     if pathname == '/apps/app1':
         return app1.generateLayout(data)
     elif pathname == '/apps/app2':

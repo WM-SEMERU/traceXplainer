@@ -16,10 +16,11 @@ def experiment_to_df(path):
             line = line.rstrip().split(" ")[1:]
             line[0] = line[0].split("requirements/")[1]
             line[1] = line[1].split("test/")[1]
+            line = line[:2] + list(map(float,line[2:]))
             l.append(line)
     df = pd.DataFrame(l, columns=column_names)
     return df
 
 
-print(list(experiment_to_df(file_name).columns))
+df = (experiment_to_df(file_name))
 

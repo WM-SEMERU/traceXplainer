@@ -1,9 +1,16 @@
+import os
+
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from app import app
+from tminer_source import experiment_to_df
+
+# main is the first page users see. They it will do all of the calculations for initial dataframes to pass onto the
+# other pages.
+
 
 system_dropdown = dcc.Dropdown(
     id='system_type',
@@ -34,10 +41,10 @@ saving_path = dcc.Textarea(
     value='../dvc-ds4se/se-benchmarking/traceability/testbeds/processed/',
     style={'width': '100%'},
 )
+
+
 layout = html.Div([
     html.H3('Main Page'),
-    dcc.Link('Go to App 1', href='/apps/app1', style={"marginRight": "15px"}),
-    dcc.Link('Go to App 2', href='/apps/app2'),
     dcc.Link('Go to file upload page', href='/apps/fileUploadPage'),
     html.Br(),
     html.Table([
@@ -62,13 +69,18 @@ layout = html.Div([
               State("time-stamp", 'value'),
               State("saving-path", 'value'))
 def on_click(n_clicks, sys_t, w2v, d2v, time, path):
-    if n_clicks is None:
-        # prevent the None callbacks is important with the store component.
-        # you don't want to update the store for nothing.
-        raise PreventUpdate
+    # if n_clicks is None:
+    #     # prevent the None callbacks is important with the store component.
+    #     # you don't want to update the store for nothing.
+    #     raise PreventUpdate
 
+    # calculate the df created by w2v and doc to vec
+    path = os.path.join("artifacts", d2v)
+    d2v_df = experiment_to_df(path)
+    path = os.path.join("artifacts", w2v)
+    w2v_df = experiment_to_df(path)
     # Give a default data dict with 0 clicks if there's no data.
-    data = {"sys_type": sys_t, "w2v": w2v, "d2v": d2v, "time": time, "path": path}
+    data = {"sys_type": sys_t, "w2v": [w2v, w2v_df.to_dict()], "d2v": [d2v, d2v_df.to_dict()], "time": time, "path": path}
 
     return data
 
@@ -85,5 +97,5 @@ def on_click2(n_clicks, data):
     # Give a default data dict with 0 clicks if there's no data.
     s = ""
     for key in data.keys():
-        s += data[key] + "\n"
+        s += str(data[key]) + "\n"
     return s

@@ -29,6 +29,15 @@ def libest_params():
 params = libest_params()
 v = VectorEvaluation(params)
 
+drop_down2 = dcc.Dropdown(
+        id='app-2-dropdown',
+        options=[
+            {'label': 'App 2 - {}'.format(i), 'value': i} for i in [
+                'NYC', 'MTL', 'LA'
+            ]
+        ]
+    )
+
 sharedInfoTable = dash_table.DataTable(
     id="shared_info_datatable",
     data=v.sharedInfo.to_dict("records"),
@@ -58,20 +67,13 @@ def on_click3(n_clicks, data):
     # Give a default data dict with 0 clicks if there's no data.
     s = ""
     for key in data.keys():
-        s += data[key] + "\n"
+        s += str(data[key]) + "\n"
     return s
 
 
 layout = html.Div([
     html.H3('App 2'),
-    dcc.Dropdown(
-        id='app-2-dropdown',
-        options=[
-            {'label': 'App 2 - {}'.format(i), 'value': i} for i in [
-                'NYC', 'MTL', 'LA'
-            ]
-        ]
-    ),
+    drop_down2,
     html.Div(id='app-2-display-value'),
     dcc.Link('Go to App 1', href='/apps/app1'),
     html.Button(["Display data"], id="display-button2"),
