@@ -1,12 +1,7 @@
-import os
-
-import ds4se
-from ds4se.ds.description.eval.traceability import VectorEvaluation
-
-
-# experiment = 'experiments0.0.x/'
-# path_data = '../ds4se/dvc-ds4se/metrics/traceability/' + experiment
+from app import app
+import dash_html_components as html
 from ds4se.mining.ir import VectorizationType
+from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation
 
 
 def libest_params():
@@ -24,9 +19,11 @@ def libest_params():
     }
 
 
-from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation
 
-params = libest_params()
-s = SupervisedVectorEvaluation(params)
-s.Compute_avg_precision(VectorizationType.word2vec)
-print(os.path.join("yes","no",""))
+#params = libest_params()
+#s = SupervisedVectorEvaluation(params)
+#s.Compute_avg_precision(VectorizationType.word2vec)
+
+layout = html.Div([
+    html.H2("fig_testPage", className="display-4"),
+])

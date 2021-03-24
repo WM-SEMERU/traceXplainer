@@ -1,4 +1,3 @@
-import dash
 import dash_core_components as dcc
 import dash_table
 import dash_html_components as html
@@ -9,11 +8,12 @@ import pandas as pd
 import os
 
 from app import app
-from tminer_source import experiment_to_df
 
 # have this read in, maybe as a first line of DummyData2.txt that gets ignored
 sim_threshold = .23
+# Replace this with information stored in the database. Only  load the data in as it is needed
 df_dum = pd.read_table(filepath_or_buffer="DummyData2.txt", names=["src", "tgt", "sim", "security"], sep=" ")
+
 desc = {}
 for entry in df_dum.src.unique():
     f = open(os.path.join("artifacts", "req", entry))
@@ -53,10 +53,10 @@ def update_infometric_table(src, tgt, data):
 
 
 @app.callback(
-    Output('textarea-state-example', 'value'),
-    Input('rq_datatable', 'active_cell'),
-    Input("rq_datatable", "page_current"),
-    Input("rq_datatable", "derived_virtual_data"))
+    Output('file-description-textarea', 'value'),
+    Input('link-datatable', 'active_cell'),
+    Input("link-datatable", "page_current"),
+    Input("link-datatable", "derived_virtual_data"))
 def update_text_from_table(active_cell, page_current, derived_virtual_data):
     if active_cell:
         col = active_cell['column_id']
@@ -72,8 +72,9 @@ def update_text_from_table(active_cell, page_current, derived_virtual_data):
 
 
 def generateLayout(store_data):
+    """Generate layout is called everytime the descriptive page is selected. It returns the layout for the page to
+    display, after performing calculations to generate the necessary tables and data sources."""
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
-    print(df.keys())
     fig = px.scatter(df, x="Source", y="SimilarityMetric.EUC_sim", hover_name="Target", labels={"color": "Linked"},
                      color=df["Linked?"] == 1,
                      color_discrete_sequence=["red", "blue"])
@@ -83,7 +84,7 @@ def generateLayout(store_data):
         dcc.Tabs([
             dcc.Tab(label='Data Description', children=[
                 dcc.Graph(
-                    id='sub-graph',
+                    id='one-requirement-graph',
                 ),
                 dcc.Dropdown(
                     id='dropdown',
@@ -116,8 +117,6 @@ def generateLayout(store_data):
                 html.Div(children=[
                     html.Div(children=[
                         dash_table.DataTable(
-                            id="rq_datatable",
-                            data=df1.to_dict('records'),
                             page_current=0,
                             sort_action='native',
                             columns=[{'id': c, 'name': c} for c in list(df1.columns)],
@@ -131,7 +130,7 @@ def generateLayout(store_data):
                     ], style={"width": "100%", 'display': 'inline-block', "verticalAlign": "top"}),
                     html.Div(children=[
                         dcc.Textarea(
-                            id='textarea-state-example',
+                            id='file-description-textarea',
                             style={'width': '100%', 'height': 400},
                             contentEditable=False,
                             readOnly=False
@@ -145,10 +144,10 @@ def generateLayout(store_data):
 
 
 @app.callback(
-    Output('sub-graph', 'figure'),
+    Output('one-requirement-graph', 'figure'),
     Input('dropdown', 'value'),
     State('local', 'data'), )
-def update_(selected_req, store_data):
+def updateOneRequirementGraph(selected_req, store_data):
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
     filtered_df = df[df["Source"] == selected_req]
     figure = px.scatter(filtered_df, x="Target", y="SimilarityMetric.EUC_sim", hover_name="Target", title=selected_req,

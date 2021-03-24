@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 
 from app import app
-from apps import app1, app2, main, fileUploadPage
+from apps import descriptive_page, app2, main, fileUploadPage, figureTest
 
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
@@ -27,15 +27,15 @@ CONTENT_STYLE = {
 
 sidebar = html.Div(
     [
-        html.H2("Sidebar", className="display-4"),
+        html.H2("T-Miner", className="display-4"),
         html.Hr(),
         html.P(
-            "A simple sidebar layout with navigation links", className="lead"
+            "A description of T-Miner", className="lead"
         ),
         dbc.Nav(
             [
                 dbc.NavLink("Home", href="/", active="exact"),
-                dbc.NavLink("Page 1", href="/apps/app1", active="exact"),
+                dbc.NavLink("Descriptive Analysis", href="/apps/descriptive_page", active="exact"),
                 dbc.NavLink("Page 2", href="/apps/app2", active="exact"),
             ],
             vertical=True,
@@ -47,19 +47,21 @@ sidebar = html.Div(
 
 content = html.Div(id="page-content", style=CONTENT_STYLE)
 
-app.layout = html.Div([dcc.Store(id='local', storage_type='local'),dcc.Location(id="url"), sidebar, content])
+app.layout = html.Div([dcc.Store(id='local', storage_type='local'), dcc.Location(id="url"), sidebar, content])
 
 
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'),
               State('local', 'data'))
 def display_page(pathname, data):
-    if pathname == '/apps/app1':
-        return app1.generateLayout(data)
+    if pathname == '/apps/descriptive_page':
+        return descriptive_page.generateLayout(data)
     elif pathname == '/apps/app2':
-        return app2.layout
+        return app2.generateLayout(data)
     elif pathname == '/apps/fileUploadPage':
         return fileUploadPage.layout
+    elif pathname == '/apps/figureTest':
+        return figureTest.layout
     else:
         return main.layout
 

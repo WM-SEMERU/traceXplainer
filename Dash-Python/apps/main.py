@@ -14,7 +14,7 @@ from tminer_source import experiment_to_df
 
 system_dropdown = dcc.Dropdown(
     id='system_type',
-    options=[{"label": "Libest", "value": "libest"}, {"label": "Windows", "value": "windows"}],
+    options=[{"label": "Libest", "value": "libest"}],
     value="libest"
 )
 
@@ -38,7 +38,7 @@ time_stamp = dcc.Textarea(
 
 saving_path = dcc.Textarea(
     id="saving-path",
-    value='../dvc-ds4se/se-benchmarking/traceability/testbeds/processed/',
+    value=os.path.join("testbeds","processed",""),
     style={'width': '100%'},
 )
 
@@ -46,6 +46,7 @@ saving_path = dcc.Textarea(
 layout = html.Div([
     html.H3('Main Page'),
     dcc.Link('Go to file upload page', href='/apps/fileUploadPage'),
+    dcc.Link('Go to figure test', href='/apps/figureTest'),
     html.Br(),
     html.Table([
         html.Tr([html.Td(['Operating System']), system_dropdown]),
@@ -67,8 +68,9 @@ layout = html.Div([
               State("w2v-text", 'value'),
               State("d2v-text", 'value'),
               State("time-stamp", 'value'),
-              State("saving-path", 'value'))
-def on_click(n_clicks, sys_t, w2v, d2v, time, path):
+              State("saving-path", 'value')
+              )
+def on_click(n_clicks, sys_t, w2v, d2v, time, save_path):
     # if n_clicks is None:
     #     # prevent the None callbacks is important with the store component.
     #     # you don't want to update the store for nothing.
@@ -79,8 +81,18 @@ def on_click(n_clicks, sys_t, w2v, d2v, time, path):
     d2v_df = experiment_to_df(path)
     path = os.path.join("artifacts", w2v)
     w2v_df = experiment_to_df(path)
+    params = {
+        "system": 'libest',
+        "experiment_path_w2v": os.path.join("artifacts", w2v),
+        "experiment_path_d2v": os.path.join("artifacts", d2v),
+        'saving_path': save_path,
+        'system_long': 'libest',
+        'timestamp': time,
+        'language': 'all-corpus'
+    }  
     # Give a default data dict with 0 clicks if there's no data.
-    data = {"sys_type": sys_t, "w2v": [w2v, w2v_df.to_dict()], "d2v": [d2v, d2v_df.to_dict()], "time": time, "path": path}
+    data = {"sys_type": sys_t, "w2v": [w2v, w2v_df.to_dict()], "d2v": [d2v, d2v_df.to_dict()], "time": time,
+            "path": save_path, "params": params}
 
     return data
 
