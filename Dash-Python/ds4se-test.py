@@ -1,13 +1,14 @@
 import os
 
 import ds4se
-from ds4se.ds.description.eval.traceability import VectorEvaluation
-
-
+from ds4se.ds.description.eval.traceability import VectorEvaluation, ExploratoryDataSoftwareAnalysis
+from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation
+from ds4se.mining.ir import VectorizationType
+from pandas.plotting import scatter_matrix, lag_plot
+import pandas as pd
 # experiment = 'experiments0.0.x/'
 # path_data = '../ds4se/dvc-ds4se/metrics/traceability/' + experiment
-from ds4se.mining.ir import VectorizationType
-
+import matplotlib.pyplot as plt
 
 def libest_params():
     return {
@@ -24,9 +25,8 @@ def libest_params():
     }
 
 
-from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation
 
-params = libest_params()
-s = SupervisedVectorEvaluation(params)
-s.Compute_avg_precision(VectorizationType.word2vec)
-print(os.path.join("yes","no",""))
+#params = libest_params()
+#supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
+#f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
+#plt.show()
