@@ -75,10 +75,11 @@ def generateLayout(store_data):
     """Generate layout is called everytime the descriptive page is selected. It returns the layout for the page to
     display, after performing calculations to generate the necessary tables and data sources."""
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
-    fig = px.scatter(df, x="Source", y="SimilarityMetric.EUC_sim", hover_name="Target", labels={"color": "Linked"},
+    fig = px.scatter(df, x="Source", y="Target", hover_name="Target", labels={"color": "Linked"},
                      color=df["Linked?"] == 1,
                      color_discrete_sequence=["red", "blue"])
     fig.update_layout(legend_traceorder="reversed")
+    print(type(fig))
     df1 = df[["Source", "Target", "Linked?"]]
     layout = html.Div(children=[
         dcc.Tabs([
@@ -117,6 +118,8 @@ def generateLayout(store_data):
                 html.Div(children=[
                     html.Div(children=[
                         dash_table.DataTable(
+                            id="link-datatable",
+                            data=df1.to_dict("records"),
                             page_current=0,
                             sort_action='native',
                             columns=[{'id': c, 'name': c} for c in list(df1.columns)],
@@ -156,3 +159,13 @@ def updateOneRequirementGraph(selected_req, store_data):
                         color_discrete_sequence=["red", "blue"])
     figure.update_layout(legend_traceorder="reversed")
     return figure
+
+# v = VectorEvaluation(params)
+#     shared_info_table = dash_table.DataTable(
+#         id="shared_info_datatable",
+#         data=v.sharedInfo.to_dict("records"),
+#         page_current=0,
+#         sort_action='native',
+#         columns=[{'id': c, 'name': c} for c in v.sharedInfo.columns],
+#         filter_action="native",
+#         page_size=10, )
