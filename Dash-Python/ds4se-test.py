@@ -1,9 +1,10 @@
 import os
 
 import ds4se
+import plotly
 from ds4se.ds.description.eval.traceability import VectorEvaluation, ExploratoryDataSoftwareAnalysis
 from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation
-from ds4se.mining.ir import VectorizationType
+from ds4se.mining.ir import VectorizationType, EntropyMetric
 from pandas.plotting import scatter_matrix, lag_plot
 import pandas as pd
 # experiment = 'experiments0.0.x/'
@@ -26,7 +27,7 @@ def libest_params():
 
 
 
-#params = libest_params()
-#supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
-#f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
-#plt.show()
+params = libest_params()
+supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
+f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
+f = plotly.tools.mpl_to_plotly(f)
