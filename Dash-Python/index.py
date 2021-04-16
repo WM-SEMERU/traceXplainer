@@ -36,7 +36,7 @@ sidebar = html.Div(
             [
                 dbc.NavLink("Home", href="/", active="exact"),
                 dbc.NavLink("Descriptive Analysis", href="/apps/descriptive_page", active="exact"),
-                dbc.NavLink("Page 2", href="/apps/app2", active="exact"),
+                dbc.NavLink("Predictive Analysis", href="/apps/predictive_page", active="exact"),
             ],
             vertical=True,
             pills=True,
@@ -56,7 +56,7 @@ app.layout = html.Div([dcc.Store(id='local', storage_type='local'), dcc.Location
 def display_page(pathname, data):
     if pathname == '/apps/descriptive_page':
         return descriptive_page.generateLayout(data)
-    elif pathname == '/apps/app2':
+    elif pathname == '/apps/predictive_page':
         return predictive_page.GenerateLayout(data)
     elif pathname == '/apps/fileUploadPage':
         return fileUploadPage.layout

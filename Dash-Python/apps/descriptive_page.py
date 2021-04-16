@@ -7,22 +7,9 @@ import plotly.express as px
 import pandas as pd
 import os
 
+from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
+
 from app import app
-
-# have this read in, maybe as a first line of DummyData2.txt that gets ignored
-sim_threshold = .23
-# Replace this with information stored in the database. Only  load the data in as it is needed
-df_dum = pd.read_table(filepath_or_buffer="DummyData2.txt", names=["src", "tgt", "sim", "security"], sep=" ")
-
-desc = {}
-for entry in df_dum.src.unique():
-    f = open(os.path.join("artifacts", "req", entry))
-    description = ""
-    for line in f.readlines():
-        description += line
-    desc[entry] = description
-
-desc = pd.DataFrame([desc])
 
 shared_infometrics_table = dash_table.DataTable(
     id="infometric_table",
@@ -56,24 +43,30 @@ def update_infometric_table(src, tgt, data):
     Output('file-description-textarea', 'value'),
     Input('link-datatable', 'active_cell'),
     Input("link-datatable", "page_current"),
-    Input("link-datatable", "derived_virtual_data"))
-def update_text_from_table(active_cell, page_current, derived_virtual_data):
+    Input("link-datatable", "derived_virtual_data"),
+    Input("tokenization-dropdown","value"),
+    State("local", 'data'))
+def update_text_from_table(active_cell, page_current, derived_virtual_data,display,data):
+    sys = ExploratoryDataSoftwareAnalysis(params=data["params"]).df_sys
     if active_cell:
         col = active_cell['column_id']
         row = active_cell['row'] + 10 * page_current
         cell_data = derived_virtual_data[row][col]
-        if col == "Source":
-            return desc[cell_data][0]
-        if col == "Target":
-            return "Printing tgt src files not implemented yet"
-        else:
-            return desc[derived_virtual_data[row]["Source"]][0]
-    return 'no cell selected'
+        col = active_cell['column_id']
+        if (col == "Linked?"):
+            return str(sys[sys["filenames"] == derived_virtual_data[row]["Source"]][display].iloc[0])
+        row = active_cell['row'] + 10 * page_current
+        cell_data = derived_virtual_data[row][col]
+        return str(sys[sys["filenames"] == cell_data][display].iloc[0])
 
 
-def generateLayout(store_data):
+def generateLayout(store_data, ):
     """Generate layout is called everytime the descriptive page is selected. It returns the layout for the page to
     display, after performing calculations to generate the necessary tables and data sources."""
+    EDA = ExploratoryDataSoftwareAnalysis(params=store_data["params"])
+    sys = EDA.df_sys
+    file_list = list(set(sys[sys["type"] == "req"]["filenames"]))
+    file_list.sort()
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
     fig = px.scatter(df, x="Source", y="Target", hover_name="Target", labels={"color": "Linked"},
                      color=df["Linked?"] == 1,
@@ -81,6 +74,7 @@ def generateLayout(store_data):
     fig.update_layout(legend_traceorder="reversed")
     print(type(fig))
     df1 = df[["Source", "Target", "Linked?"]]
+
     layout = html.Div(children=[
         dcc.Tabs([
             dcc.Tab(label='Data Description', children=[
@@ -88,13 +82,21 @@ def generateLayout(store_data):
                     id='one-requirement-graph',
                 ),
                 dcc.Dropdown(
-                    id='dropdown',
-                    options=[{'label': key, 'value': key} for key in desc.keys()],
-                    value=desc.keys()[0]
+                    id='file-select-dropdown',
+                    options=[{'label': key, 'value': key} for key in file_list],
+                    value=list(sys[sys["type"] == "req"]["filenames"])[0]
                 ),
                 html.Div(children=[
                     html.P(["Shared Infometrics"]),
                     html.Div([
+                        dcc.Dropdown(
+                            id="vectorization-type",
+                            options=[{'label': "text", 'value': "text"}, {'label': "conv", 'value': "conv"},
+                                     {'label': "bpe128k", 'value': "bpe128k"}, {'label': "bpe32k", 'value': "bpe32k"},
+                                     {'label': "bpe8k", 'value': "bpe8k"}],
+                            value="text",
+                            style={"width": "100%"}
+                        ),
                         dbc.Row(
                             [
                                 dbc.Col(dcc.Dropdown(
@@ -105,8 +107,6 @@ def generateLayout(store_data):
                                 )),
                                 dbc.Col(dcc.Dropdown(
                                     id='shared_info_target',
-                                    options=[{'label': key, 'value': key} for key in set(df["Target"])],
-                                    value=df["Target"][0],
                                     style={"width": "100%"}
                                 ))
                             ])
@@ -139,6 +139,14 @@ def generateLayout(store_data):
                             readOnly=False
                         )
                     ], style={'width': '100%', 'display': 'inline-block', "verticalAlign": "top"}),
+                    dcc.Dropdown(
+                        id = "tokenization-dropdown",
+                        options=[{'label': "text", 'value': "text"},{'label': "conv", 'value': "conv"},
+                                 {'label': "bpe128k", 'value': "bpe128k"},{'label': "bpe32k", 'value': "bpe32k"},
+                                 {'label': "bpe8k", 'value': "bpe8k"}],
+                        value="text",
+                        style={"width": "100%"}
+                    )
                 ], style={'columnCount': 2})
             ])
         ])
@@ -148,7 +156,7 @@ def generateLayout(store_data):
 
 @app.callback(
     Output('one-requirement-graph', 'figure'),
-    Input('dropdown', 'value'),
+    Input('file-select-dropdown', 'value'),
     State('local', 'data'), )
 def updateOneRequirementGraph(selected_req, store_data):
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
@@ -159,6 +167,14 @@ def updateOneRequirementGraph(selected_req, store_data):
                         color_discrete_sequence=["red", "blue"])
     figure.update_layout(legend_traceorder="reversed")
     return figure
+
+# @app.callback(
+#     Output("shared_info_target", "value"),
+#     Output("shared_info_target", "options")
+# )
+# def update_shared_info_target():
+#     options = [{'label': key, 'value': key} for key in set(df["Target"])],
+#     value = df["Target"][0],
 
 # v = VectorEvaluation(params)
 #     shared_info_table = dash_table.DataTable(
