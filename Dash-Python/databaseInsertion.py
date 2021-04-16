@@ -26,7 +26,7 @@ def sys_insert(sys_name, root_path, cursor):
     for r, d, f in os.walk(os.path.join(root_path, "corpus")):
         for file in f:
             print(query.format(sys_name, os.path.join(root_path, file)))
-            cursor.execute(query, (sys_name, os.path.join(root_path, file),))
+            cursor.execute(query, (sys_name, os.path.join(root_path,"corpus",    file),))
     return cursor.lastrowid
 
 if __name__ == "__main__":

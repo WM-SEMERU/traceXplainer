@@ -55,15 +55,11 @@ app.layout = html.Div([dcc.Store(id='local', storage_type='local'), dcc.Location
               State('local', 'data'))
 def display_page(pathname, data):
     if pathname == '/apps/descriptive_page':
-        return descriptive_page.generateLayout(data)
+        return descriptive_page.generate_layout(data)
     elif pathname == '/apps/predictive_page':
-        return predictive_page.GenerateLayout(data)
-    elif pathname == '/apps/fileUploadPage':
-        return fileUploadPage.layout
-    elif pathname == '/apps/figureTest':
-        return figureTest.layout
+        return predictive_page.generate_layout(data)
     else:
-        return main.layout
+        return main.generate_layout()
 
 
 if __name__ == '__main__':
