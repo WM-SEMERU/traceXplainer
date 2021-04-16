@@ -17,7 +17,7 @@ import plotly as pl
 figs = []
 
 
-def GenerateLayout(data):
+def generate_layout(data):
     figs.clear()
     # I would like to replace these hardcoded lists with a call to the specific class that uses them That way any
     # given class will only display entropy and similarity metrics it uses similarity_metrics = [

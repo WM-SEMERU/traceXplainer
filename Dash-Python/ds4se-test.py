@@ -1,4 +1,5 @@
 import os
+import sqlite3
 
 import ds4se
 import plotly
@@ -27,7 +28,20 @@ def libest_params():
 
 
 
-params = libest_params()
-supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
-f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
-f = plotly.tools.mpl_to_plotly(f)
+# params = libest_params()
+# supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
+# f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
+# f = plotly.tools.mpl_to_plotly(f)
+db_file = "../test.db"
+
+conn = None
+try:
+    conn = sqlite3.connect(db_file)
+except sqlite3.Error as e:
+    print(e)
+
+cur = conn.cursor()
+sys_q = "select sys_name from system;"
+cur.execute(sys_q,)
+corpus = cur.fetchall()
+print(corpus)

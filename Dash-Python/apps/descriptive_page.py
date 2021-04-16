@@ -60,7 +60,7 @@ def update_text_from_table(active_cell, page_current, derived_virtual_data,displ
         return str(sys[sys["filenames"] == cell_data][display].iloc[0])
 
 
-def generateLayout(store_data, ):
+def generate_layout(store_data, ):
     """Generate layout is called everytime the descriptive page is selected. It returns the layout for the page to
     display, after performing calculations to generate the necessary tables and data sources."""
     EDA = ExploratoryDataSoftwareAnalysis(params=store_data["params"])
