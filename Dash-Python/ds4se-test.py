@@ -32,16 +32,11 @@ def libest_params():
 # supevisedEval = SupervisedVectorEvaluation(params = params) #<---- Parameter
 # f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
 # f = plotly.tools.mpl_to_plotly(f)
-db_file = "../test.db"
 
-conn = None
-try:
-    conn = sqlite3.connect(db_file)
-except sqlite3.Error as e:
-    print(e)
-
-cur = conn.cursor()
-sys_q = "select sys_name from system;"
-cur.execute(sys_q,)
-corpus = cur.fetchall()
-print(corpus)
+params = {"system": "libest",
+              "experiment_path_w2v": "libest/vectorization/[libest-VectorizationType.word2vec-LinkType.req2tc-True-1609292406.653621].csv",
+              "experiment_path_d2v": "libest/vectorization/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv",
+              "corpus": "libest/corpus/[libest-all-corpus-1596063103.098236].csv"
+              }
+EDA = ExploratoryDataSoftwareAnalysis(params=params)
+print(EDA.similarity_set.describe())
