@@ -3,8 +3,6 @@ import pandas as pd
 # This file is a testing ground for reading data from link csv's to pd dataframes
 # I will be writing functions here to import into the app's pages
 
-file_name = "old_dirs/artifacts/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv"
-
 
 def experiment_to_df(path):
     _, vec_type, link_type, unknown_bool, _ = path.split("-")
@@ -22,5 +20,4 @@ def experiment_to_df(path):
     return df
 
 
-df = (experiment_to_df(file_name))
 
