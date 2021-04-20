@@ -54,3 +54,12 @@ def graph_autocorrelation(df):
     fig.add_hline(y=-1.96 / math.sqrt(len(df)))
     fig.add_hline(y=-2.5758 / math.sqrt(len(df)), line_dash="dash")
     return fig
+
+
+def filename_to_id(sys, file):
+
+    return list(sys[sys["filenames"] == file]["ids"])[0]
+
+
+def id_to_filename(sys, id):
+    return list(sys[sys["ids"] == id]["filenames"])[0]

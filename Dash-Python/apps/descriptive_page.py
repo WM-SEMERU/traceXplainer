@@ -10,7 +10,8 @@ import os
 from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
 
 from app import app
-from tminer_source import graph_lag, graph_autocorrelation
+from tminer_source import graph_lag, graph_autocorrelation, id_to_filename
+
 #from tminer_source import experiment_to_df
 
 shared_infometrics_table = dash_table.DataTable(
@@ -37,10 +38,12 @@ shared_infometrics_table = dash_table.DataTable(
 def update_infometric_table(src, tgt, vec, link, data):
     EDA = ExploratoryDataSoftwareAnalysis(data["params"])
     sys = EDA.df_sys
-    src = sys[sys["filenames"] == src]["ids"]
-    tgt = sys[sys["filenames"] == tgt]["ids"]
-    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
+
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ",index_col=0)
+    df["Source"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+    df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
     df = df[(df["Source"] == src) & (df["Target"] == tgt)]
+
     df = df.drop(["Source", "Target"], axis=1)
     table_data = df.to_dict("records")
     columns = [{'id': c, 'name': c} for c in list(df.columns)]
@@ -74,15 +77,21 @@ def generate_layout(store_data):
 
     EDA = ExploratoryDataSoftwareAnalysis(params=store_data["params"])
     sys = EDA.df_sys
+
+
     file_list = list(set(sys[sys["type"] == "req"]["filenames"]))
     file_list.sort()
     df = pd.DataFrame.from_dict(store_data["d2v"][1])
+    df["Source"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+    df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
     fig = px.scatter(df, x="Source", y="Target", hover_name="Target", labels={"color": "Linked"},
                      color=df["Linked?"] == 1,
                      color_discrete_sequence=["red", "blue"])
     fig.update_layout(legend_traceorder="reversed")
 
     df1 = df[["Source", "Target", "Linked?"]]
+    # df1["Source"] = pd.DataFrame(df1.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+    # df1["Target"] = pd.DataFrame(df1.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
 
     layout = html.Div(children=[
         dcc.Tabs([
@@ -115,8 +124,6 @@ def generate_layout(store_data):
                             [
                                 dbc.Col(dcc.Dropdown(
                                     id='shared_info_source',
-                                    options=[{'label': key, 'value': key} for key in set(df["Source"])],
-                                    value=df["Source"][0],
                                     style={"Width": "50%"}
                                 )),
                                 dbc.Col(dcc.Dropdown(
@@ -224,7 +231,13 @@ def generate_layout(store_data):
     State('local', 'data'))
 def updateOneRequirementGraph(selected_req, vec_type, link_type, metric, store_data):
     #May need to rename columns or otherwise manipulate data
-    df = pd.read_csv(store_data["vectors"][vec_type + "-" + link_type],sep = " ")
+    df = pd.read_csv(store_data["vectors"][vec_type + "-" + link_type],sep = " ",index_col=0)
+
+    EDA = ExploratoryDataSoftwareAnalysis(store_data["params"])
+    sys = EDA.df_sys
+
+    df["Source"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+    df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
     filtered_df = df[df["Source"] == selected_req]
     figure = px.scatter(filtered_df, x="Target", y=metric, hover_name="Target", title=selected_req,
                         labels={"color": "Linked"},
@@ -305,11 +318,30 @@ def update_shared_info_target(vec, link, data):
     EDA = ExploratoryDataSoftwareAnalysis(data["params"])
     sys = EDA.df_sys
 
-    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
-    df['Target_name'] = df.apply(lambda row: sys[sys["filenames"] == row]["ids"], axis=1)
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ",index_col=0)
+
+    df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
 
     options = [{'label': str(key), 'value': str(key)} for key in list(set(df["Target"]))]
     value = list(set(df["Target"]))[0]
+    return options, value
+
+@app.callback(
+    Output("shared_info_source", "options"),
+    Output("shared_info_source", "value"),
+    Input('vec-type-dropdown', "value"),
+    Input('link-type-dropdown', 'value'),
+    State('local', 'data'))
+def update_shared_info_source(vec, link, data):
+    EDA = ExploratoryDataSoftwareAnalysis(data["params"])
+    sys = EDA.df_sys
+
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ",index_col=0)
+
+    df["Source"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+
+    options = [{'label': str(key), 'value': str(key)} for key in list(set(df["Source"]))]
+    value = list(set(df["Source"]))[0]
     return options, value
 
 
@@ -320,7 +352,7 @@ def update_shared_info_target(vec, link, data):
     Input("link-type-dropdown", "value"),
     State('local', 'data'))
 def update_metric_dropdown(vec, link, data):
-    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ",index_col=0)
     cols = df.drop(columns=["Source", "Target", "Linked?"]).columns
     return [{"label": sim, "value": sim} for sim in cols], cols[0]
 
@@ -331,7 +363,7 @@ def update_metric_dropdown(vec, link, data):
     Input('sim-entropy-dropdown', "value"),
     Input("link-type-dropdown", "value"),
     State('local', 'data'))
-def update_shared_info_target(set_type, link, data):
+def update_hist_metric_dropdown(set_type, link, data):
     params = {"system": data["params"]["system"],
               "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link],
               "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link],

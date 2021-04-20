@@ -94,16 +94,47 @@ def experiment_to_df(path):
     return df
 
 
-df = pd.read_csv("ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
-                 sep=" ")
-print(df.head())
-sys = EDA.df_sys
-# df = pd.read_csv("")
-print(sys.head())
-i = 0
+# df = pd.read_csv("ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
+#                  sep=" ")
+# print(df.head())
+# sys = EDA.df_sys
+# # df = pd.read_csv("")
+# print(sys.head())
+# i = 0
+# 
+# print(df["Source"])
+# print(sys["filenames"])
+# record = sys[sys["filenames"]=="RQ107.txt"]
+# print(record["filenames"])
+# print(record["ids"])
 
-print(df["Source"])
-print(sys["filenames"])
-record = sys[sys["filenames"]=="RQ107.txt"]
-print(record["filenames"])
-print(record["ids"])
+
+
+
+def filename_to_id(sys, file):
+
+    return list(sys[sys["filenames"] == file]["ids"])[0]
+
+
+def id_to_filename(sys, id):
+    return list(sys[sys["ids"] == id]["filenames"])[0]
+
+sys = EDA.df_sys
+df = pd.read_csv("ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
+                 sep=" ",index_col=0)
+# print(len(sys))
+# print(len(df))
+# l = list(set(df["Target"]))
+#
+# df = pd.merge(sys, df, left_on='ids', right_on='Target')
+# print(len(df))
+# l2 = []
+# for id in l:
+#     s= id_to_filename(sys,id)
+#     l2.append(s)
+# l2.sort()
+# print(l2)
+# df2 = sys[["ids","filenames"]]
+# #print(df2.to_dict())
+df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
+print(df["Target"])
