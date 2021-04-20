@@ -10,7 +10,8 @@ import os
 from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
 
 from app import app
-from tminer_source import experiment_to_df
+from tminer_source import graph_lag, graph_autocorrelation
+#from tminer_source import experiment_to_df
 
 shared_infometrics_table = dash_table.DataTable(
     id="infometric_table",
@@ -34,7 +35,11 @@ shared_infometrics_table = dash_table.DataTable(
     Input('link-type-dropdown', 'value'),
     State('local', 'data'))
 def update_infometric_table(src, tgt, vec, link, data):
-    df = experiment_to_df(data["vectors"][vec + "-" + link])
+    EDA = ExploratoryDataSoftwareAnalysis(data["params"])
+    sys = EDA.df_sys
+    src = sys[sys["filenames"] == src]["ids"]
+    tgt = sys[sys["filenames"] == tgt]["ids"]
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
     df = df[(df["Source"] == src) & (df["Target"] == tgt)]
     df = df.drop(["Source", "Target"], axis=1)
     table_data = df.to_dict("records")
@@ -145,7 +150,7 @@ def generate_layout(store_data):
                             id='file-description-textarea',
                             style={'width': '100%', 'height': 400},
                             contentEditable=False,
-                            readOnly=False
+                            readOnly=True
                         )
                     ], style={'width': '100%', 'display': 'inline-block', "verticalAlign": "top"}),
                     dcc.Dropdown(
@@ -189,6 +194,21 @@ def generate_layout(store_data):
                     value=[],
                     labelStyle={'display': 'inline-block'}
                 ),
+                dcc.Graph(
+                    id="lag-plot"
+                ),
+                dcc.Graph(
+                    id="boot-plot"
+                ),
+                dcc.Checklist(
+                    id='byLink',
+                    options=[{'value': "byLink", 'label': "byLink"}],
+                    value=[],
+                    labelStyle={'display': 'inline-block'}
+                ),
+                dcc.Graph(
+                    id="auto-plot"
+                ),
             ])
         ])
     ], style={'width': '100%'})
@@ -203,7 +223,8 @@ def generate_layout(store_data):
     Input('metric-dropdown', 'value'),
     State('local', 'data'))
 def updateOneRequirementGraph(selected_req, vec_type, link_type, metric, store_data):
-    df = experiment_to_df(store_data["vectors"][vec_type + "-" + link_type])
+    #May need to rename columns or otherwise manipulate data
+    df = pd.read_csv(store_data["vectors"][vec_type + "-" + link_type],sep = " ")
     filtered_df = df[df["Source"] == selected_req]
     figure = px.scatter(filtered_df, x="Target", y=metric, hover_name="Target", title=selected_req,
                         labels={"color": "Linked"},
@@ -245,7 +266,7 @@ def update_hist_graph(metric, set_type, link_type, store_data):
     Input("hist-metric-dropdown", "value"),
     Input('sim-entropy-dropdown', "value"),
     Input('link-type-dropdown', 'value'),
-    Input('group-by-linked',"value"),
+    Input('group-by-linked', "value"),
     State('local', 'data'))
 def update_box_graph(metric, set_type, link_type, group, store_data):
     params = {"system": store_data["params"]["system"],
@@ -267,7 +288,7 @@ def update_box_graph(metric, set_type, link_type, group, store_data):
     if box:
         box = "outliers"
     if "Linked?" in group:
-        figure = px.box(df, y=metric, color_discrete_sequence=["blue","red"], color="Linked?", points=box)
+        figure = px.box(df, y=metric, color_discrete_sequence=["blue", "red"], color="Linked?", points=box)
     else:
         figure = px.box(df, y=metric, color_discrete_sequence=["blue", "red"], points=box)
 
@@ -281,7 +302,11 @@ def update_box_graph(metric, set_type, link_type, group, store_data):
     Input('link-type-dropdown', 'value'),
     State('local', 'data'))
 def update_shared_info_target(vec, link, data):
-    df = experiment_to_df(data["vectors"][vec + "-" + link])
+    EDA = ExploratoryDataSoftwareAnalysis(data["params"])
+    sys = EDA.df_sys
+
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
+    df['Target_name'] = df.apply(lambda row: sys[sys["filenames"] == row]["ids"], axis=1)
 
     options = [{'label': str(key), 'value': str(key)} for key in list(set(df["Target"]))]
     value = list(set(df["Target"]))[0]
@@ -295,7 +320,7 @@ def update_shared_info_target(vec, link, data):
     Input("link-type-dropdown", "value"),
     State('local', 'data'))
 def update_metric_dropdown(vec, link, data):
-    df = experiment_to_df(data["vectors"][vec + "-" + link])
+    df = pd.read_csv(data["vectors"][vec + "-" + link],sep = " ")
     cols = df.drop(columns=["Source", "Target", "Linked?"]).columns
     return [{"label": sim, "value": sim} for sim in cols], cols[0]
 
@@ -324,3 +349,83 @@ def update_shared_info_target(set_type, link, data):
     options = [{'label': str(key), 'value': str(key)} for key in list(set(df.columns))]
     value = options[0]["value"]
     return options, value
+
+
+# Link type is still set on the first tab.
+@app.callback(
+    Output('lag-plot', 'figure'),
+    Input("hist-metric-dropdown", "value"),
+    Input('sim-entropy-dropdown', "value"),
+    Input('link-type-dropdown', 'value'),
+    State('local', 'data'))
+def update_lag_plot(metric, set_type, link_type, store_data):
+    params = {"system": store_data["params"]["system"],
+              "experiment_path_w2v": store_data["vectors"]["word2vec" + "-" + link_type],
+              "experiment_path_d2v": store_data["vectors"]["doc2vec" + "-" + link_type],
+              "corpus": store_data["params"]["corpus"]
+              }
+    EDA = ExploratoryDataSoftwareAnalysis(params=params)
+    df = None
+    if set_type == "similarity_set":
+        df = EDA.similarity_set
+    elif set_type == "entropy_set":
+        df = EDA.entropy_set
+    elif set_type == "shared_set":
+        df = EDA.shared_set
+    if df is None:
+        return
+    figure = graph_lag(df[metric])
+    return figure
+
+
+@app.callback(
+    Output('boot-plot', 'figure'),
+    Input('sim-entropy-dropdown', "value"),
+    Input('link-type-dropdown', 'value'),
+    Input('byLink', 'value'),
+    State('local', 'data'))
+def update_boot_plot(set_type, link_type, byLink, store_data):
+    params = {"system": store_data["params"]["system"],
+              "experiment_path_w2v": store_data["vectors"]["word2vec" + "-" + link_type],
+              "experiment_path_d2v": store_data["vectors"]["doc2vec" + "-" + link_type],
+              "corpus": store_data["params"]["corpus"]
+              }
+    EDA = ExploratoryDataSoftwareAnalysis(params=params)
+    df = None
+    if set_type == "similarity_set":
+        df = EDA.similarity_set
+    elif set_type == "entropy_set":
+        df = EDA.entropy_set
+    elif set_type == "shared_set":
+        df = EDA.shared_set
+    if df is None:
+        return
+    figure = EDA.ci_bootstrapping(
+        df=df, samples=10000, conf=0.95, byLink=byLink)
+    return figure
+
+
+@app.callback(
+    Output('auto-plot', 'figure'),
+    Input("hist-metric-dropdown", "value"),
+    Input('sim-entropy-dropdown', "value"),
+    Input('link-type-dropdown', 'value'),
+    State('local', 'data'))
+def update_auto_plot(metric, set_type, link_type, store_data):
+    params = {"system": store_data["params"]["system"],
+              "experiment_path_w2v": store_data["vectors"]["word2vec" + "-" + link_type],
+              "experiment_path_d2v": store_data["vectors"]["doc2vec" + "-" + link_type],
+              "corpus": store_data["params"]["corpus"]
+              }
+    EDA = ExploratoryDataSoftwareAnalysis(params=params)
+    df = None
+    if set_type == "similarity_set":
+        df = EDA.similarity_set
+    elif set_type == "entropy_set":
+        df = EDA.entropy_set
+    elif set_type == "shared_set":
+        df = EDA.shared_set
+    if df is None:
+        return
+    figure = graph_autocorrelation(df[metric])
+    return figure
