@@ -11,7 +11,7 @@ from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation, Ma
 from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric
 
 from app import app
-from tminer_source import experiment_to_df
+#from tminer_source import experiment_to_df
 
 # main is the first page users see. They it will do all of the calculations for initial dataframes to pass onto the
 # other pages.
@@ -93,8 +93,10 @@ def on_click(n_clicks, sys_t,):
     w2v_path = vectors["word2vec"+"-"+vec_data["link_type"][0]]
     d2v_path = vectors["doc2vec"+"-"+vec_data["link_type"][0]]
 
-    d2v_df = experiment_to_df(d2v_path)
-    w2v_df = experiment_to_df(w2v_path)
+    d2v_df = pd.read_csv(d2v_path,sep = " ")
+    print("THIS")
+    print(d2v_df.head())
+    w2v_df = pd.read_csv(w2v_path, sep = " ")
     params = {
         "system": sys_t,
         "experiment_path_w2v": w2v_path,
