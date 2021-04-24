@@ -7,11 +7,14 @@ import pandas as pd
 import plotly
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
 from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation, ManifoldEntropy
 from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric
-
+from tminer_source import id_to_filename
 from app import app
-#from tminer_source import experiment_to_df
+
+
+# from tminer_source import experiment_to_df
 
 # main is the first page users see. They it will do all of the calculations for initial dataframes to pass onto the
 # other pages.
@@ -27,7 +30,7 @@ def generate_layout():
 
     cur = conn.cursor()
     sys_q = "select sys_name from system;"
-    cur.execute(sys_q,)
+    cur.execute(sys_q, )
     systems = cur.fetchall()
     cur.close()
     conn.close()
@@ -54,7 +57,7 @@ def generate_layout():
 @app.callback(Output("local", 'data'),
               Input('store-button', 'n_clicks'),
               State("system_type", 'value'))
-def on_click(n_clicks, sys_t,):
+def on_click(n_clicks, sys_t, ):
     # calculate the df created by w2v and doc to vec
     db_file = "../test.db"
 
@@ -83,20 +86,15 @@ def on_click(n_clicks, sys_t,):
 
     vectors = {}
     for vectorization in vecs:
-        vectors[vectorization[0]+"-"+vectorization[1]] = vectorization[2]
+        d = {"path": vectorization[2]}
+        vectors[vectorization[0] + "-" + vectorization[1]] = d
     vect_type = [tup[0] for tup in vect_type]
     link_type = [tup[0] for tup in link_type]
     vec_data = {"vec_type": vect_type, "link_type": link_type}
-    print(vectors)
-    print(vec_data)
 
-    w2v_path = vectors["word2vec"+"-"+vec_data["link_type"][0]]
-    d2v_path = vectors["doc2vec"+"-"+vec_data["link_type"][0]]
+    w2v_path = vectors["word2vec" + "-" + vec_data["link_type"][0]]["path"]
+    d2v_path = vectors["doc2vec" + "-" + vec_data["link_type"][0]]["path"]
 
-    d2v_df = pd.read_csv(d2v_path,sep = " ")
-    print("THIS")
-    print(d2v_df.head())
-    w2v_df = pd.read_csv(w2v_path, sep = " ")
     params = {
         "system": sys_t,
         "experiment_path_w2v": w2v_path,
@@ -104,11 +102,16 @@ def on_click(n_clicks, sys_t,):
         'system_long': sys_t,
         "corpus": corpus[1]
     }
+    print(params)
+    EDA = ExploratoryDataSoftwareAnalysis(params=params)
+    sys = EDA.df_sys
 
-    data = {"sys_type": sys_t, "w2v": [w2v_path, w2v_df.to_dict()], "d2v": [d2v_path, d2v_df.to_dict()],
-            "params": params, "vec_data": vec_data, "vectors": vectors}
+    for key in vectors:
+        df = pd.read_csv(vectors[key]["path"], index_col=0, sep=" ")
+        df["Source_filename"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Source"]), axis=1))
+        df["Target_filename"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
+        vectors[key]["dict"] = df.to_dict()
 
-    # print(sys)
+    data = {"sys_type": sys_t, "params": params, "vec_data": vec_data, "vectors": vectors}
+
     return data
-
-
