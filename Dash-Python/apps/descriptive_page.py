@@ -5,14 +5,11 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 import pandas as pd
-import os
 
 from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
 
 from app import app
 from tminer_source import graph_lag, graph_autocorrelation
-
-# from tminer_source import experiment_to_df
 
 shared_infometrics_table = dash_table.DataTable(
     id="infometric_table",
@@ -35,12 +32,6 @@ def generate_layout(store_data):
 
     file_list = list(set(sys[sys["type"] == "req"]["filenames"]))
     file_list.sort()
-    # fig = px.scatter(df, x="Source", y="Target", hover_name="Target", labels={"color": "Linked"},
-    #                  color=df["Linked?"] == 1,
-    #                  color_discrete_sequence=["red", "blue"])
-    # fig.update_layout(legend_traceorder="reversed")
-
-    # df1 = df[["Source", "Target", "Linked?"]]
 
     layout = html.Div(children=[
         dcc.Tabs([
@@ -282,9 +273,6 @@ def update_shared_info_target(vec, link, data):
     Input('link-type-dropdown', 'value'),
     State('local', 'data'))
 def update_shared_info_source(vec, link, data):
-    EDA = ExploratoryDataSoftwareAnalysis(data["params"])
-    sys = EDA.df_sys
-
     df = pd.DataFrame.from_dict(data["vectors"][vec + "-" + link]["dict"])
 
     options = [{'label': str(key), 'value': str(key)} for key in list(set(df["Source_filename"]))]
@@ -433,7 +421,6 @@ def update_sim_grpah(vec, link, store_data):
 def update_text_from_table(active_cell, page_current, derived_virtual_data, display, data):
     sys = ExploratoryDataSoftwareAnalysis(params=data["params"]).df_sys
     if active_cell:
-        col = active_cell['column_id']
         row = active_cell['row'] + 10 * page_current
         col = active_cell['column_id']
 

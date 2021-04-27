@@ -14,117 +14,224 @@ from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric
 
 import plotly as pl
 
-figs = []
-
 
 def generate_layout(data):
-    figs.clear()
-    # I would like to replace these hardcoded lists with a call to the specific class that uses them That way any
-    # given class will only display entropy and similarity metrics it uses similarity_metrics = [
-    # SimilarityMetric.WMD_sim,SimilarityMetric.COS_sim,SimilarityMetric.SCM_sim,SimilarityMetric.EUC_sim]
-    # entropy_metrics = [EntropyMetric.MSI_X,EntropyMetric.MSI_I]
-
-    layout = html.Div([])
-    #     dcc.Tabs([
-    # dcc.Tab(label='Supervised Evaluation', children=[
-    #     dcc.Dropdown(
-    #         id='predictive_dropdown',
-    #         options=[{'label': key, 'value': key} for key in eval_graphs],
-    #         value=eval_graphs[0]
-    #     ),
-    #     dcc.Graph(
-    #         id='super_eval_graph',
-    #         style={"marginTop": "50px"}
-    #     ),
-    # ]),
-    # dcc.Tab(label='Manifold Entropy', children=[
-    #     dcc.Dropdown(
-    #         id='entropy_metrics_dropdown',
-    #         options=[{'label': str(key), 'value': str(key)} for key in entropy_metrics],
-    #         # options=[{'label': key, 'value': key} for key in test],
-    #         value=str(list(entropy_metrics)[0])
-    #     ),
-    #     dcc.Dropdown(
-    #         id='ME_similarity_metrics_dropdown',
-    #         options=[{'label': str(key), 'value': str(key)} for key in similarity_metrics],
-    #         value=str(similarity_metrics[0])
-    #     ),
-    #     dcc.Dropdown(
-    #         id='test-dropdown',
-    #         options=[{"label": "0","value": 0}, {"label" :"1", "value" : 1}],
-    #         value=1
-    #     ),
-    #     dcc.Graph(
-    #         id="test-graph",
-    #         style={"marginTop": "50px"}
-    # )
-    # dcc.Graph(
-    #     id='minimum_shared_entropy_graph',
-    #     style={"marginTop": "50px"}
-    # ),
-    # dcc.Graph(
-    #     id='composable_entropy_plot',
-    #     style={"marginTop": "50px"}
-    # )
-    #         ]),
-    #     ])
-    # ])
+    layout = html.Div([
+        dcc.Tabs([
+            dcc.Tab(label='Supervised Evaluation', children=[
+                dcc.Dropdown(
+                    id='vec-dropdown',
+                    options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
+                    value=data["vec_data"]["vec_type"][0]
+                ),
+                dcc.Dropdown(
+                    id='link-dropdown',
+                    options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
+                    value=data["vec_data"]["link_type"][0]
+                ),
+                dcc.Dropdown(
+                    id='sim-dropdown',
+                ),
+                dcc.Graph(
+                    id='avg-prec-graph',
+                ),
+                dcc.Graph(
+                    id='roc-graph',
+                ),
+                dcc.Graph(
+                    id='prec-recall-gain-graph',
+                ),
+            ]),
+            dcc.Tab(label="Manifold Entropy",children=[
+                dcc.Dropdown(
+                    id='mani-vec-dropdown',
+                    options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
+                    value=data["vec_data"]["vec_type"][0]
+                ),
+                dcc.Dropdown(
+                    id='mani-link-dropdown',
+                    options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
+                    value=data["vec_data"]["link_type"][0]
+                ),
+                dcc.Dropdown(
+                    id='mani-sim-dropdown',
+                ),
+                dcc.Dropdown(
+                    id='mani-man-dropdown',
+                    options=[{'label': str(man), 'value': str(man).split(".")[1]} for man in EntropyMetric],
+                    value=str(list(EntropyMetric)[0]).split(".")[1]
+                ),
+                dcc.Graph(
+                    id='min-shared-ent-graph',
+                ),
+                dcc.Checklist(
+                    id='Extropy',
+                    options=[{'value': "Extropy", 'label': "Extropy"}],
+                    value=[],
+                    labelStyle={'display': 'inline-block'}
+                ),
+                dcc.Graph(
+                    id='man-ent-graph',
+                ),
+            ])
+        ])
+    ])
     return layout
 
 
 @app.callback(
-    Output('test-graph', 'figure'),
-    Input('test-dropdown', 'value'),
+    Output('avg-prec-graph', 'figure'),
+    Input("vec-dropdown", "value"),
+    Input("link-dropdown", "value"),
     State('local', 'data'))
-def updateSuperEvalGraph(key, data):
-    f = figs[key]
-    f = go.Figure(data["predictive_data"]["supervised_graphs"]["Compute_avg_precision doc2vec"])
-    return f
-
-# @app.callback(
-#     Output('super_eval_graph', 'figure'),
-#     Input('predictive_dropdown', 'value'),
-#     State('local', 'data'))
-# def updateSuperEvalGraph(key, data):
-#     f = supervised_eval[0].Compute_avg_precision(VectorizationType.word2vec)
-#     # return pl.tools.mpl_to_plotly(f)
-#     return data["graph"]
-
-# @app.callback(
-#     Output('minimum_shared_entropy_graph', 'figure'),
-#     Input('ME_similarity_metrics_dropdown', 'value'),
-#     State('local', 'data'))
-# def updateMinimumSharedEntropyGraph(key, data):
-#     for e in SimilarityMetric:
-#         if str(e) == key:
-#             enum = e
-#     fig = pl.tools.mpl_to_plotly(ManifoldEntropy(params=data["params"]).minimum_shared_entropy(enum))
-#     return fig
-#
-#
-# @app.callback(
-#     Output('composable_entropy_plot', 'figure'),
-#     Input('ME_similarity_metrics_dropdown', 'value'),
-#     State('local', 'data'))
-# def updateComposableEntropyGraph(sim, data):
-#     for e in SimilarityMetric:
-#         if str(e) == sim:
-#             sim_enum = e
-#     fig = pl.tools.mpl_to_plotly(ManifoldEntropy(params=data["params"]).composable_entropy_plot(
-#                         manifold_x = EntropyMetric.MI,
-#                         manifold_y = sim_enum,
-#                         dist = 'Linked?',
-#                         ground = True))
-#     return fig
+def updateAvgPrecGraph(vec, link, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    return supervisedEval.Compute_avg_precision_same_plot(vec_type)
 
 
-# dcc.Graph(
-#             id= 'super_eval_graph2',
-#             figure= pl.tools.mpl_to_plotly(test),
-#             style= {"marginTop": "50px"}
-#         ),
-#         dcc.Graph(
-#             id='super_eval_graph1',
-#             figure=pl.tools.mpl_to_plotly(test2),
-#             style={"marginTop": "50px"}
-#         ),
+@app.callback(
+    Output('roc-graph', 'figure'),
+    Input("vec-dropdown", "value"),
+    Input("link-dropdown", "value"),
+    State('local', 'data'))
+def updateRocGraph(vec, link, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    return supervisedEval.Compute_roc_curve(vec_type)
+
+
+@app.callback(
+    Output('prec-recall-gain-graph', 'figure'),
+    Input("vec-dropdown", "value"),
+    Input("link-dropdown", "value"),
+    Input("sim-dropdown", "value"),
+    State('local', 'data'))
+def updatePrecRecallGainGraph(vec, link, sim, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    sim = SimilarityMetric[sim]
+    return supervisedEval.Compute_precision_recall_gain(vec_type, sim)
+
+
+@app.callback(
+    Output("sim-dropdown", "options"),
+    Output("sim-dropdown", "value"),
+    Input('vec-dropdown', "value"),
+    Input('link-dropdown', 'value'),
+    State('local', 'data'))
+def updatePrecRecallGainDropdown(vec, link, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    # vecTypeVerification will set sim_list
+    supervisedEval.vecTypeVerification(vec_type)
+    sims = supervisedEval.sim_list
+
+    # Strip SimilarityMetric. from the string
+    options = [{'label': str(sim).split(".")[1], 'value': str(sim).split(".")[1]} for sim in sims]
+    value = options[0]["value"]
+    return options, value
+
+
+@app.callback(
+    Output('min-shared-ent-graph', 'figure'),
+    Input("Extropy", "value"),
+    Input("mani-link-dropdown", "value"),
+    Input("mani-sim-dropdown", "value"),
+    State('local', 'data'))
+def update_minimum_shared_entropy_graph(extropy, link, sim, data):
+    extropy = extropy == ["Extropy"]
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    manifoldEntropy = ManifoldEntropy(params=params)
+    sim = SimilarityMetric[sim]
+    return manifoldEntropy.minimum_shared_entropy(dist=sim, extropy=extropy)
+
+
+@app.callback(
+    Output('man-ent-graph', 'figure'),
+    Input("mani-link-dropdown", "value"),
+    Input("mani-sim-dropdown", "value"),
+    Input("mani-man-dropdown", "value"),
+    State('local', 'data'))
+def update_manifold_entropy_plot(link, sim, man, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    manifoldEntropy = ManifoldEntropy(params=params)
+    sim = SimilarityMetric[sim]
+    man = EntropyMetric[man]
+    return manifoldEntropy.manifold_entropy_plot(manifold=man, dist=sim)
+
+@app.callback(
+    Output("mani-sim-dropdown", "options"),
+    Output("mani-sim-dropdown", "value"),
+    Input('mani-vec-dropdown', "value"),
+    Input('mani-link-dropdown', 'value'),
+    State('local', 'data'))
+def updateManiSimDropdown(vec, link, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    # vecTypeVerification will set sim_list
+    supervisedEval.vecTypeVerification(vec_type)
+    sims = supervisedEval.sim_list
+
+    # Strip SimilarityMetric. from the string
+    options = [{'label': str(sim), 'value': str(sim).split(".")[1]} for sim in sims]
+    value = options[0]["value"]
+    return options, value
+
+
+@app.callback(
+    Output('comp-ent-graph', 'figure'),
+    Input("mani-link-dropdown", "value"),
+    Input("mani-sim-dropdown", "value"),
+    Input("mani-man-dropdown", "value"),
+    Input("mani-man_y-dropdown", "value"),
+    State('local', 'data'))
+def update_composable_entropy_plot(link, man_x, man_y, dist, ground, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    manifoldEntropy = ManifoldEntropy(params=params)
+    man_x = EntropyMetric[man_x]
+    man_y = EntropyMetric[man_y]
+    
+    fig = manifoldEntropy.composable_entropy_plot(
+                        manifold_x = EntropyMetric.MI,
+                        manifold_y = SimilarityMetric.COS_sim,
+                        dist = 'Linked?',
+                        ground = True)
+    return fig
