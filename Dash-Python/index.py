@@ -30,7 +30,7 @@ sidebar = html.Div(
         html.H2("T-Miner", className="display-4"),
         html.Hr(),
         html.P(
-            "A description of T-Miner", className="lead"
+            children="A description of T-Miner", className="lead", id="sidebar_text"
         ),
         dbc.Nav(
             [

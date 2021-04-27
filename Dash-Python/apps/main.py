@@ -1,6 +1,5 @@
 import os
 import sqlite3
-
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
@@ -55,6 +54,7 @@ def generate_layout():
 
 
 @app.callback(Output("local", 'data'),
+              Output("sidebar_text", "children"),
               Input('store-button', 'n_clicks'),
               State("system_type", 'value'))
 def on_click(n_clicks, sys_t, ):
@@ -102,7 +102,6 @@ def on_click(n_clicks, sys_t, ):
         'system_long': sys_t,
         "corpus": corpus[1]
     }
-    print(params)
     EDA = ExploratoryDataSoftwareAnalysis(params=params)
     sys = EDA.df_sys
 
@@ -114,4 +113,4 @@ def on_click(n_clicks, sys_t, ):
 
     data = {"sys_type": sys_t, "params": params, "vec_data": vec_data, "vectors": vectors}
 
-    return data
+    return data, sys_t
