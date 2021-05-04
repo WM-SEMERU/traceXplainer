@@ -120,8 +120,9 @@ def id_to_filename(sys, id):
     return list(sys[sys["ids"] == id]["filenames"])[0]
 
 sys = EDA.df_sys
-df = pd.read_csv("ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
-                 sep=" ",index_col=0)
+df = pd.read_csv(
+    "systems/ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
+    sep=" ", index_col=0)
 # print(len(sys))
 # print(len(df))
 # l = list(set(df["Target"]))

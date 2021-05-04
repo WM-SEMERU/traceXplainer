@@ -6,6 +6,7 @@ from statsmodels.tsa.stattools import acf
 import plotly.graph_objects as go
 import numpy as np
 
+
 def graph_lag(df):
     df = pd.concat([df, df.shift(-1)], axis=1).dropna()
     df.columns = ["y(t)", "y(t)+1"]

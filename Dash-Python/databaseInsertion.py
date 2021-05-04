@@ -1,6 +1,3 @@
-# this method of inserting into test.db assumes that the data is given in the form of folders
-# with a structure of system -> {doc2vec,word2vec,corpus,src,tgt,tc} with each subfolder
-# containing its respective csv's or code files.
 import os
 import sqlite3
 import sys
@@ -39,7 +36,7 @@ if __name__ == "__main__":
     print(name)
     print(path)
 
-    db_file = "../test.db"
+    db_file = "T-Miner.db"
 
     conn = None
     try:

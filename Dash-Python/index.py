@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 
 from app import app
-from apps import descriptive_page, predictive_page, main, cases
+from apps import descriptive_page, predictive_page, main_page, cases_page
 
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
@@ -60,9 +60,9 @@ def display_page(pathname, data):
     elif pathname == '/apps/predictive_page':
         return predictive_page.generate_layout(data)
     elif pathname == '/apps/cases':
-        return cases.generate_layout(data)
+        return cases_page.generate_layout(data)
     else:
-        return main.generate_layout()
+        return main_page.generate_layout()
 
 
 if __name__ == '__main__':
