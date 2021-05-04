@@ -1,19 +1,12 @@
-import os
 import sqlite3
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
-import plotly
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 from ds4se.ds.description.eval.traceability import ExploratoryDataSoftwareAnalysis
-from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation, ManifoldEntropy
-from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric
 from tminer_source import id_to_filename
 from app import app
 
-
-# from tminer_source import experiment_to_df
 
 # main is the first page users see. They it will do all of the calculations for initial dataframes to pass onto the
 # other pages.
@@ -55,10 +48,15 @@ def generate_layout():
 
 @app.callback(Output("local", 'data'),
               Output("sidebar_text", "children"),
+              Output('store-button', 'n_clicks'),
               Input('store-button', 'n_clicks'),
-              State("system_type", 'value'))
-def on_click(n_clicks, sys_t, ):
+              State("system_type", 'value'),
+              State("local", "data"))
+def on_click(n_clicks, sys_t, data):
     # calculate the df created by w2v and doc to vec
+    print(n_clicks)
+    if n_clicks == 0 or n_clicks is None:
+        return data, data["sys_type"], 0
     db_file = "../test.db"
 
     conn = None
@@ -113,4 +111,4 @@ def on_click(n_clicks, sys_t, ):
 
     data = {"sys_type": sys_t, "params": params, "vec_data": vec_data, "vectors": vectors}
 
-    return data, sys_t
+    return data, sys_t, 0
