@@ -1,18 +1,13 @@
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_table
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
-import plotly.express as px
 import plotly.graph_objects as go
 
 from app import app
 
-import matplotlib.pyplot as plt
 from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation, ManifoldEntropy
-from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric
-
-import plotly as pl
+from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric, DistanceMetric
+import pandas as pd
 
 
 def generate_layout(data):
@@ -42,7 +37,7 @@ def generate_layout(data):
                     id='prec-recall-gain-graph',
                 ),
             ]),
-            dcc.Tab(label="Manifold Entropy",children=[
+            dcc.Tab(label="Manifold Entropy", children=[
                 dcc.Dropdown(
                     id='mani-vec-dropdown',
                     options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
@@ -72,6 +67,21 @@ def generate_layout(data):
                 ),
                 dcc.Graph(
                     id='man-ent-graph',
+                ),
+                dcc.Dropdown(
+                    id='comp-dist-dropdown',
+                ),
+                dcc.Dropdown(
+                    id='comp-man_x-dropdown',
+                ),
+                dcc.Dropdown(
+                    id='comp-man_y-dropdown',
+                ),
+                dcc.Graph(
+                    id='comp-ent-graph',
+                ),
+                dcc.Graph(
+                    id='comp-shared-graph',
                 ),
             ])
         ])
@@ -184,9 +194,18 @@ def update_manifold_entropy_plot(link, sim, man, data):
               "corpus": data["params"]["corpus"]
               }
     manifoldEntropy = ManifoldEntropy(params=params)
+    # Remove Nan's
+    # display Nan's if there are any.
     sim = SimilarityMetric[sim]
     man = EntropyMetric[man]
+    if man in [EntropyMetric.MSI_I, EntropyMetric.MSI_X]:
+        fig = go.Figure()
+        fig.update_layout(
+            title=str(man) + " is not currently working for this graph type"
+        )
+        return fig
     return manifoldEntropy.manifold_entropy_plot(manifold=man, dist=sim)
+
 
 @app.callback(
     Output("mani-sim-dropdown", "options"),
@@ -215,23 +234,86 @@ def updateManiSimDropdown(vec, link, data):
 @app.callback(
     Output('comp-ent-graph', 'figure'),
     Input("mani-link-dropdown", "value"),
-    Input("mani-sim-dropdown", "value"),
-    Input("mani-man-dropdown", "value"),
-    Input("mani-man_y-dropdown", "value"),
+    Input("comp-dist-dropdown", "value"),
+    Input("comp-man_x-dropdown", "value"),
+    Input("comp-man_y-dropdown", "value"),
     State('local', 'data'))
-def update_composable_entropy_plot(link, man_x, man_y, dist, ground, data):
+def update_composable_entropy_plot(link, dist, man_x, man_y, data):
     params = {"system": data["params"]["system"],
               "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
               "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
               "corpus": data["params"]["corpus"]
               }
     manifoldEntropy = ManifoldEntropy(params=params)
-    man_x = EntropyMetric[man_x]
-    man_y = EntropyMetric[man_y]
-    
+
+    man_x = string_2_metric(man_x)
+    man_y = string_2_metric(man_y)
+    dist = string_2_metric(dist)
+
     fig = manifoldEntropy.composable_entropy_plot(
-                        manifold_x = EntropyMetric.MI,
-                        manifold_y = SimilarityMetric.COS_sim,
-                        dist = 'Linked?',
-                        ground = True)
+        manifold_x=man_x,
+        manifold_y=man_y,
+        dist=dist)
     return fig
+
+
+@app.callback(
+    Output('comp-shared-graph', 'figure'),
+    Input("mani-link-dropdown", "value"),
+    Input("comp-dist-dropdown", "value"),
+    Input("comp-man_x-dropdown", "value"),
+    Input("comp-man_y-dropdown", "value"),
+    State('local', 'data'))
+def update_composable_shared_plot(link, dist, man_x, man_y, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    manifoldEntropy = ManifoldEntropy(params=params)
+    man_x = string_2_metric(man_x)
+    man_y = string_2_metric(man_y)
+    dist = string_2_metric(dist)
+
+    fig = manifoldEntropy.composable_shared_plot(
+        manifold_x=man_x,
+        manifold_y=man_y,
+        dist=dist)
+    return fig
+
+
+@app.callback(
+    Output("comp-dist-dropdown", "options"),
+    Output("comp-man_x-dropdown", "options"),
+    Output("comp-man_y-dropdown", "options"),
+    Output("comp-dist-dropdown", "value"),
+    Output("comp-man_x-dropdown", "value"),
+    Output("comp-man_y-dropdown", "value"),
+    Input('mani-link-dropdown', 'value'),
+    State('local', 'data'))
+def update_comp_dropdowns(link, data):
+    params = {"system": data["params"]["system"],
+              "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+              "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+              "corpus": data["params"]["corpus"]
+              }
+    manifoldEntropy = ManifoldEntropy(params=params)
+
+    # df = self.df_w2v.dropna(inplace=False)
+    # df = pd.concat([df, self.df_d2v.drop(columns=["Linked?"])],axis=1,join="inner")
+    df = manifoldEntropy.df_w2v
+    df = df.drop(columns=["Source", "Target"])
+    options = [{'label': str(val), 'value': str(val)} for val in df.columns]
+    return options, options, options, options[1]["value"], options[2]["value"], "Linked?"
+
+
+def string_2_metric(s):
+    s1 = s.split(".")
+    if s1[0] == "EntropyMetric":
+        return EntropyMetric[s1[1]]
+    elif s1[0] == "SimilarityMetric":
+        return SimilarityMetric[s1[1]]
+    elif s1[0] == "DistantMetric":
+        return DistanceMetric[s1[1]]
+    else:
+        return s

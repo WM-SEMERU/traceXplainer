@@ -14,14 +14,13 @@ from tminer_source import graph_lag, graph_autocorrelation
 shared_infometrics_table = dash_table.DataTable(
     id="infometric_table",
     page_current=0,
-    sort_action='native',
-    filter_action="native",
     page_size=10,
-    style_table={"maxWidth": "50%"},
+    style_table={'overflowX': 'scroll'},
     style_cell={
         'whiteSpace': 'normal',
         'height': 'auto',
     }, )
+
 
 def generate_layout(store_data):
     """Generate layout is called everytime the descriptive page is selected. It returns the layout for the page to
@@ -73,7 +72,7 @@ def generate_layout(store_data):
                             ])
                     ]),
                     shared_infometrics_table
-                ], style={"maxWidth": "40%"})
+                ])
             ]),
             dcc.Tab(label='Browse Links', children=[
                 html.Div(children=[
@@ -90,12 +89,13 @@ def generate_layout(store_data):
                         ),
                         dash_table.DataTable(
                             id="link-datatable",
-                            #data=df1.to_dict("records"),
+                            # data=df1.to_dict("records"),
                             page_current=0,
                             sort_action='native',
-                            #columns=[{'id': c, 'name': c} for c in list(df1.columns)],
+                            # columns=[{'id': c, 'name': c} for c in list(df1.columns)],
                             filter_action="native",
-                            page_size=10, ),
+                            page_size=10,
+                        ),
                         dcc.Graph(
                             id='basic-sim-graph',
                             style={"marginTop": "50px"}
@@ -397,6 +397,7 @@ def update_auto_plot(metric, set_type, link_type, store_data):
     figure = graph_autocorrelation(df[metric])
     return figure
 
+
 @app.callback(
     Output('basic-sim-graph', 'figure'),
     Input('link-browse-vec-dropdown', "value"),
@@ -410,6 +411,7 @@ def update_sim_grpah(vec, link, store_data):
                      color_discrete_sequence=["red", "blue"])
     fig.update_layout(legend_traceorder="reversed")
     return fig
+
 
 @app.callback(
     Output('file-description-textarea', 'value'),
@@ -443,10 +445,11 @@ def update_infometric_table(src, tgt, vec, link, data):
     df = pd.DataFrame.from_dict(data["vectors"][vec + "-" + link]["dict"])
     df = df[(df["Source_filename"] == src) & (df["Target_filename"] == tgt)]
 
-    df = df.drop(["Source", "Target","Source_filename","Target_filename"], axis=1)
+    df = df.drop(["Source", "Target", "Source_filename", "Target_filename"], axis=1)
     table_data = df.to_dict("records")
     columns = [{'id': c, 'name': c} for c in list(df.columns)]
     return table_data, columns
+
 
 @app.callback(
     Output('link-datatable', 'data'),

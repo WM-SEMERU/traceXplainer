@@ -6,26 +6,6 @@ from statsmodels.tsa.stattools import acf
 import plotly.graph_objects as go
 import numpy as np
 
-
-# I will be writing functions here to import into the app's pages
-
-
-# def experiment_to_df(path):
-#     _, vec_type, link_type, unknown_bool, _ = path.split("-")
-#     f = open(path)
-#     column_names = f.readline().strip().split(" ")
-#     l = []
-#     if link_type == "LinkType.req2tc":
-#         for line in f.readlines():
-#             line = line.rstrip().split(" ")[1:]
-#             line[0] = line[0].split("requirements/")[1]
-#             line[1] = line[1].split("test/")[1]
-#             line = line[:2] + list(map(float, line[2:]))
-#             l.append(line)
-#     df = pd.DataFrame(l, columns=column_names)
-#     return df
-
-
 def graph_lag(df):
     df = pd.concat([df, df.shift(-1)], axis=1).dropna()
     df.columns = ["y(t)", "y(t)+1"]
@@ -57,7 +37,6 @@ def graph_autocorrelation(df):
 
 
 def filename_to_id(sys, file):
-
     return list(sys[sys["filenames"] == file]["ids"])[0]
 
 
