@@ -35,19 +35,33 @@ def generate_layout(store_data):
     layout = html.Div(children=[
         dcc.Tabs([
             dcc.Tab(label='Data Description', children=[
-                dcc.Dropdown(
-                    id='vec-type-dropdown',
-                    options=[{'label': key, 'value': key} for key in store_data["vec_data"]["vec_type"]],
-                    value=store_data["vec_data"]["vec_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='link-type-dropdown',
-                    options=[{'label': key, 'value': key} for key in store_data["vec_data"]["link_type"]],
-                    value=store_data["vec_data"]["link_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='metric-dropdown',
-                ),
+                html.Table([
+                    html.Tr([
+                        html.Td(['Vectorization Type']),
+                        dcc.Dropdown(
+                            id='vec-type-dropdown',
+                            options=[{'label': key, 'value': key} for key in store_data["vec_data"]["vec_type"]],
+                            value=store_data["vec_data"]["vec_type"][0]
+                        )
+                    ]),
+                    html.Tr([
+                        html.Td(['Link Type']),
+                        dcc.Dropdown(
+                            id='link-type-dropdown',
+                            options=[{'label': key, 'value': key} for key in store_data["vec_data"]["link_type"]],
+                            value=store_data["vec_data"]["link_type"][0]
+                        )
+                    ]),
+                    html.Tr([
+                        html.Td(['Metric']),
+                        dcc.Dropdown(
+                            id='metric-dropdown',
+                        ),
+                    ])
+
+                ], style={"border": "1px solid black", "width": "100%"}),
+
+
                 dcc.Graph(
                     id='one-requirement-graph',
                 ),
@@ -89,10 +103,8 @@ def generate_layout(store_data):
                         ),
                         dash_table.DataTable(
                             id="link-datatable",
-                            # data=df1.to_dict("records"),
                             page_current=0,
                             sort_action='native',
-                            # columns=[{'id': c, 'name': c} for c in list(df1.columns)],
                             filter_action="native",
                             page_size=10,
                         ),
@@ -288,7 +300,7 @@ def update_shared_info_source(vec, link, data):
     State('local', 'data'))
 def update_metric_dropdown(vec, link, data):
     df = pd.DataFrame.from_dict(data["vectors"][vec + "-" + link]["dict"])
-    cols = df.drop(columns=["Source", "Target", "Linked?"]).columns
+    cols = df.drop(columns=["Source", "Target","Source_filename", "Target_filename", "Linked?"]).columns
     return [{"label": sim, "value": sim} for sim in cols], cols[0]
 
 
