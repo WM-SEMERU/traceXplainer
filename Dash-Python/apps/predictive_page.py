@@ -7,82 +7,154 @@ from app import app
 
 from ds4se.ds.prediction.eval.traceability import SupervisedVectorEvaluation, ManifoldEntropy
 from ds4se.mining.ir import VectorizationType, SimilarityMetric, EntropyMetric, DistanceMetric
-import pandas as pd
 
 
 def generate_layout(data):
+    metrics = [metric for metric in EntropyMetric]
+    metrics.remove(EntropyMetric.MSI_X)
+    metrics.remove(EntropyMetric.MSI_I)
+    opts = [{'label': str(man), 'value': str(man).split(".")[1]} for man in metrics]
     layout = html.Div([
         dcc.Tabs([
             dcc.Tab(label='Supervised Evaluation', children=[
-                dcc.Dropdown(
-                    id='vec-dropdown',
-                    options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
-                    value=data["vec_data"]["vec_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='link-dropdown',
-                    options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
-                    value=data["vec_data"]["link_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='sim-dropdown',
-                ),
+                html.Table([
+                    html.Tr([
+                        html.Td(["Vectorization Type"]),
+                        dcc.Dropdown(
+                            id='vec-dropdown',
+                            options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
+                            value=data["vec_data"]["vec_type"][0]
+                        )
+                    ]),
+                    html.Tr([
+                        html.Td(["Link Type"]),
+                        dcc.Dropdown(
+                            id='link-dropdown',
+                            options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
+                            value=data["vec_data"]["link_type"][0]
+                        ),
+                    ])
+                ], style={"border": "1px solid black", "width": "100%"}),
                 dcc.Graph(
                     id='avg-prec-graph',
                 ),
                 dcc.Graph(
                     id='roc-graph',
                 ),
-                dcc.Graph(
-                    id='prec-recall-gain-graph',
-                ),
+                html.Div(children=[
+                    html.Table([
+                        html.Tr([
+                            html.Td(["Similarity Metric"]),
+                            dcc.Dropdown(
+                                id='sim-dropdown',
+                            )
+                        ]),
+                    ], style={"border": "1px solid black", "width": "100%", 'vertical-align': 'top'}),
+                    dcc.Graph(
+                        id='prec-recall-gain-graph',
+                        style={'vertical-align': 'top', "width": "50%", }
+                    )
+                ], style={'vertical-align': 'top', 'display': 'inline-block'})
             ]),
+
             dcc.Tab(label="Manifold Entropy", children=[
-                dcc.Dropdown(
-                    id='mani-vec-dropdown',
-                    options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
-                    value=data["vec_data"]["vec_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='mani-link-dropdown',
-                    options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
-                    value=data["vec_data"]["link_type"][0]
-                ),
-                dcc.Dropdown(
-                    id='mani-sim-dropdown',
-                ),
-                dcc.Dropdown(
-                    id='mani-man-dropdown',
-                    options=[{'label': str(man), 'value': str(man).split(".")[1]} for man in EntropyMetric],
-                    value=str(list(EntropyMetric)[0]).split(".")[1]
-                ),
-                dcc.Graph(
-                    id='min-shared-ent-graph',
-                ),
-                dcc.Checklist(
-                    id='Extropy',
-                    options=[{'value': "Extropy", 'label': "Extropy"}],
-                    value=[],
-                    labelStyle={'display': 'inline-block'}
-                ),
-                dcc.Graph(
-                    id='man-ent-graph',
-                ),
-                dcc.Dropdown(
-                    id='comp-dist-dropdown',
-                ),
-                dcc.Dropdown(
-                    id='comp-man_x-dropdown',
-                ),
-                dcc.Dropdown(
-                    id='comp-man_y-dropdown',
-                ),
-                dcc.Graph(
-                    id='comp-ent-graph',
-                ),
-                dcc.Graph(
-                    id='comp-shared-graph',
-                ),
+                html.Table([
+                    html.Tr([
+                        html.Td(["Vectorization Type"]),
+                        dcc.Dropdown(
+                            id='mani-vec-dropdown',
+                            options=[{'label': key, 'value': key} for key in data["vec_data"]["vec_type"]],
+                            value=data["vec_data"]["vec_type"][0]
+                        ),
+                    ]),
+                    html.Tr([
+                        html.Td(["Link Type"]),
+                        dcc.Dropdown(
+                            id='mani-link-dropdown',
+                            options=[{'label': key, 'value': key} for key in data["vec_data"]["link_type"]],
+                            value=data["vec_data"]["link_type"][0]
+                        )
+                    ])
+                ], style={"border": "1px solid black", "width": "100%"}),
+                html.Div([
+                    html.Table([
+                        html.Tr([
+                            html.Td(["Similarity Metric"]),
+                            dcc.Dropdown(
+                                id='mani-sim-dropdown',
+                            ),
+                        ]),
+                    ], style={"width": "100%"}),
+                    dcc.Checklist(
+                        id='Extropy',
+                        options=[{'value': "Extropy", 'label': "Extropy"}],
+                        value=[],
+                        labelStyle={'display': 'inline-block'}
+                    ),
+                    dcc.Graph(
+                        id='min-shared-ent-graph',
+                    ),
+                ], style={"border": "1px solid black"}),
+                html.Div([
+                    html.Table([
+                        html.Tr([
+                            html.Td(["Similarity Metric"]),
+                            dcc.Dropdown(
+                                id='manient-sim-dropdown',
+                            ),
+                        ]),
+                        html.Tr([
+                            html.Td(["Entropy Metric"]),
+                            dcc.Dropdown(
+                                id='manient-man-dropdown',
+                                options=opts,
+                                value=str(list(EntropyMetric)[2]).split(".")[1]
+                            ),
+                        ])
+                    ], style={"width": "100%"}),
+                    dcc.Graph(
+                        id='man-ent-graph',
+                    ),
+                ],style={"border": "1px solid black"}),
+                html.Div([
+                    html.Table([
+                        html.Tr([
+                            html.Td(["Manifold x"]),
+                            dcc.Dropdown(
+                                id='comp-man_x-dropdown',
+                            )
+                        ]),
+                        html.Tr([
+                            html.Td(["Manifold x"]),
+                            dcc.Dropdown(
+                                id='comp-man_y-dropdown',
+                            ),
+                        ]),
+                        html.Tr([
+                            html.Td(["Distance"]),
+                            dcc.Dropdown(
+                                id='comp-dist-dropdown',
+                            )
+                        ]),
+                        html.Tr([
+                            html.Td([dcc.Checklist(
+                                id='NA',
+                                options=[{'value': "NA", 'label': "NA"}],
+                                value=[],
+                                labelStyle={'display': 'inline-block'}
+                            )]),
+                        ])
+                    ], style={"width": "100%"}),
+                    dcc.Graph(
+                        id='comp-shared-graph',
+                    ),
+                    html.Table([
+                        html.Tr([
+                            html.Td(["Number of NA's"]),
+                            html.Td(id="Num_NA")
+                        ])
+                    ], style={"border": "1px solid black", "width": "100%"})
+                ], style={"border": "1px solid black", "width": "100%"})
             ])
         ])
     ])
@@ -184,8 +256,8 @@ def update_minimum_shared_entropy_graph(extropy, link, sim, data):
 @app.callback(
     Output('man-ent-graph', 'figure'),
     Input("mani-link-dropdown", "value"),
-    Input("mani-sim-dropdown", "value"),
-    Input("mani-man-dropdown", "value"),
+    Input("manient-sim-dropdown", "value"),
+    Input("manient-man-dropdown", "value"),
     State('local', 'data'))
 def update_manifold_entropy_plot(link, sim, man, data):
     params = {"system": data["params"]["system"],
@@ -198,12 +270,6 @@ def update_manifold_entropy_plot(link, sim, man, data):
     # display Nan's if there are any.
     sim = SimilarityMetric[sim]
     man = EntropyMetric[man]
-    if man in [EntropyMetric.MSI_I, EntropyMetric.MSI_X]:
-        fig = go.Figure()
-        fig.update_layout(
-            title=str(man) + " is not currently working for this graph type"
-        )
-        return fig
     return manifoldEntropy.manifold_entropy_plot(manifold=man, dist=sim)
 
 
@@ -230,41 +296,66 @@ def updateManiSimDropdown(vec, link, data):
     value = options[0]["value"]
     return options, value
 
-
 @app.callback(
-    Output('comp-ent-graph', 'figure'),
-    Input("mani-link-dropdown", "value"),
-    Input("comp-dist-dropdown", "value"),
-    Input("comp-man_x-dropdown", "value"),
-    Input("comp-man_y-dropdown", "value"),
+    Output("manient-sim-dropdown", "options"),
+    Output("manient-sim-dropdown", "value"),
+    Input('mani-vec-dropdown', "value"),
+    Input('mani-link-dropdown', 'value'),
     State('local', 'data'))
-def update_composable_entropy_plot(link, dist, man_x, man_y, data):
+def updateManiEntSimDropdown(vec, link, data):
     params = {"system": data["params"]["system"],
               "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
               "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
               "corpus": data["params"]["corpus"]
               }
-    manifoldEntropy = ManifoldEntropy(params=params)
+    supervisedEval = SupervisedVectorEvaluation(params=params)
+    vec_type = VectorizationType[vec]
+    # vecTypeVerification will set sim_list
+    supervisedEval.vecTypeVerification(vec_type)
+    sims = supervisedEval.sim_list
 
-    man_x = string_2_metric(man_x)
-    man_y = string_2_metric(man_y)
-    dist = string_2_metric(dist)
+    # Strip SimilarityMetric. from the string
+    options = [{'label': str(sim), 'value': str(sim).split(".")[1]} for sim in sims]
+    value = options[0]["value"]
+    return options, value
 
-    fig = manifoldEntropy.composable_entropy_plot(
-        manifold_x=man_x,
-        manifold_y=man_y,
-        dist=dist)
-    return fig
+
+# @app.callback(
+#     Output('comp-ent-graph', 'figure'),
+#     Input("mani-link-dropdown", "value"),
+#     Input("comp-dist-dropdown", "value"),
+#     Input("comp-man_x-dropdown", "value"),
+#     Input("comp-man_y-dropdown", "value"),
+#     State('local', 'data'))
+# def update_composable_entropy_plot(link, dist, man_x, man_y, data):
+#     params = {"system": data["params"]["system"],
+#               "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
+#               "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
+#               "corpus": data["params"]["corpus"]
+#               }
+#     manifoldEntropy = ManifoldEntropy(params=params)
+#
+#     man_x = string_2_metric(man_x)
+#     man_y = string_2_metric(man_y)
+#     dist = string_2_metric(dist)
+#
+#     fig = manifoldEntropy.composable_entropy_plot(
+#         manifold_x=man_x,
+#         manifold_y=man_y,
+#         dist=dist)
+#     return fig
 
 
 @app.callback(
     Output('comp-shared-graph', 'figure'),
+    Output('Num_NA', "children"),
     Input("mani-link-dropdown", "value"),
     Input("comp-dist-dropdown", "value"),
     Input("comp-man_x-dropdown", "value"),
     Input("comp-man_y-dropdown", "value"),
+    Input("NA", "value"),
     State('local', 'data'))
-def update_composable_shared_plot(link, dist, man_x, man_y, data):
+def update_composable_shared_plot(link, dist, man_x, man_y, na, data):
     params = {"system": data["params"]["system"],
               "experiment_path_w2v": data["vectors"]["word2vec" + "-" + link]["path"],
               "experiment_path_d2v": data["vectors"]["doc2vec" + "-" + link]["path"],
@@ -274,12 +365,19 @@ def update_composable_shared_plot(link, dist, man_x, man_y, data):
     man_x = string_2_metric(man_x)
     man_y = string_2_metric(man_y)
     dist = string_2_metric(dist)
+    print(man_x)
+    print(man_y)
+    print(dist)
 
-    fig = manifoldEntropy.composable_shared_plot(
-        manifold_x=man_x,
-        manifold_y=man_y,
-        dist=dist)
-    return fig
+    try:
+        fig, nas = manifoldEntropy.composable_shared_plot(
+            manifold_x=man_x,
+            manifold_y=man_y,
+            dist=dist,
+            drop_na=na)
+    except ValueError:
+        return go.Figure(),  "No Graph"
+    return fig, nas
 
 
 @app.callback(
