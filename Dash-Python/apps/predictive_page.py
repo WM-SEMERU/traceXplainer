@@ -365,9 +365,9 @@ def update_composable_shared_plot(link, dist, man_x, man_y, na, data):
     man_x = string_2_metric(man_x)
     man_y = string_2_metric(man_y)
     dist = string_2_metric(dist)
-    print(man_x)
-    print(man_y)
-    print(dist)
+    # Only drop NA's if the button is clicked
+    print(na)
+    na = na != ["NA"]
 
     try:
         fig, nas = manifoldEntropy.composable_shared_plot(
