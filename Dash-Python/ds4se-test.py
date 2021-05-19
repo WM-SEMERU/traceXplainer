@@ -39,12 +39,12 @@ def libest_params():
 # f = supevisedEval.Compute_avg_precision(VectorizationType.word2vec)
 # f = plotly.tools.mpl_to_plotly(f)
 
-params = {"system": "ebt",
-          "experiment_path_w2v": "ebt/vectorization/[ebt-VectorizationType.word2vec-LinkType.req2src-True-1609293224.89927].csv",
-          "experiment_path_d2v": "ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
-          "corpus": "ebt/corpus/[ebt-all-corpus-1609221582.171744].csv"
-          }
-EDA = ExploratoryDataSoftwareAnalysis(params=params)  # <---- Parameter
+# params = {"system": "ebt",
+#           "experiment_path_w2v": "ebt/vectorization/[ebt-VectorizationType.word2vec-LinkType.req2src-True-1609293224.89927].csv",
+#           "experiment_path_d2v": "ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
+#           "corpus": "ebt/corpus/[ebt-all-corpus-1609221582.171744].csv"
+#           }
+# EDA = ExploratoryDataSoftwareAnalysis(params=params)  # <---- Parameter
 
 
 # df = experiment_to_df("libest/vectorization/[libest-VectorizationType.doc2vec-LinkType.req2tc-True-1609289141.142806].csv")
@@ -119,10 +119,10 @@ def filename_to_id(sys, file):
 def id_to_filename(sys, id):
     return list(sys[sys["ids"] == id]["filenames"])[0]
 
-sys = EDA.df_sys
+# sys = EDA.df_sys
 df = pd.read_csv(
-    "systems/ebt/vectorization/[ebt-VectorizationType.doc2vec-LinkType.req2src-True-1610632393.757948].csv",
-    sep=" ", index_col=0)
+    "/home/roger/Desktop/T-Miner/Dash-Python/systems/etour/vectorization/[etour-VectorizationType.doc2vec-LinkType.uc2src-True-1610634014.42428].csv", sep=" ", index_col=0)
+print(df.columns)
 # print(len(sys))
 # print(len(df))
 # l = list(set(df["Target"]))
@@ -137,5 +137,5 @@ df = pd.read_csv(
 # print(l2)
 # df2 = sys[["ids","filenames"]]
 # #print(df2.to_dict())
-df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
-print(df["Target"])
+# df["Target"] = pd.DataFrame(df.apply(lambda row: id_to_filename(sys, row["Target"]), axis=1))
+# print(df["Target"])

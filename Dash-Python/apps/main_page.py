@@ -100,8 +100,10 @@ def on_click(n_clicks, sys_t, data):
         'system_long': sys_t,
         "corpus": corpus[1]
     }
+    print(params)
     EDA = ExploratoryDataSoftwareAnalysis(params=params)
     sys = EDA.df_sys
+    print(sys.head())
 
     for key in vectors:
         df = pd.read_csv(vectors[key]["path"], index_col=0, sep=" ")

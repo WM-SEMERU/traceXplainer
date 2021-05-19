@@ -29,7 +29,10 @@ def generate_layout(store_data):
     EDA = ExploratoryDataSoftwareAnalysis(params=store_data["params"])
     sys = EDA.df_sys
 
-    file_list = list(set(sys[sys["type"] == "req"]["filenames"]))
+    # link_type is expected to be in the form req2src with two file types split by '2'.
+    primary_link = store_data["vec_data"]["link_type"][0].split("2")[0]
+    file_list = list(set(sys[sys["type"] == primary_link]["filenames"]))
+
     file_list.sort()
 
     layout = html.Div(children=[
@@ -61,14 +64,13 @@ def generate_layout(store_data):
 
                 ], style={"border": "1px solid black", "width": "100%"}),
 
-
                 dcc.Graph(
                     id='one-requirement-graph',
                 ),
                 dcc.Dropdown(
                     id='file-select-dropdown',
                     options=[{'label': key, 'value': key} for key in file_list],
-                    value=list(sys[sys["type"] == "req"]["filenames"])[0]
+                    value=file_list[0]
                 ),
                 html.Div(children=[
                     html.P(["Shared Infometrics"]),
@@ -300,7 +302,7 @@ def update_shared_info_source(vec, link, data):
     State('local', 'data'))
 def update_metric_dropdown(vec, link, data):
     df = pd.DataFrame.from_dict(data["vectors"][vec + "-" + link]["dict"])
-    cols = df.drop(columns=["Source", "Target","Source_filename", "Target_filename", "Linked?"]).columns
+    cols = df.drop(columns=["Source", "Target", "Source_filename", "Target_filename", "Linked?"]).columns
     return [{"label": sim, "value": sim} for sim in cols], cols[0]
 
 
