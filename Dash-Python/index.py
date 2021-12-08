@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output, State
 from app import app
 from apps import descriptive_page, predictive_page, main_page, cases_page
 
+
 # CodeXplainer
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
@@ -28,7 +29,7 @@ CONTENT_STYLE = {
 
 sidebar = html.Div(
     [
-        html.H5("CodeXplainer", className="display-5"),
+        html.H5("Xplainer", className="display-4"),
         html.Hr(),
         html.P(
             children="A description of T-Miner", className="lead", id="sidebar_text"
@@ -37,8 +38,8 @@ sidebar = html.Div(
             [
                 dbc.NavLink("Home", href="/", active="exact"),
                 dbc.NavLink("Descriptive Analysis", href="/apps/descriptive_page", active="exact"),
-                dbc.NavLink("Predictive Analysis", href="/apps/predictive_page", active="exact"),
-                dbc.NavLink("Case Analysis", href="/apps/cases_page", active="exact"),
+                dbc.NavLink("Predictive Analysis", href="/apps/predictive_page", active="exact")
+                #dbc.NavLink("Case Analysis", href="/apps/cases_page", active="exact"),
             ],
             vertical=True,
             pills=True,
@@ -68,4 +69,4 @@ def display_page(pathname, data):
 
 if __name__ == '__main__':
     # To see errors when testing set debug to True
-    app.run_server(debug=False)
+    app.run_server(debug=True)
