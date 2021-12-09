@@ -12,7 +12,7 @@ from app import app
 # other pages.
 
 def generate_layout():
-    db_file = "./T-Miner.db"
+    db_file = "../data/T-Miner.db"
 
     conn = None
     try:
@@ -57,7 +57,7 @@ def on_click(n_clicks, sys_t, data):
     print(n_clicks)
     if n_clicks == 0 or n_clicks is None:
         return data, data["sys_type"], 0
-    db_file = "./T-Miner.db"
+    db_file = "../data/T-Miner.db"
 
     conn = None
     try:
