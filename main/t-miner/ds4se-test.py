@@ -121,7 +121,7 @@ def id_to_filename(sys, id):
 
 # sys = EDA.df_sys
 df = pd.read_csv(
-    "/home/roger/Desktop/T-Miner/Dash-Python/systems/etour/vectorization/[etour-VectorizationType.doc2vec-LinkType.uc2src-True-1610634014.42428].csv", sep=" ", index_col=0)
+    "../T-Miner/Dash-Python/systems/etour/vectorization/[etour-VectorizationType.doc2vec-LinkType.uc2src-True-1610634014.42428].csv", sep=" ", index_col=0)
 print(df.columns)
 # print(len(sys))
 # print(len(df))

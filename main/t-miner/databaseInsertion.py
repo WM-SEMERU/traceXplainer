@@ -36,7 +36,7 @@ if __name__ == "__main__":
     print(name)
     print(path)
 
-    db_file = "../data/T-Miner.db"
+    db_file = "../dvc-data/T-Miner.db"
 
     conn = None
     try:

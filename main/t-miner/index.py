@@ -69,4 +69,4 @@ def display_page(pathname, data):
 
 if __name__ == '__main__':
     # To see errors when testing set debug to True
-    app.run_server(debug=True)
+    app.run_server(debug=False)
