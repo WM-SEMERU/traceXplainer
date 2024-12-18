@@ -28,14 +28,8 @@ Exploratory Data Analysis is an exhaustive search of patterns in data with an sp
 2. __Manifold of Information Measures by Ground truth__. The purpose of this exploration is to group each entropy and similarity metric by a given ground truth. The division of data by the ground truth allows us to determine the quality of the prediction for similarity metrics. Additionally, it also allows us to describe how good the ground truth is since we are measuring the information transmission between source and target artifacts. 
 3. __Scatter Matrix for Information Measures__. The purpose of this exploration is to find correlations between information theory metrics and unsupervised similarities. These correlations help us to explain the traceability behaviour from information transmission for a given dataset. 
 
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig1_1.png' | relative_url }}" alt="" title="distributions"/>
-    </div>
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig2_1.png' | relative_url }}" alt="" title="distributions"/>
-    </div>
-</div>
+<div align="center"><img src="assets/img/fig1_1.png" alt="distributions1" width="50%"/></div>
+<div align="center"><img src="assets/img/fig2_1.png" alt="distributions1" width="50%"/></div>
 <div class="caption">
     Figure 1 & 2. Probability distributions of Similarities and Information Measures (and grouped by Ground Truth)
 </div>
@@ -85,43 +79,23 @@ Unfortunately, information measures are not being affected by the nature of the 
 
 ### 3.3 ED3: Scatter Matrix for Information Measures
 Correlations are helpful to explain variables that we are not easily able to describe just by observing their values. Correlations are useful to interpret the causes or detect similar patterns for a given metric. In this case, we want to study similarity variables by correlating them with other similarity variables and information measures (e.g., MI, Loss, Noise, Entropy, etc). The following manifold in Figure 3 depicts all the correlations and distribution of each information variable. We want to highlight that the WMD similarity is mostly positively correlated (~0.74) with other information metrics, while COS similarity has the opposite effect. 
-
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <p align="center">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig3_1.png' | relative_url }}" alt="centered image" title="example image"/>
-        </p>
-    </div>
-</div>
+<div align="center"><img src="assets/img/fig3_1.png" alt="distributions1" width="50%"/></div>
 <div class="caption">
     Figure 3. Correlation Analysis of Similarity and Information Measures.
 </div>
 
 ### 3.4 Mutual Information & Shared Information Entropy and Extropy
 This analysis consists of computing a correlation between the distance and entropy. Mutual information is positively correlated with WMD similarity as observed in Figure4. This implies that the larger the amount of shared information, the more similar the artifacts. The previous statement makes sense until we observe that MI is not correlated with the cosine similarity. Is the word vector capturing better semantic relationships than paragraph vectors? Apparently, both approaches are not performing well according to the supervised evaluation. 
-
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig4_1.png' | relative_url }}" alt="" title="Similarity and Mutual Information"/>
-    </div>
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig4_2.png' | relative_url }}" alt="" title="Similarity and Mutual Information"/>
-    </div>
-</div>
+<div align="center"><img src="assets/img/fig4_1.png" alt="Information" width="50%"/></div>
+<div align="center"><img src="assets/img/fig4_2.png" alt="Information2" width="50%"/></div>
 <div class="caption">
     Figure 4. Similarity and Mutual Information
 </div>
 
 On the other hand, the MSI for entropy is also positively correlated with the WMD as depicted in Figure 5. The trend is expected after observing the correlation with the mutual information. However, the extropy is also positively correlated. Basically, we are showing more evidence that WMD similarity is capturing better semantic relationships among the artifacts. 
+<div align="center"><img src="assets/img/fig5_1.png" alt="Shared Information" width="50%"/></div>
+<div align="center"><img src="assets/img/fig5_2.png" alt="Shared Information" width="50%"/></div>
 
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig5_1.png' | relative_url }}" alt="" title="Shared Information"/>
-    </div>
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig5_2.png' | relative_url }}" alt="" title="Shared Information"/>
-    </div>
-</div>
 <div class="caption">
     Figure 5. Similarity and Shared Information
 </div>
@@ -129,14 +103,9 @@ On the other hand, the MSI for entropy is also positively correlated with the WM
 ### 3.5 Composable Manifolds 
 The composable manifolds are useful for inspecting a third information variable. In this case, we focused on the loss and noise (see Figure 6). We can observe that the loss is larger when the mutual information and similarity are lower. However, the noise is more dispersed across the mutual information and similarity. We find different clusters of noise in low and larger ranges of MI. These trends indicate that there is some amount of information that was injected in the source code but it is independent from the conceptual similarity of two artifacts.    
 
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig6_1.png' | relative_url }}" alt="" title="Loss"/>
-    </div>
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig6_2.png' | relative_url }}" alt="" title="Loss"/>
-    </div>
-</div>
+<div align="center"><img src="assets/img/fig6_1.png" alt="Loss" width="50%"/></div>
+<div align="center"><img src="assets/img/fig6_2.png" alt="Loss" width="50%"/></div>
+
 <div class="caption">
     Figure 6. Loss & Noise with Similarity and Mutual Information
 </div>
@@ -148,14 +117,9 @@ The composable manifolds are useful for inspecting a third information variable.
 
 The supervised evaluation consists of measurements of the accuracy of the link recovery. The link recovery is computed in terms of precision, recall, and AUC. Nevertheless both techniques are not capturing semantic similarity in an efficient way, the skip gram model has a better efficiency than the paragraph distributed model for the _CSC_ dataset. This is not a problem of the unsupervised learning approach but a limitation of the data. The data are insufficient to capture patterns that contribute to the binary classification or traceability generation. If we observe Figure 2, we can explain this behaviour by stating that both WMD_similarity and COS_sim are not different when grouped by ground truth. What is more, the median information in source artifacts is 1.12B, while the median in target artifacts is 3.65. Such a situation created an imbalance of information not allowing unsupervised techniques to capture features from source artifacts. In fact, the median MSI for confirmed links is 2.0, which is quite low considering that the MSI max value is 5.23.  
 
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig7_1.png' | relative_url }}" alt="" title="AUC"/>
-    </div>
-    <div class="col-sm mt-3 mt-md-0">
-        <img class="img-fluid rounded z-depth-1" src="{{ '/assets/img/fig7_2.png' | relative_url }}" alt="" title="AUC"/>
-    </div>
-</div>
+<div align="center"><img src="assets/img/fig7_1.png" alt="AUC" width="50%"/></div>
+<div align="center"><img src="assets/img/fig7_2.png" alt="AUC" width="50%"/></div>
+
 <div class="caption">
     Figure 7. Precision-Recall & AUC Performance
 </div>
