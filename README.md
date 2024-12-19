@@ -3,7 +3,7 @@
 Traceability is a cornerstone of modern software development, ensuring system reliability and facilitating software maintenance. While unsupervised techniques leveraging Information Retrieval (IR) and Machine Learning (ML) methods have been widely used for predicting trace links, their effectiveness remains underexplored. In particular, these techniques often assume traceability patterns are present within textual data - a premise that may not hold universally. Moreover, standard evaluation metrics such as precision, recall, accuracy, or F1 measure can misrepresent the model performance when underlying data distributions are not properly analyzed. Given that automated traceability techniques tend to struggle to properly establish links – even for well-studied datasets – we need further insight into the information limits related to traceability artifacts. 
 In this paper, we propose an approach, called _TraceXplainer_, for using information theory metrics to evaluate and better understand the performance (limits) of unsupervised traceability techniques. Specifically, we introduce self-information, cross-entropy, and mutual information (MI) as metrics to measure the informativeness and reliability of traceability links. Through a comprehensive replication and analysis of well-studied datasets and techniques, we investigate the effectiveness of unsupervised techniques that predict traceability links using IR/ML. This application of _TraceXplainer_ illustrates an imbalance in typical traceability datasets where the source code has on average 1.48 more information bits (i.e., entropy) than the linked documentation. Additionally, we demonstrate that an average MI of 4.81 bits, loss of 1.75, and noise of 0.28 bits signify that there are information-theoretic limits on the effectiveness of unsupervised traceability techniques. We hope that these findings spur additional research on understanding the limits and progress of traceability research.
 
-## Introduction
+## 0. Introduction
 This research investigates the challenges of information transmission in software traceability, focusing on semantic relationships among software artifacts such as code, requirements, and test cases. Unsupervised information retrieval techniques like TF-IDF, LSA, or LDA are commonly used to represent these artifacts as vectors in a derived space, enabling the calculation of semantic closeness through distance metrics. However, the effectiveness of these techniques is limited by issues such as data imbalance, bias, and poor-quality artifacts. For example, poorly written requirements or undocumented code hinder the traceability process, making it inefficient for tasks like impact analysis. This research emphasizes the need for rigorous statistical approaches and information-theoretic measures to assess and improve the reliability of predicted trace links.
 
 Theoretically, software requirements should be amenable to being translated into multiple forms of information such as source code, test cases, or design artifacts. Thus, we refer to these requirements or any initial/raw form of information as the *source artifacts*. Conversely, the information that is a product of a transformation or alteration is considered a *target artifact*. In the software engineering context, a transformation could be any action that a software engineer applies from those requirements. For instance, implementing a requirement can be seen as a way of translating information from the requirements to the source code.
@@ -11,6 +11,37 @@ Theoretically, software requirements should be amenable to being translated into
 The approach we have used in this study aims to calculate a set of information measures to complement and explain the limitations of semantic traceability techniques. Understanding such limitations (or bounds) will allow us to assess how well traceability algorithms work for a given software project. Numerous experiments have established that studying the manifold of information measures might help us to detect critical points on the artifacts. These critical points are potential missed documentation or repetitive tokens that need to be refactored to enhance the effectiveness of traceability algorithms. 
 
 This research introduces _TraceXplainer_, an interpretability framework leveraging information-theoretic metrics such as mutual information and entropy to diagnose the shortcomings of unsupervised models in traceability. Through empirical analysis, the authors reveal that textual artifacts often lack sufficient information for effective trace link prediction, as seen in the examination of the CSC system, where pull request comments and code exhibit significant information imbalance. Findings highlight that low mutual information between artifacts indicates potential information loss, undermining traceability. The research calls for data-centric evaluations to identify and address the limitations of testbeds and traceability techniques, ultimately proposing strategies to enhance information quality and model robustness.
+
+
+---------
+
+## 1. TraceXplainer Code Artifacts
+**TraceXplainer** comprises a set of steps for training and evaluate machine learning model for traceability link recovery. On this evaluation and training, the set of datasets and  Python noteboks are listed as follows:
+
+| **Artifact**           | **Repository Folder**     | **Description**                                                                                                 |
+|------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------|
+| _Documented Notebooks_ | [Python Notebooks](https://github.com/WM-SEMERU/traceXplainer/tree/master/notebooks) | Notebooks data collection, model training and statistical analysis |
+| _Source Code_          | [main/ds4se](https://github.com/WM-SEMERU/traceXplainer/tree/master/main/ds4se)      | Python project code with the implementation for mining CSC datasets, model training, metrics, clusterization process  and experiment configuration                    |
+| _Source Code_          | [main/t-miner](https://github.com/WM-SEMERU/traceXplainer/tree/master/main/t-miner)  | Exploratory tool for traceability visualization       |
+| _Datasets_          | [dvc-data/systems](https://github.com/WM-SEMERU/traceXplainer/tree/master/dvc-data/systems) |  System datasets used for _TraceXplainer_ experiments, each system includes the courpus and vectorization for doc2vect and word2vec models |
+
+
+### Documented Notebooks
+The folder `notebooks` contains several books for _TraceXplainer_ analysis.
+
+1. [Data and model exploratory analysis](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/0.1_mgmnt.prep.ipynb)
+2. [Word2Vec training](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/2.3_repr.word2vec.train.ipynb)
+3. [Word2Vec evaluation](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/2.6_repr.word2vec.eval.ipynb)
+4. [Unsupervised traceability eda](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.1_traceability.unsupervised.eda.ipynb)
+5. [Unsupervised traceability Doc2Vec](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.2_traceability.unsupervised.approach.d2v.ipynb)
+6. [Unsupervised traceability Word2Vec](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.2_traceability.unsupervised.approach.w2v.ipynb)
+7. [Exploratory Analysis - Information retreival](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.0_infoxplainer.ir.ipynb)
+8. [Descriptive Analysis](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.5_infoxplainer.description.eval.traceability.ipynb)
+9. [Traceability Effectiveness Evaluation](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.6_infoxplainer.prediction.eval.traceability.ipynb)
+
+
+
+---------
 
 ## 2. Empirical Evaluation Setup
 
