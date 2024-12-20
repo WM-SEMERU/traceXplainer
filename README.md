@@ -1,6 +1,8 @@
 # On Interpreting the Effectiveness of UnsupervisedSoftware Traceability with Information Theory
 >
 > By Daniel and @danaderp | Updated: 20.12.2024
+> 
+> Further details can be found in our Pre-print [[ArXiv :page_facing_up:](https://arxiv.org/abs/2412.04704)]
 >
 
 Traceability is a cornerstone of modern software development, ensuring system reliability and facilitating software maintenance. While unsupervised techniques leveraging Information Retrieval (IR) and Machine Learning (ML) methods have been widely used for predicting trace links, their effectiveness remains underexplored. In particular, these techniques often assume traceability patterns are present within textual data - a premise that may not hold universally. Moreover, standard evaluation metrics such as precision, recall, accuracy, or F1 measure can misrepresent the model performance when underlying data distributions are not properly analyzed. Given that automated traceability techniques struggle to establish links – even for well-studied datasets properly – we need further insight into the information limits related to traceability artifacts. 
