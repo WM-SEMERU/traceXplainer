@@ -1,0 +1,4 @@
+[SUMMARY]
+UI middleware supports route assignment to UAV
+[DESCRIPTION]
+The _UIMiddleware_ shall enable an existing route to be assigned to an active UAV.

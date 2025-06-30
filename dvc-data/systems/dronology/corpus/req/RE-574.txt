@@ -1,0 +1,4 @@
+[SUMMARY]
+Support for GCS connected UAVs
+[DESCRIPTION]
+The _VehicleCore_ shall support UAVs connected via the _GCS_

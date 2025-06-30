@@ -1,0 +1,4 @@
+[SUMMARY]
+UAV Operations
+[DESCRIPTION]
+The _RealTimeFlightUI_ shall allow users to apply flight operations to one or more selected UAVs.

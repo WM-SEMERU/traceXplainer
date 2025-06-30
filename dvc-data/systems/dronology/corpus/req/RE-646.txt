@@ -1,0 +1,4 @@
+[SUMMARY]
+Assign Routes
+[DESCRIPTION]
+The _RouteAssignmentUI_ shall provide means to select an existing routes and assign them to a UAV.

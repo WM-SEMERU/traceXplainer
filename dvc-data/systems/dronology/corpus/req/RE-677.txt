@@ -1,0 +1,4 @@
+[SUMMARY]
+Delete a route
+[DESCRIPTION]
+The _RouteCreationUI_ shall allow a user to delete a route.

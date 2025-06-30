@@ -1,0 +1,4 @@
+[SUMMARY]
+UI middleware lists currently active UAVs
+[DESCRIPTION]
+The _UIMiddleware_ shall provide a list of all active UAVs

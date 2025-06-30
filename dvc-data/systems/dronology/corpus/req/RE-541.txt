@@ -1,0 +1,4 @@
+[SUMMARY]
+Predefined flight patterns
+[DESCRIPTION]
+The _MissionPlanner _shall manage predefined FlightPatterns

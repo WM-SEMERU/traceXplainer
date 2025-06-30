@@ -1,0 +1,4 @@
+[SUMMARY]
+Hover at completion of flight
+[DESCRIPTION]
+If a UAV does not have any pending flight plans  then when it reaches the final waypoint of its current flight plan  the _SingleUAVFlightPlanScheduler_ shall notify the UAV to hover in place.

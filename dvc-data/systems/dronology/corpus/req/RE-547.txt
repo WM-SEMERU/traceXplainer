@@ -1,0 +1,4 @@
+[SUMMARY]
+Flight Plan scheduling
+[DESCRIPTION]
+When requested  the _SingleUAVFlightPlanScheduler_ shall schedule a route for execution.
