@@ -1,0 +1,22 @@
+Full instructions on how everything in this folder was created.
+
+Corpus:         Took req and src files from web, dronology_text.txt is all the text in all the files combined.
+                The two csv files were created using notebook 0.1 for the conv column. The bpe columns were created
+                by running the raw corpus through the appropriate bpe model using sentencepice encode_as_peices and 
+                the corect model (ex. java_py_wiki_bpe8k.model). Always trained on java+py+wiki so the requirments
+                would correctly split.
+
+bpe_models:     Trained on code search net corpus and wiki text from the latest english wikipedia dump. Used SentencePiece
+                library to train models on the training corpora. These models then were used to create the dronology csv
+                (as outlined above), and to create the bpe corpora to train the 2vec_models.
+
+2vec_models:    Trained using gensim's word2vec and doc2vec scripts. Used raw CSN corpus to train conv_vec. Used java+py bpe 
+                models to split CSN corpus and train bpe8k, 32k, and 128k. Used raw CSN + wiki to train conv_wiki models.
+
+experiments:    Used notebook 3.2 to create distance CSVs for both word2vec and doc2vec. Went through the whole notebook, including
+                brief analysis in the word2vec notebook. Computed the distance CSVs using the .py versions of the notebooks
+                (see dronology notebooks folder), as the jupyter notebooks crashed trying to compute the large CSVs. Used notebook
+                4.0 to compute other distance CSV for word2vec that included more entropy statistics needed for analysis. The ouptut
+                from 3.2_traceability.unsupervised.approach.d2vcopy.py for doc2 vec and notebook 4.0 for word2vec are saved as the 
+                CSV ouputs in the experiments google sheet. Experiments are saved in their own folder and differences in pretraining/
+                bpe are noted in the google sheet.

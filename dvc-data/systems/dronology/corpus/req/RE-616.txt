@@ -1,0 +1,4 @@
+[SUMMARY]
+Logging of GCS related events
+[DESCRIPTION]
+The _ActivityLogger_ shall log all commands sent to and messages received from a _CGS_.

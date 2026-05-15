@@ -1,0 +1,4 @@
+[SUMMARY]
+Specify takeoff altitude
+[DESCRIPTION]
+When a flight route requires a customized takeoff altitude that differs from the system's default takeoff altitude  it shall be specified in the flight route.

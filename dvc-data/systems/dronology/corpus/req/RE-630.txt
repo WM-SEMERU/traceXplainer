@@ -1,0 +1,4 @@
+[SUMMARY]
+UI middleware forwards commands from clients to dronology
+[DESCRIPTION]
+The _UIMiddleware_ accepts commands from UIs and forwards to Dronology

@@ -1,0 +1,4 @@
+[SUMMARY]
+Support for internally simulated UAVs
+[DESCRIPTION]
+The _VehicleCore_ shall support virtual UAVs

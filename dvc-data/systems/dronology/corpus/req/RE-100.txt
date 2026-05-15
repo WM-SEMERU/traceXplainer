@@ -1,0 +1,4 @@
+[SUMMARY]
+Removal of planned flight
+[DESCRIPTION]
+If requested  the _SingleUAVFlightPlanScheduler_ shall unassign the flight plan assigned to a UAV that is awaiting execution.

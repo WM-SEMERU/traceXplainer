@@ -1,0 +1,4 @@
+[SUMMARY]
+Simulate battery
+[DESCRIPTION]
+The _InternalSimulator_ shall approximate the state of the battery

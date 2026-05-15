@@ -1,0 +1,4 @@
+[SUMMARY]
+Display map in UI
+[DESCRIPTION]
+When the _RealTimeFlightUI_ is loaded  a map shall be displayed.

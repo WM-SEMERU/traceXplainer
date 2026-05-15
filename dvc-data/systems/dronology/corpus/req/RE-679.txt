@@ -1,0 +1,4 @@
+[SUMMARY]
+Display a list of existing routes
+[DESCRIPTION]
+When the _RouteCreationUI_ is loaded a list of all existing routes shall be displayed.

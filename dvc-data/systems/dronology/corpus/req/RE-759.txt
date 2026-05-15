@@ -1,0 +1,4 @@
+[SUMMARY]
+Mission Planning
+[DESCRIPTION]
+The _MissionPlanner_ shall execute flight plans for multiple UAVs concurrently.

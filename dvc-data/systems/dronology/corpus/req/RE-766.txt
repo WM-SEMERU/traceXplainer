@@ -1,0 +1,4 @@
+[SUMMARY]
+Multiple Map Types
+[DESCRIPTION]
+The _MapComponent_ shall support different types of map layers (e.g.  terrain  satellite)

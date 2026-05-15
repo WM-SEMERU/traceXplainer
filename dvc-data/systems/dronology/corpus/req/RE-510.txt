@@ -1,0 +1,4 @@
+[SUMMARY]
+Coordinate system conversion
+[DESCRIPTION]
+When requested  the _CoordinateSystem_ shall transform coordinates to alternate formats.

@@ -1,0 +1,4 @@
+[SUMMARY]
+Display active routes
+[DESCRIPTION]
+The _RealTimeFlightUI_ shall display all currently active flight plans on the map.
