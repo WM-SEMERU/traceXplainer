@@ -39,7 +39,6 @@ For the Cisco testbed, an industrial dataset derived from a real Cisco engineeri
 | ┗ CodeXplainer            | [main/ds4se/codexplainer](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/codexplainer) | Doc2Vec vectorization, prototypes/criticisms, and error-checking utilities for source code                        |
 | _Visualization Tool_      | [main/t-miner](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/t-miner)            | Dash app (`app.py`) for exploring cases, descriptive, and predictive traceability views                            |
 | _Datasets_                | [dvc-data/systems](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems)    | Per-system corpora and vectorizations (see the testbed table in §2 for direct links)                               |
-| _Paper Source_            | [paper/](https://github.com/WM-SEMERU/Sense-traceability/tree/master/paper)                         | LaTeX submodule with the ICSME'26 submission "Lost in Transmission: An Information-Theoretic Account of Unsupervised Software Traceability" |
 
 ### Documented Notebooks
 
@@ -211,9 +210,82 @@ Our empirical study and industry-oriented case analysis yield three practical le
 2. **Information-theoretic discrepancies (loss and noise) provide actionable signals of misalignment.** High loss indicates missing propagation of source information; noise reflects undocumented or extraneous target behavior. Both correlate with weak traceability and can guide refactoring, documentation, and QA efforts.
 3. **Standard evaluation metrics alone are insufficient.** Precision, recall, and AUC can obscure limitations due to imbalance or low-information artifacts. Entropy and mutual information offer complementary insight into whether traceability is feasible at all, and help diagnose failure modes.
 
-## Acknowledgments
+## Appendix: Original EDA Figures 
 
-This research has been supported in part by NSF CCF-2346357, CCF-231146, and CCF-2423813 grants. We also acknowledge support from Cisco Systems.
+The figures and discussion below are carried over from the original 2024 pre-print's single-system (Cisco/CSC) exploratory analysis. They predate the ICSME'26 extension's 8-testbed study in §3 above, but are kept here for historical reference and because several of the observations still hold.
+
+### A.1 Manifold of Information Measures
+
+<div align="center"><img src="assets/img/fig1_1.png" alt="distributions1" width="50%"/></div>
+<div align="center"><img src="assets/img/fig2_1.png" alt="distributions1" width="50%"/></div>
+<div class="caption">
+    Figure A1 & A2. Probability distributions of Similarities and Information Measures (and grouped by Ground Truth) for the Cisco testbed.
+</div>
+
+The self-information of the source artifacts (issues) is on average [3.42 ± 1.31] bits, while the self-information of the target artifacts (source code) is on average [5.91 ± 0.86] bits — the source code carries 1.72 more bits than the set of issues. The mutual information averages [3.21 ± 1.19] bits, the minimum shared entropy is [1.45 ± 1.14] bits, and the minimum shared extropy is [0.87 ± 0.54] bits.
+
+Loss and noise are both Gaussian distributions with medians of 2.53 and 0.11 bits respectively — loss exceeds noise by 2.42 bits. Given a median minimum shared entropy of 1.50 bits, the amount of lost information is high, suggesting the source code is poorly commented. The noise is barely a bit unit, indicating the code is not influenced by an external source of information.
+
+The similarity metrics behave non-standardly: the average cosine similarity (doc2vec) is [0.09 ± 0.07], while the WMD similarity (word2vec) is [0.45 ± 0.90]. Both distributions are unimodal, indicating binary classification does not naturally emerge and the two similarities do not overlap.
+
+> **Summary**: The maximum transmission of information was around 4.4 bits from issues to source code. We recommend that software developers implement inspection procedures to refactor documentation in both requirements and source code to enhance mutual information (and minimum shared information).
+
+### A.2 Manifold of Information Measures by Ground Truth
+
+Information measures are largely unaffected by whether a traceability link exists — information is independent of link status, even though all sequence-based artifacts are related somehow. This "independent" behavior does not carry over to similarity metrics such as Soft-Cosine, Euclidean, or Word Mover's Distance. Neural unsupervised techniques based on skip-gram models are unable to binary-classify a link, meaning the data do not encode the necessary patterns for classification. Intervening in the expectation value of a link (e.g., via probabilistic models) or systematic refactoring of the artifacts is needed instead.
+
+> **Summary**: Even though the source code carries more information than the issues, MI, loss, and noise are indistinguishable between confirmed links and non-links. We expect low mutual information and high loss/noise for non-related artifacts.
+
+### A.3 Scatter Matrix for Information Measures
+
+<div align="center"><img src="assets/img/fig3_1.png" alt="distributions1" width="50%"/></div>
+<div class="caption">
+    Figure A3. Correlation Analysis of Similarity and Information Measures.
+</div>
+
+Correlations help explain variables that are not easily described from their values alone. WMD similarity is mostly positively correlated (~0.74) with other information metrics, while Cosine similarity has the opposite effect.
+
+### A.4 Mutual Information & Shared Information Entropy and Extropy
+
+<div align="center"><img src="assets/img/fig4_1.png" alt="Information" width="50%"/></div>
+<div align="center"><img src="assets/img/fig4_2.png" alt="Information2" width="50%"/></div>
+<div class="caption">
+    Figure A4. Similarity and Mutual Information.
+</div>
+
+Mutual information is positively correlated with WMD similarity: the larger the amount of shared information, the more similar the artifacts. However, MI is not correlated with cosine similarity — raising the question of whether word vectors capture better semantic relationships than paragraph vectors, though neither performs well under supervised evaluation.
+
+<div align="center"><img src="assets/img/fig5_2.png" alt="Shared Information" width="50%"/></div>
+<div class="caption">
+    Figure A5. Similarity and Shared Information.
+</div>
+
+The minimum shared information (MSI) for entropy is also positively correlated with WMD, consistent with the mutual information trend, and extropy is positively correlated as well — further evidence that WMD similarity captures better semantic relationships among artifacts.
+
+### A.5 Composable Manifolds
+
+<div align="center"><img src="assets/img/fig6_1.png" alt="Loss" width="50%"/></div>
+<div align="center"><img src="assets/img/fig6_2.png" alt="Loss" width="50%"/></div>
+<div class="caption">
+    Figure A6. Loss & Noise with Similarity and Mutual Information.
+</div>
+
+Loss is larger when mutual information and similarity are lower; noise is more dispersed across MI and similarity, forming distinct clusters at low and high MI ranges — indicating some information was injected into the source code independent of the conceptual similarity between artifacts.
+
+> **Summary**: Loss entropy relates to low levels of similarity and mutual information. Interventions in the datasets (refactoring) can help classify links by reducing the loss; these can occur naturally as developers or stakeholders complete or document artifacts during the software lifecycle.
+
+### A.6 Supervised Evaluation
+
+<div align="center"><img src="assets/img/fig7_1.png" alt="AUC" width="50%"/></div>
+<div align="center"><img src="assets/img/fig7_2.png" alt="AUC" width="50%"/></div>
+<div class="caption">
+    Figure A7. Precision-Recall & AUC Performance.
+</div>
+
+The supervised evaluation measures link-recovery accuracy via precision, recall, and AUC. Neither vectorization technique captures semantic similarity efficiently, though skip-gram (word2vec) is more effective than the paragraph-distributed model (doc2vec) for the CSC dataset — a limitation of the data rather than of the unsupervised learning approach itself. The median information in source artifacts is 1.12 bits versus 3.65 bits in target artifacts, an imbalance that prevents unsupervised techniques from capturing useful features from source artifacts.
+
+> **Summary**: Confirmed links and non-links are extremely imbalanced. Cosine and Soft-Cosine similarities behave better under AUC analysis, identifying non-links with a minimum effectiveness of 0.62; neural unsupervised techniques still fail at identifying actual links since the data is not "naturally" partitioned or grouped.
+
 
 ## Citation
 
