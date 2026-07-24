@@ -2,8 +2,6 @@
 
 > By Daniel Rodriguez-Cardenas, Logan Fecko, Denys Poshyvanyk (William & Mary), David N. Palacio (Microsoft), and Kevin Moran (University of Central Florida) | Updated: 24.07.2026
 >
-> This repository, **SENSE** (a.k.a. _Sense-traceability_), is the software artifact for our information-theoretic study of unsupervised software traceability, currently under submission to ICSME'26. The full paper source is tracked as a submodule in [`paper/`](paper).
->
 > An earlier version of this work was released as a pre-print: [[ArXiv :page_facing_up:](https://arxiv.org/abs/2412.04704)]
 >
 
@@ -127,15 +125,31 @@ Exploratory Data Analysis is an exhaustive search for patterns in data with a sp
 1. **Manifold of Information Measures ($AN_1$)** — characterizes the probability distribution of each entropy and similarity metric. We expect, for instance, similarity distributions to be bimodal (reflecting links vs. non-links); deviations from this assumption help us assess technique quality.
 2. **Manifold of Information Measures by Ground Truth ($AN_2$)** — partitions each entropy and similarity metric by ground-truth label, letting us interpret prediction quality and describe how well the ground truth captures information transmission between source and target artifacts.
 
-<div align="center"><img src="assets/img/fig1_1.png" alt="distributions1" width="50%"/></div>
-<div align="center"><img src="assets/img/fig2_1.png" alt="distributions1" width="50%"/></div>
+<div align="center"><img src="assets/img/paper/fig_overview.png" alt="Sense overview" width="70%"/></div>
 <div class="caption">
-    Figure 1 & 2. Probability distributions of Similarities and Information Measures (and grouped by Ground Truth) for the Cisco testbed.
+    Figure 1. Sense: Using Information Theory to Interpret Unsupervised Traceability Models — software information transmission, the information space, and the semantic space.
+</div>
+
+<div align="center"><img src="assets/img/paper/fig_metrics.png" alt="Information theory measures" width="50%"/></div>
+<div class="caption">
+    Figure 2. Information Theory Measures in Sense (self-information, mutual information, loss, and noise between source and target artifacts).
 </div>
 
 ### 3.1 RQ1: Traceability Effectiveness
 
-None of the evaluated configurations achieve strong classification performance: PR-AUC remains below 0.6 across all experiments, and although ROC-AUC reaches up to 0.76, this overstates performance given how rare true links are relative to candidate pairs (e.g., 277 out of 47,815 for iTrust). We therefore treat PR-AUC, not ROC-AUC, as the primary indicator of effectiveness. Word2vec representations (WMD and Soft-Cosine) consistently outperform doc2vec, most notably on LibEst, where PR-AUC reaches 0.56–0.59. Performance also varies notably by system: LibEst is almost always the top performer, followed by Dronology, while Cisco is consistently the weakest testbed.
+None of the evaluated configurations achieve strong classification performance: PR-AUC remains below 0.6 across all experiments, and although ROC-AUC reaches up to 0.76, this overstates performance given how rare true links are relative to candidate pairs (e.g., 277 out of 47,815 for iTrust). We therefore treat PR-AUC, not ROC-AUC, as the primary indicator of effectiveness. Word2vec representations (WMD and Soft-Cosine) consistently outperform doc2vec, most notably on LibEst, where PR-AUC reaches 0.56–0.59. Performance also varies notably by system: LibEst is almost always the top performer, followed by Dronology, while Cisco is consistently the weakest testbed. On LibEst, word2vec precision falls to 3.8 (Soft-Cosine) and 0.42 (WMD), and doc2vec performs poorly overall; on Dronology under word2vec, both WMD and Soft-Cosine reach higher ROC (0.71, 0.75) and precision–recall (0.13, 0.16) areas, indicating better discriminative performance across the full operating range.
+
+<div align="center">
+<img src="assets/img/paper/libest_supervised_w2v.png" alt="LibEst word2vec precision/recall" width="45%"/>
+<img src="assets/img/paper/libest_supervised_d2v.png" alt="LibEst doc2vec precision/recall" width="45%"/>
+</div>
+<div align="center">
+<img src="assets/img/paper/dronology_avg_precision_w2v.png" alt="Dronology word2vec precision/recall" width="45%"/>
+<img src="assets/img/paper/dronology_avg_precision_d2v.png" alt="Dronology doc2vec precision/recall" width="45%"/>
+</div>
+<div class="caption">
+    Figure 3. Precision and Recall for word2vec (left) and doc2vec (right) using LibEst (top) and Dronology (bottom).
+</div>
 
 > **Summary**: Across all experiments, AUC precision-recall results show consistently low link-recovery performance for both doc2vec and word2vec, with word2vec only marginally ahead.
 
@@ -155,42 +169,27 @@ Unfortunately, information measures are largely unaffected by whether a link is 
 
 > **Summary ($AN_2$)**: Although code carries more information than the corresponding issues, MI, loss, and noise are indistinguishable between confirmed links and non-links. By exposing when and why unsupervised models fail, Sense's information-theoretic measures make their effectiveness and limitations more transparent and data-driven.
 
-<div align="center"><img src="assets/img/fig3_1.png" alt="distributions1" width="50%"/></div>
-<div class="caption">
-    Figure 3. Correlation Analysis of Similarity and Information Measures.
-</div>
-
 ### 3.4 RQ4: Correlation Results
 
-Word Mover's Distance similarity is predominantly positively correlated (≈0.74) with information metrics, whereas Cosine similarity displays the opposite behavior. Mutual information is negatively correlated with WMD distance (equivalently, positively correlated with WMD similarity): more shared information implies smaller artifact distance. MI shows no comparable correlation with cosine similarity, suggesting word vectors may capture semantic relationships better than paragraph vectors, though both ultimately underperform on binary link classification.
+Word Mover's Distance (WMD) similarity is predominantly positively correlated (≈0.74) with the information metrics, whereas Cosine similarity displays the opposite behavior. Mutual information is negatively correlated with WMD distance (equivalently, positively correlated with WMD similarity): more shared information implies smaller artifact distance. MI shows no comparable correlation with cosine similarity, suggesting word vectors may capture semantic relationships better than paragraph vectors, though both ultimately underperform on binary link classification.
 
-<div align="center"><img src="assets/img/fig4_1.png" alt="Information" width="50%"/></div>
-<div align="center"><img src="assets/img/fig4_2.png" alt="Information2" width="50%"/></div>
-<div class="caption">
-    Figure 4. Similarity and Mutual Information.
+The composable manifolds below allow inspection of a third information variable — here, loss and noise, plotted against WMD similarity and mutual information for LibEst, Cisco, and Dronology. On Cisco, loss is largest where MI and similarity are lowest, while noise is more dispersed, forming clusters at both low and high MI — suggesting that injected information is independent of artifact semantics. On LibEst, loss stays high at low MI while noise concentrates at high MI; on Dronology, MI is more condensed, loss is more dispersed, and noise concentrates at low MI.
+
+<div align="center">
+<img src="assets/img/paper/libest_mi_wmd_loss.png" alt="LibEst WMD similarity, MI and Loss" width="30%"/>
+<img src="assets/img/paper/cisco_loss.png" alt="Cisco WMD similarity, MI and Loss" width="30%"/>
+<img src="assets/img/paper/dronology_mi_wmd_loss.png" alt="Dronology WMD similarity, MI and Loss" width="30%"/>
 </div>
-
-<div align="center"><img src="assets/img/fig5_1.png" alt="Shared Information" width="50%"/></div>
-<div align="center"><img src="assets/img/fig5_2.png" alt="Shared Information" width="50%"/></div>
-<div class="caption">
-    Figure 5. Similarity and Shared Information.
+<div align="center">
+<img src="assets/img/paper/libest_mi_wmd_noise.png" alt="LibEst WMD similarity, MI and Noise" width="30%"/>
+<img src="assets/img/paper/cisco_noise.png" alt="Cisco WMD similarity, MI and Noise" width="30%"/>
+<img src="assets/img/paper/dronology_mi_wmd_noise.png" alt="Dronology WMD similarity, MI and Noise" width="30%"/>
 </div>
-
-The composable manifolds in Figure 6 allow inspection of a third information variable — here, loss and noise. On Cisco, loss is largest where MI and similarity are lowest, while noise is more dispersed, forming clusters at both low and high MI, suggesting that injected information is independent of artifact semantics.
-
-<div align="center"><img src="assets/img/fig6_1.png" alt="Loss" width="50%"/></div>
-<div align="center"><img src="assets/img/fig6_2.png" alt="Loss" width="50%"/></div>
 <div class="caption">
-    Figure 6. Loss & Noise with Similarity and Mutual Information.
+    Figure 4. Similarity vs. Mutual Information vs. Loss (top) and Noise (bottom) for LibEst, Cisco, and Dronology.
 </div>
 
 > **Summary**: Loss entropy correlates with low similarity and mutual information, pointing to a clear intervention: reducing loss in traceability datasets improves link classification. Such refactorings are practical, since practitioners routinely complete and document artifacts throughout the software life cycle.
-
-<div align="center"><img src="assets/img/fig7_1.png" alt="AUC" width="50%"/></div>
-<div align="center"><img src="assets/img/fig7_2.png" alt="AUC" width="50%"/></div>
-<div class="caption">
-    Figure 7. Precision-Recall & AUC Performance.
-</div>
 
 ## 4. A Case Study in Industry
 
@@ -230,16 +229,3 @@ To cite the extended, industry-oriented study (in submission to ICSME'26):
 }
 ```
 
-To cite the original pre-print this work extends:
-
-```bibtex
-@misc{palacio2024interpretingeffectivenessunsupervisedsoftware,
-      title={On Interpreting the Effectiveness of Unsupervised Software Traceability with Information Theory},
-      author={David N. Palacio and Daniel Rodriguez-Cardenas and Denys Poshyvanyk and Kevin Moran},
-      year={2024},
-      eprint={2412.04704},
-      archivePrefix={arXiv},
-      primaryClass={cs.SE},
-      url={https://arxiv.org/abs/2412.04704},
-}
-```
