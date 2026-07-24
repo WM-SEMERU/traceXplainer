@@ -210,7 +210,7 @@ Our empirical study and industry-oriented case analysis yield three practical le
 2. **Information-theoretic discrepancies (loss and noise) provide actionable signals of misalignment.** High loss indicates missing propagation of source information; noise reflects undocumented or extraneous target behavior. Both correlate with weak traceability and can guide refactoring, documentation, and QA efforts.
 3. **Standard evaluation metrics alone are insufficient.** Precision, recall, and AUC can obscure limitations due to imbalance or low-information artifacts. Entropy and mutual information offer complementary insight into whether traceability is feasible at all, and help diagnose failure modes.
 
-## Appendix: Original EDA Figures 
+## Appendix:  EDA Figures 
 
 The figures and discussion below are carried over from the original 2024 pre-print's single-system (Cisco/CSC) exploratory analysis. They predate the ICSME'26 extension's 8-testbed study in §3 above, but are kept here for historical reference and because several of the observations still hold.
 
@@ -261,32 +261,6 @@ Mutual information is positively correlated with WMD similarity: the larger the 
 </div>
 
 The minimum shared information (MSI) for entropy is also positively correlated with WMD, consistent with the mutual information trend, and extropy is positively correlated as well — further evidence that WMD similarity captures better semantic relationships among artifacts.
-
-### A.5 Composable Manifolds
-
-<div align="center"><img src="assets/img/fig6_1.png" alt="Loss" width="50%"/></div>
-<div align="center"><img src="assets/img/fig6_2.png" alt="Loss" width="50%"/></div>
-<div class="caption">
-    Figure A6. Loss & Noise with Similarity and Mutual Information.
-</div>
-
-Loss is larger when mutual information and similarity are lower; noise is more dispersed across MI and similarity, forming distinct clusters at low and high MI ranges — indicating some information was injected into the source code independent of the conceptual similarity between artifacts.
-
-> **Summary**: Loss entropy relates to low levels of similarity and mutual information. Interventions in the datasets (refactoring) can help classify links by reducing the loss; these can occur naturally as developers or stakeholders complete or document artifacts during the software lifecycle.
-
-### A.6 Supervised Evaluation
-
-<div align="center"><img src="assets/img/fig7_1.png" alt="AUC" width="50%"/></div>
-<div align="center"><img src="assets/img/fig7_2.png" alt="AUC" width="50%"/></div>
-<div class="caption">
-    Figure A7. Precision-Recall & AUC Performance.
-</div>
-
-The supervised evaluation measures link-recovery accuracy via precision, recall, and AUC. Neither vectorization technique captures semantic similarity efficiently, though skip-gram (word2vec) is more effective than the paragraph-distributed model (doc2vec) for the CSC dataset — a limitation of the data rather than of the unsupervised learning approach itself. The median information in source artifacts is 1.12 bits versus 3.65 bits in target artifacts, an imbalance that prevents unsupervised techniques from capturing useful features from source artifacts.
-
-> **Summary**: Confirmed links and non-links are extremely imbalanced. Cosine and Soft-Cosine similarities behave better under AUC analysis, identifying non-links with a minimum effectiveness of 0.62; neural unsupervised techniques still fail at identifying actual links since the data is not "naturally" partitioned or grouped.
-
-
 ## Citation
 
 To cite the extended, industry-oriented study (in submission to ICSME'26):
