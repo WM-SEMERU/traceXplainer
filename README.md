@@ -1,256 +1,245 @@
-# On Interpreting the Effectiveness of UnsupervisedSoftware Traceability with Information Theory
+# Lost in Transmission: An Information-Theoretic Account of Unsupervised Software Traceability
+
+> By Daniel Rodriguez-Cardenas, Logan Fecko, Denys Poshyvanyk (William & Mary), David N. Palacio (Microsoft), and Kevin Moran (University of Central Florida) | Updated: 24.07.2026
 >
-> By Daniel and @danaderp | Updated: 20.12.2024
-> 
-> Further details can be found in our Pre-print [[ArXiv :page_facing_up:](https://arxiv.org/abs/2412.04704)]
+> This repository, **SENSE** (a.k.a. _Sense-traceability_), is the software artifact for our information-theoretic study of unsupervised software traceability, currently under submission to ICSME'26. The full paper source is tracked as a submodule in [`paper/`](paper).
+>
+> An earlier version of this work was released as a pre-print: [[ArXiv :page_facing_up:](https://arxiv.org/abs/2412.04704)]
 >
 
-Traceability is a cornerstone of modern software development, ensuring system reliability and facilitating software maintenance. While unsupervised techniques leveraging Information Retrieval (IR) and Machine Learning (ML) methods have been widely used for predicting trace links, their effectiveness remains underexplored. In particular, these techniques often assume traceability patterns are present within textual data - a premise that may not hold universally. Moreover, standard evaluation metrics such as precision, recall, accuracy, or F1 measure can misrepresent the model performance when underlying data distributions are not properly analyzed. Given that automated traceability techniques struggle to establish links – even for well-studied datasets properly – we need further insight into the information limits related to traceability artifacts. 
-In this paper, we propose an approach called _TraceXplainer_for using information theory metrics to evaluate and better understand unsupervised traceability techniques' performance (limits). Specifically, we introduce self-information, cross-entropy, and mutual information (MI) as metrics to measure the informativeness and reliability of traceability links. Through a comprehensive replication and analysis of well-studied datasets and techniques, we investigate the effectiveness of unsupervised techniques that predict traceability links using IR/ML. This application of _TraceXplainer_ illustrates an imbalance in typical traceability datasets where the source code has on average 1.48 more information bits (i.e., entropy) than the linked documentation. Additionally, we demonstrate that an average MI of 4.81 bits, loss of 1.75, and noise of 0.28 bits signify that there are information-theoretic limits on the effectiveness of unsupervised traceability techniques. We hope that these findings spur additional research on understanding the limits and progress of traceability research.
+Traceability remains a critical capability to ensure system reliability, maintainability, and compliance in modern software development. Although unsupervised Information Retrieval (IR) and Machine Learning (ML) techniques are widely adopted for automated trace link recovery, their effectiveness is often limited by the quality and structure of the underlying artifacts. In practice, these approaches assume that meaningful traceability signals are embedded in textual data, an assumption that rarely holds in industrial settings with sparse, inconsistent, or unbalanced documentation. Furthermore, conventional evaluation metrics (e.g., precision, recall, F1) can misrepresent performance when data characteristics are not explicitly considered.
+
+We introduce **SENSE**, an information-theoretic framework for evaluating the reliability and limits of unsupervised traceability. SENSE leverages *self-information* and *mutual information (MI)* to quantify the informativeness and alignment of source and target artifacts. Through a comprehensive empirical analysis of eight system testbeds, including a proprietary industrial dataset from Cisco Systems, we show that typical traceability corpora exhibit significant information imbalances, where the source code contains on average more information than the corresponding documentation. In addition, the observed levels of mutual information, loss, and noise reveal inherent constraints on the ability of unsupervised techniques to recover accurate trace links. These findings suggest that improving traceability in practice requires a shift toward data-centric engineering, focusing on artifact quality, consistency, and information alignment, rather than solely advancing model sophistication (or complexity). Our results provide insights for practitioners to better assess traceability readiness and guide improvements in documentation and development workflows.
 
 ## Introduction
-This research investigates the challenges of information transmission in software traceability, focusing on semantic relationships among software artifacts such as code, requirements, and test cases. Unsupervised information retrieval techniques like TF-IDF, LSA, or LDA are commonly used to represent these artifacts as vectors in a derived space, enabling the calculation of semantic closeness through distance metrics. However, the effectiveness of these techniques is limited by issues such as data imbalance, bias, and poor-quality artifacts. For example, poorly written requirements or undocumented code hinder the traceability process, making it inefficient for tasks like impact analysis. This research emphasizes the need for rigorous statistical approaches and information-theoretic measures to assess and improve the reliability of predicted trace links.
 
-Theoretically, software requirements should be amenable to being translated into multiple forms of information such as source code, test cases, or design artifacts. Thus, we refer to these requirements or any initial/raw form of information as the *source artifacts*. Conversely, the information that is a product of a transformation or alteration is considered a *target artifact*. In the software engineering context, a transformation could be any action that a software engineer applies from those requirements. For instance, implementing a requirement can be seen as a way of translating information from the requirements to the source code.
+This research investigates the phenomenon of information transmission in software traceability from the perspective of industrial software engineering practice. Traceability, the discipline of drawing semantic relationships among software artifacts (e.g., code, requirements, test cases), is a foundational capability in modern engineering organizations, underpinning code comprehension, compliance validation, security tracking, and impact analysis. In industrial settings, IR techniques (e.g., TF-IDF, LSA, or LDA) are routinely used to represent *high-level* artifacts (requirements) and *low-level* artifacts (source code) as compressed vectors, from which a distance (Euclidean, Cosine, or Word Mover's Distance) is used to decide whether a source-target pair should be linked in a production trace matrix.
 
-The approach we have used in this study aims to calculate a set of information measures to complement and explain the limitations of semantic traceability techniques. Understanding such limitations (or bounds) will allow us to assess how well traceability algorithms work for a given software project. Numerous experiments have established that studying the manifold of information measures might help us to detect critical points in the artifacts. These critical points are potentially missed documentation or repetitive tokens that need to be refactored to enhance the effectiveness of traceability algorithms. 
+Theoretically, software requirements should be amenable to translation into multiple forms of information, such as source code, test cases, or design artifacts. We refer to these requirements, or any initial/raw form of information, as *source artifacts*. Conversely, information that is the product of a transformation is a *target artifact* — for instance, implementing a requirement translates information from the requirement to the source code.
 
-This research introduces _TraceXplainer_, an interpretability framework leveraging information-theoretic metrics such as mutual information and entropy to diagnose the shortcomings of unsupervised models in traceability. Through empirical analysis, the authors reveal that textual artifacts often lack sufficient information for effective trace link prediction, as seen in the examination of the CSC system, where pull request comments and code exhibit significant information imbalance. Findings highlight that low mutual information between artifacts indicates potential information loss, undermining traceability. The research calls for data-centric evaluations to identify and address the limitations of testbeds and traceability techniques, ultimately proposing strategies to enhance information quality and model robustness.
+In industry, the effectiveness of unsupervised traceability is typically reported using canonical classification metrics (precision, recall, AUC, accuracy, F1). These metrics can be misleading when the underlying data are not properly explored: real software traceability corpora are generally imbalanced, skewed, and biased. We contend that there are *data limitations* embedded in the software artifacts that traceability techniques operate upon, and that these limitations cap the effectiveness of any tool deployed on top of them — independent of whether that tool is conventional, machine learning, or an LLM-based approach.
 
+We hypothesize that information-theoretic measures (self-information, mutual information, relative entropy, and shared information) can help **interpret or explain** how unsupervised techniques are limited when solving the traceability problem in industrial settings. This diagnostic lens is what we call **Sense**: an interpretability approach that gives engineering teams a starting point for monitoring traceability distances, information-theoretic measures, and the relationship between the two.
+
+For the Cisco testbed, an industrial dataset derived from a real Cisco engineering workflow, we found that pull request comments and their associated source code often contain contrasting information: pull request comments exhibit an entropy of 3.42 bits, while the source code reaches 5.91 bits — a substantial imbalance with direct implications for impact analysis, code review, and downstream audit activities. We recommend that engineering teams examine such imbalanced links to design refactoring strategies that reduce information loss and increase mutual information across software documentation.
 
 ---------
 
-## 1. TraceXplainer Code Artifacts
-**TraceXplainer** comprises a set of steps for training and evaluating machine learning models for traceability link recovery. On this evaluation and training, the set of datasets and  Python notebooks are listed as follows:
+## 1. Sense Code Artifacts
 
-| **Artifact**           | **Repository Folder**     | **Description**                                                                                                 |
-|------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------|
-| _Documented Notebooks_ | [Python Notebooks](https://github.com/WM-SEMERU/traceXplainer/tree/master/notebooks) | Notebooks data collection, model training and statistical analysis |
-| _Source Code_          | [main/ds4se](https://github.com/WM-SEMERU/traceXplainer/tree/master/main/ds4se)      | Python project code with the implementation for mining CSC datasets, model training, metrics, clusterization process  and experiment configuration                    |
-| _Source Code_          | [main/t-miner](https://github.com/WM-SEMERU/traceXplainer/tree/master/main/t-miner)  | Exploratory tool for traceability visualization       |
-| _Datasets_          | [dvc-data/systems](https://github.com/WM-SEMERU/traceXplainer/tree/master/dvc-data/systems) |  System datasets used for _TraceXplainer_ experiments, each system includes the corpus and vectorization for doc2vect and word2vec models |
+**Sense** comprises a set of steps for training and evaluating machine learning models for traceability link recovery. The table below maps each part of the pipeline to where it lives in the repository:
 
+| **Artifact**             | **Repository Folder**                                                                              | **Description**                                                                                                 |
+|---------------------------|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| _Documented Notebooks_    | [notebooks/](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks)                 | End-to-end notebooks for data prep, model training, and statistical analysis (see breakdown below)                 |
+| _Dronology Re-runs_       | [notebooks/dronology_notebooks](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks) | Per-experiment (4.0.0–4.2.1) re-runs of the pipeline against the Dronology testbed, added for the ICSME'26 extension |
+| _Core Library_            | [main/ds4se](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se)                | Python package implementing dataset mining, model training, metrics, clusterization, and experiment configuration  |
+| ┗ Data Mgmt & Prep        | [main/ds4se/mgmnt/prep](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/mgmnt/prep) | Corpus loading, cleaning, and preprocessing (tokenization, BPE, camel-case splitting)                          |
+| ┗ Representation Learning | [main/ds4se/repr](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/repr)      | Word2Vec, Doc2Vec, and RoBERTa training/evaluation code                                                            |
+| ┗ Unsupervised Traceability | [main/ds4se/traceability/unsupervised](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/traceability/unsupervised) | Distance/similarity computation (Cosine, Soft-Cosine, WMD, Euclidean) between artifacts                 |
+| ┗ InfoXplainer            | [main/ds4se/infoxplainer](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/infoxplainer) | Information-theoretic metrics (entropy, MI, loss, noise) split into `ir`, `causality`, `description`, `prediction` |
+| ┗ CodeXplainer            | [main/ds4se/codexplainer](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/ds4se/codexplainer) | Doc2Vec vectorization, prototypes/criticisms, and error-checking utilities for source code                        |
+| _Visualization Tool_      | [main/t-miner](https://github.com/WM-SEMERU/Sense-traceability/tree/master/main/t-miner)            | Dash app (`app.py`) for exploring cases, descriptive, and predictive traceability views                            |
+| _Datasets_                | [dvc-data/systems](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems)    | Per-system corpora and vectorizations (see the testbed table in §2 for direct links)                               |
+| _Paper Source_            | [paper/](https://github.com/WM-SEMERU/Sense-traceability/tree/master/paper)                         | LaTeX submodule with the ICSME'26 submission "Lost in Transmission: An Information-Theoretic Account of Unsupervised Software Traceability" |
 
 ### Documented Notebooks
-The folder `notebooks` contains several books for _TraceXplainer_ analysis.
 
-1. [Data and model exploratory analysis](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/0.1_mgmnt.prep.ipynb)
-2. [Word2Vec training](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/2.3_repr.word2vec.train.ipynb)
-3. [Word2Vec evaluation](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/2.6_repr.word2vec.eval.ipynb)
-4. [Unsupervised traceability eda](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.1_traceability.unsupervised.eda.ipynb)
-5. [Unsupervised traceability Doc2Vec](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.2_traceability.unsupervised.approach.d2v.ipynb)
-6. [Unsupervised traceability Word2Vec](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/3.2_traceability.unsupervised.approach.w2v.ipynb)
-7. [Exploratory Analysis - Information retreival](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.0_infoxplainer.ir.ipynb)
-8. [Descriptive Analysis](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.5_infoxplainer.description.eval.traceability.ipynb)
-9. [Traceability Effectiveness Evaluation](https://github.com/WM-SEMERU/traceXplainer/blob/master/notebooks/4.6_infoxplainer.prediction.eval.traceability.ipynb)
+The folder `notebooks` contains several notebooks for Sense analysis, grouped by pipeline stage:
 
+**Data Prep & Representation Learning**
 
+| Notebook | Description |
+|---|---|
+| [0.1_mgmnt.prep](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/0.1_mgmnt.prep.ipynb) | Data and model exploratory analysis |
+| [2.3_repr.word2vec.train](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/2.3_repr.word2vec.train.ipynb) | Word2Vec training |
+| [2.6_repr.word2vec.eval](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/2.6_repr.word2vec.eval.ipynb) | Word2Vec evaluation |
+
+**Unsupervised Traceability**
+
+| Notebook | Description |
+|---|---|
+| [3.1_traceability.unsupervised.eda](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/3.1_traceability.unsupervised.eda.ipynb) | Unsupervised traceability EDA |
+| [3.2_traceability.unsupervised.approach.d2v](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/3.2_traceability.unsupervised.approach.d2v.ipynb) | Unsupervised traceability via Doc2Vec |
+| [3.2_traceability.unsupervised.approach.w2v](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/3.2_traceability.unsupervised.approach.w2v.ipynb) | Unsupervised traceability via Word2Vec |
+
+**InfoXplainer Analysis**
+
+| Notebook | Description |
+|---|---|
+| [4.0_infoxplainer.ir](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.0_infoxplainer.ir.ipynb) | Exploratory analysis — information retrieval |
+| [4.1_infoxplainer.ir.unsupervised.d2v](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.1_infoxplainer.ir.unsupervised.d2v.ipynb) | Unsupervised IR — Doc2Vec |
+| [4.2_infoxplainer.ir.unsupervised.w2v](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.2_infoxplainer.ir.unsupervised.w2v.ipynb) | Unsupervised IR — Word2Vec |
+| [4.3_infoxplainer.ir.eval.x2v](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.3_infoxplainer.ir.eval.x2v.ipynb) | Evaluation across vectorization techniques |
+| [4.4_infoxplainer.causality.eval.traceability](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.4_infoxplainer.causality.eval.traceability.ipynb) | Causality evaluation |
+| [4.5_infoxplainer.description.eval.traceability](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.5_infoxplainer.description.eval.traceability.ipynb) | Descriptive analysis |
+| [4.6_infoxplainer.prediction.eval.traceability](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/4.6_infoxplainer.prediction.eval.traceability.ipynb) | Traceability effectiveness evaluation |
+
+**CodeXplainer**
+
+| Notebook | Description |
+|---|---|
+| [8.5_codexplainer.d2v_vectorization](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/8.5_codexplainer.d2v_vectorization.ipynb) | Doc2Vec vectorization for source code |
+| [code2vec-usage](https://github.com/WM-SEMERU/Sense-traceability/blob/master/notebooks/code2vec-usage.ipynb) | Code2Vec usage example |
+
+**Dronology Re-runs** (`notebooks/dronology_notebooks/`)
+
+The pipeline above (representation training → unsupervised traceability → InfoXplainer IR) was re-run per experiment against the Dronology testbed. Each subfolder is one experiment configuration:
+
+| Experiment | Folder |
+|---|---|
+| 4.0.0 – 4.0.1 | [dronology_notebooks/4.0.0](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks/4.0.0), [4.0.1](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks/4.0.1) |
+| 4.1.0 – 4.1.5 | [dronology_notebooks/4.1.x](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks) (folders `4.1.0` through `4.1.5`) |
+| 4.2.0 – 4.2.1 | [dronology_notebooks/4.2.0](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks/4.2.0), [4.2.1](https://github.com/WM-SEMERU/Sense-traceability/tree/master/notebooks/dronology_notebooks/4.2.1) |
+
+These correspond to the `experiment4.x.x` result folders under [dvc-data/systems/dronology](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/dronology).
 
 ---------
 
 ## 2. Empirical Evaluation Setup
 
-The results presented in this section are a product of the optimal configuration of IR techniques for software traceability reached with baseline datasets (LibEst, iTrust, eTour, EBT, and SMOS). This configuration is defined as follows: conventional preprocessing, which includes stemming, camel case splitting, and stop word removal. The traceability arrow is from “issues'' to “source code” (issue2src). The vectorization technique employed is skip-gram (word2vec) and paragraph vector bag of words (pv-bow) (doc2vec). The pretraining was performed with the Java and Python code search net dataset. The embedding size was 500 and the number of epochs was 20 for each model.
+Our study evaluates **eight system testbeds** — LibEst, Cisco, Albergate, EBT, eTour, iTrust, SMOS, and Dronology — seven from public sources and one (Cisco) a proprietary, industrial dataset obtained through a confidential research collaboration. Because the underlying Cisco pull requests and source files are confidential, only aggregated, derived measurements are released in this repository.
 
-The data science information pipeline is composed of 2 analyses and 1 chapter for case studies. The 2 analyses are:
+| System | Data Folder | Language | Link Type | All Pairs | Links | Non-Links |
+|---|---|---|---|---:|---:|---:|
+| LibEst      | [dvc-data/systems/libest](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/libest)       | EN | req2tc  | 1,092  | 352   | 740    |
+| Cisco       | _not released (confidential)_                                                                                          | EN | pr2src  | 21,312 | 547   | 20,765 |
+| Albergate   | [dvc-data/systems/albergate](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/albergate)   | EN | req2src | 935    | 53    | 882    |
+| EBT         | [dvc-data/systems/ebt](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/ebt)               | EN | req2src | 2,050  | 98    | 1,952  |
+| eTour       | [dvc-data/systems/etour](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/etour)           | IT | uc2src  | 6,728  | 308   | 6,420  |
+| iTrust      | [dvc-data/systems/itrust](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/itrust)         | EN | uc2src  | 47,815 | 277   | 47,538 |
+| SMOS        | [dvc-data/systems/smos](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/smos)             | IT | uc2src  | 6,700  | 1,044 | 5,656  |
+| Dronology   | [dvc-data/systems/dronology](https://github.com/WM-SEMERU/Sense-traceability/tree/master/dvc-data/systems/dronology)   | EN | req2src | 10,672 | 393   | 10,279 |
 
-- _Exploratory Data Analysis for Interpreting Traceability_. The goal of this section is to measure the set of information measures and summarize the results in probability distributions. The data is also analyzed according to the ground truth and variable correlations. This exploration allows us to interpret how well an unsupervised technique for traceability will perform.  
-- _Supervised Evaluation_. The goal of this section is to show the effectiveness of the unsupervised techniques and their limitations due to information measures.  
+We varied three experimental factors: the preprocessing strategy (conventional NLTK-based, BPE-8k, or BPE-32k via SentencePiece), the vectorization technique (skip-gram/word2vec, or paragraph-vector bag-of-words/doc2vec), and the pretraining corpus (CodeSearchNet Java/Python, or Wikipedia). All models used an embedding size of 500 and were trained for 20 epochs. Information-theoretic metrics were computed with [DIT](https://github.com/dit/dit), a Python library for discrete information theory.
+
+Our empirical evaluation is organized around four research questions:
+
+- **RQ1** — How effective are unsupervised techniques at predicting candidate trace links using IR/ML representations?
+- **RQ2** — To what extent are semantic metrics imbalanced relative to the ground truth?
+- **RQ3** — How much information is transmitted from source to target artifacts?
+- **RQ4** — To what extent do information metrics correlate with semantic distances?
 
 ## 3. Exploratory Data Analysis for Interpreting Traceability
 
-Exploratory Data Analysis is an exhaustive search of patterns in data with a specific goal in mind. For this report, our goal is to use information measures to describe and interpret  the effectiveness of unsupervised traceability techniques. This section introduces 3 explorations:
-1. __Manifold of Information Measures__. The purpose of this exploration is to determine the probability distribution of each entropy and similarity metric. We have some assumptions about how we expect these distributions to be. For instance, similarity distributions should be bimodal since we want to observe a link and a non-link. If our assumptions do not match the expected distribution, then we can assess the quality of the technique. 
-2. __Manifold of Information Measures by Ground truth__. The purpose of this exploration is to group each entropy and similarity metric by a given ground truth. The division of data by the ground truth allows us to determine the quality of the prediction for similarity metrics. Additionally, it also allows us to describe how good the ground truth is since we are measuring the information transmission between source and target artifacts. 
-3. __Scatter Matrix for Information Measures__. The purpose of this exploration is to find correlations between information theory metrics and unsupervised similarities. These correlations help us to explain the traceability behavior from information transmission for a given dataset. 
+Exploratory Data Analysis is an exhaustive search for patterns in data with a specific goal in mind. Here, our goal is to use information measures to describe and interpret the effectiveness of unsupervised traceability techniques, through two complementary analyses:
+
+1. **Manifold of Information Measures ($AN_1$)** — characterizes the probability distribution of each entropy and similarity metric. We expect, for instance, similarity distributions to be bimodal (reflecting links vs. non-links); deviations from this assumption help us assess technique quality.
+2. **Manifold of Information Measures by Ground Truth ($AN_2$)** — partitions each entropy and similarity metric by ground-truth label, letting us interpret prediction quality and describe how well the ground truth captures information transmission between source and target artifacts.
 
 <div align="center"><img src="assets/img/fig1_1.png" alt="distributions1" width="50%"/></div>
 <div align="center"><img src="assets/img/fig2_1.png" alt="distributions1" width="50%"/></div>
 <div class="caption">
-    Figure 1 & 2. Probability distributions of Similarities and Information Measures (and grouped by Ground Truth)
+    Figure 1 & 2. Probability distributions of Similarities and Information Measures (and grouped by Ground Truth) for the Cisco testbed.
 </div>
 
-### 3.1 EDA1: Manifold of Information Measures
-The following manifold depicts the distribution of each information variable. We can observe that the self-information of the source artifacts (or issues) is on average [3.42 ± 1.31] B (or bits), while the self-information of the target artifacts (or source code) is on average [5.91 ± 0.86] B. This means that the amount of information in the source code is 1.72 bits larger than the amount of information in the set of issues. Now, the mutual information is on average [3.21 ± 1.19] B, the minimum shared entropy is [1.45 ± 1.14] B, and the minimum shared extropy is [0.87 ± 0.54] B. 
+### 3.1 RQ1: Traceability Effectiveness
 
-The loss and noise are both gaussian distributions with a median of 2.53B and 0.11B respectively. The loss is larger than the noise by a range of 2.42B. If we consider that the median of the minimum shared entropy is 1.50B, then the amount of lost information is high. This might indicate that the source code is poorly commented. Furthermore, the noise is barely a bit unit, which indicates that the code is not influenced by an external source of information. 
+None of the evaluated configurations achieve strong classification performance: PR-AUC remains below 0.6 across all experiments, and although ROC-AUC reaches up to 0.76, this overstates performance given how rare true links are relative to candidate pairs (e.g., 277 out of 47,815 for iTrust). We therefore treat PR-AUC, not ROC-AUC, as the primary indicator of effectiveness. Word2vec representations (WMD and Soft-Cosine) consistently outperform doc2vec, most notably on LibEst, where PR-AUC reaches 0.56–0.59. Performance also varies notably by system: LibEst is almost always the top performer, followed by Dronology, while Cisco is consistently the weakest testbed.
 
-The similarity metrics have a non-standard behavior. For instance, let’s compare the cosine similarity (for doc2vec) and the WMD_sim (for word2vec). The average value of the cosine is [0.09 ± 0.07], while the value for the WMD_sim is [0.45 ±0.90]. Both similarity distributions are unimodal, which indicates that the binary classification does not exist and both similarities are not overlapping. 
+> **Summary**: Across all experiments, AUC precision-recall results show consistently low link-recovery performance for both doc2vec and word2vec, with word2vec only marginally ahead.
 
-> __Summary__: the maximum transmission of information was around 4.4 bits from issues to source code. If we observe the link {PR-294 ➝ psb_mapping.py}, which corresponds to the minimum MI of 5.5 B in the 99% quantile,  then we infer that the 4.4 B of maximum transmission can be improved until reaching an average value of 5.5B. We recommend that software developers implement inspection procedures to refactor documentation in both requirements and source code to enhance mutual information (and MSI).
+### 3.2 RQ2: Semantic Traceability Imbalance
 
-### 3.2 EDA2: Manifold of Information Measures by Ground Truth 
-Unfortunately, information measures are not being affected by the nature of the traceability. That is, information is independent of whether a link between two artifacts exists or not. Nonetheless, all sequence-based artifacts are related somehow (or share some amount of information), this “independent” behavior is not expected in similarity metrics such as softcosine, euclidean, or word mover’s distance. Neural unsupervised techniques based on skip-gram models are unable to binary classify a link. In other words, data do not have encoded the necessary patterns to determine the classification. We need to employ probabilistic models to intervene in the expectation value of a link (see COMET approach) or systematic refactorings on the artifacts.
+Low Soft-Cosine similarity values (e.g., 0.1 on both Cisco and EBT) indicate weak similarity between source and target artifacts, even for confirmed ground-truth links — for instance, SMOS reports a Soft-Cosine of just 0.06 for confirmed links. The highest Word Mover's Distance similarity, 0.51 on LibEst, suggests only modest token overlap between source and target. Doc2vec exhibits comparable behavior, with Euclidean distances near the maximum (0.98) on LibEst and Cisco, whereas Dronology's larger, more diverse corpus yields much lower Euclidean distances (0.02).
 
-- Self-Information of source artifacts _I(X)_. 
-    - Linked [3.80 ± 1.16] B | Median: 4.12 B
-    - Non-Linked [3.41 ± 1.31] B | Median: 3.64 B
-    - _Interpretation_: Confirmed links and non links intervals are overlapping in a large entropy range for the source set. The distance between the medians is around 0.48B. We cannot see any entropy difference between linked and non-linked source artifacts. 
-- Self-Information of target artifacts _I(Y)_. 
-    - Linked [6.23 ± 0.89] B | Median: 6.21 B
-    - Non-Linked [5.90 ± 0.86] B | Median: 5.90 B
-    - _Interpretation_: Confirmed links and non links intervals are overlapping in a large entropy range for the target set. The distance between the medians is around 0.31B. We cannot see any entropy difference between linked and non-linked source artifacts.
-- Mutual Information _I(X:Y)_.  
-    - Linked [3.60 ± 1.06] B | Median: 3.85 B
-    - Non-Linked [3.20 ± 1.19] B | Median: 3.39 B
-    - _Interpretation_: Confirmed links and non links intervals are overlapping in a large mutual information range for both sets. The distance between the medians is around 0.46B. Mutual information does not work as a predictor of links with the given ground truth. We expect high mutual information in confirmed links and low mutual information in non-links. 
-- Information Loss _I(X\|Y)_. 
-    - Linked [2.63 ± 1.33] B | Median: 2.46 B
-    - Non-Linked [2.71 ± 1.35] B | Median: 2.53 B
-    - _Interpretation_: Confirmed links and non links intervals are overlapping in a large entropy loss range for both sets. The distance between the medians is around 0.07B. The loss is basically the same for links and non links. We expect high loss in non-links. 
-- Information Noise I(Y\|X). 
-    - Linked [0.20 ± 0.31] B | Median: 0.09 B
-    - Non-Linked [0.21 ± 0.30] B | Median: 0.11 B
-    - _Interpretation_: Confirmed links and non links intervals are overlapping in a large entropy noise range for both sets. The distance between the medians is around 0.02B. The noise is basically the same for links and non links. We expect high noise in non-links.  
-- Minimum Shared of Information for Entropy.
-    - Linked [1.98 ± 1.11] B | Median: 2.00 B
-    - Non-Linked [1.44 ± 1.14] B | Median: 1.50 B
-    - _Interpretation_: The distance between the medians is around 0.5B. We expect high shared information in confirmed links and low shared information in non-links for the entropy.
-- Minimum Shared of Information for Extropy.
-    - Linked [1.07 ± 0.43] B | Median: 1.25 B
-    - Non-Linked [0.86 ± 0.54] B | Median: 1.12 B
-    - _Interpretation_: The distance between the medians is around 0.13B. We expect low shared information in confirmed links and high shared information in non-links for the extropy.
+> **Summary**: The traceability ground truth is heavily imbalanced between links and non-links. Cosine distance and Soft-Cosine similarity fare best under AUC, with a minimum effectiveness of 0.19 and 0.12 respectively on the Cisco testbed.
 
-> __Summary__: Even though the amount of information in the source code is larger than the amount of information in the set of issues; the MI, loss, and noise are indistinguishable from confirmed links to non-links. We expect low amounts of mutual information and high amounts of loss and noise for non-related artifacts. 
+### 3.3 RQ3: Exploratory Information Theory Results
 
-### 3.3 ED3: Scatter Matrix for Information Measures
-Correlations are helpful to explain variables that we are not easily able to describe just by observing their values. Correlations are useful to interpret the causes or detect similar patterns for a given metric. In this case, we want to study similarity variables by correlating them with other similarity variables and information measures (e.g., MI, Loss, Noise, Entropy, etc). The following manifold in Figure 3 depicts all the correlations and distribution of each information variable. We want to highlight that the WMD similarity is mostly positively correlated (~0.74) with other information metrics, while COS similarity has the opposite effect. 
+Across all experiments, the self-information $H(X)$ of source artifacts (issues, requirements, pull requests) averages 4.63 ± 1.17 bits, while the self-information $H(Y)$ of target artifacts (source code) averages 6.16 ± 0.91 bits — an average imbalance of 1.53 bits in favor of the target. Mutual information averages 4.33 ± 1.14 bits, the minimum shared entropy averages 2.43 ± 1.39 bits, and the minimum shared extropy averages 1.12 ± 0.24 bits. Loss and noise are both approximately Gaussian, with medians of 1.82 and 0.30 bits respectively — loss exceeds noise by roughly 1.52 bits on average, suggesting related-but-poorly-documented source code rather than externally injected information.
+
+> **Summary ($AN_1$)**: On the Cisco testbed, information transmission from issues to code peaks at ≈4.52 bits. We recommend engineering teams adopt inspection procedures that refactor both requirement and code documentation to raise MI and minimum shared information.
+
+Unfortunately, information measures are largely unaffected by whether a link is confirmed or not: $H(X)$ and $H(Y)$ are comparable across links and non-links, and mutual information, loss, and noise are indistinguishable between the two groups. This means skip-gram–based neural unsupervised techniques cannot reliably perform binary link classification from these signals alone — the data do not encode the necessary discriminative patterns. Closing this gap requires either probabilistic models that intervene on the expected value of a link, or systematic refactoring of the artifacts themselves.
+
+> **Summary ($AN_2$)**: Although code carries more information than the corresponding issues, MI, loss, and noise are indistinguishable between confirmed links and non-links. By exposing when and why unsupervised models fail, Sense's information-theoretic measures make their effectiveness and limitations more transparent and data-driven.
+
 <div align="center"><img src="assets/img/fig3_1.png" alt="distributions1" width="50%"/></div>
 <div class="caption">
     Figure 3. Correlation Analysis of Similarity and Information Measures.
 </div>
 
-### 3.4 Mutual Information & Shared Information Entropy and Extropy
-This analysis consists of computing a correlation between the distance and entropy. Mutual information is positively correlated with WMD similarity as observed in Figure4. This implies that the larger the amount of shared information, the more similar the artifacts. The previous statement makes sense until we observe that MI is not correlated with the cosine similarity. Is the word vector capturing better semantic relationships than paragraph vectors? Both approaches are not performing well according to the supervised evaluation. 
+### 3.4 RQ4: Correlation Results
+
+Word Mover's Distance similarity is predominantly positively correlated (≈0.74) with information metrics, whereas Cosine similarity displays the opposite behavior. Mutual information is negatively correlated with WMD distance (equivalently, positively correlated with WMD similarity): more shared information implies smaller artifact distance. MI shows no comparable correlation with cosine similarity, suggesting word vectors may capture semantic relationships better than paragraph vectors, though both ultimately underperform on binary link classification.
+
 <div align="center"><img src="assets/img/fig4_1.png" alt="Information" width="50%"/></div>
 <div align="center"><img src="assets/img/fig4_2.png" alt="Information2" width="50%"/></div>
 <div class="caption">
-    Figure 4. Similarity and Mutual Information
+    Figure 4. Similarity and Mutual Information.
 </div>
 
-On the other hand, the MSI for entropy is also positively correlated with the WMD as depicted in Figure 5. The trend is expected after observing the correlation with the mutual information. However, the extropy is also positively correlated. We are showing more evidence that WMD similarity is capturing better semantic relationships among the artifacts. 
 <div align="center"><img src="assets/img/fig5_1.png" alt="Shared Information" width="50%"/></div>
 <div align="center"><img src="assets/img/fig5_2.png" alt="Shared Information" width="50%"/></div>
-
 <div class="caption">
-    Figure 5. Similarity and Shared Information
+    Figure 5. Similarity and Shared Information.
 </div>
 
-### 3.5 Composable Manifolds 
-The composable manifolds are useful for inspecting a third information variable. In this case, we focused on the loss and noise (see Figure 6). We can observe that the loss is larger when the mutual information and similarity are lower. However, the noise is more dispersed across the mutual information and similarity. We find different clusters of noise in low and larger ranges of MI. These trends indicate that there is some amount of information that was injected in the source code but it is independent of the conceptual similarity of two artifacts.    
+The composable manifolds in Figure 6 allow inspection of a third information variable — here, loss and noise. On Cisco, loss is largest where MI and similarity are lowest, while noise is more dispersed, forming clusters at both low and high MI, suggesting that injected information is independent of artifact semantics.
 
 <div align="center"><img src="assets/img/fig6_1.png" alt="Loss" width="50%"/></div>
 <div align="center"><img src="assets/img/fig6_2.png" alt="Loss" width="50%"/></div>
-
 <div class="caption">
-    Figure 6. Loss & Noise with Similarity and Mutual Information
+    Figure 6. Loss & Noise with Similarity and Mutual Information.
 </div>
 
-
-> __Summary__: Loss entropy is related to low levels of similarity and mutual information. We need to intervene in the datasets to help classify the links by reducing the loss. Such interventions (or refactorings) can occur because developers or stakeholders complete or document artifacts during the software lifecycle.  
-
-## Supervised Evaluation 
-
-The supervised evaluation consists of measurements of the accuracy of the link recovery. The link recovery is computed in terms of precision, recall, and AUC. Nevertheless, both techniques do not capture semantic similarity efficiently, the skip-gram model has a better efficiency than the paragraph-distributed model for the _CSC_ dataset. This is not a problem of the unsupervised learning approach but a limitation of the data. The data are insufficient to capture patterns that contribute to the binary classification or traceability generation. If we observe Figure 2, we can explain this behavior by stating that both WMD_similarity and COS_sim are not different when grouped by ground truth. What is more, the median information in source artifacts is 1.12B, while the median in target artifacts is 3.65. Such a situation created an imbalance of information not allowing unsupervised techniques to capture features from source artifacts. In fact, the median MSI for confirmed links is 2.0, which is quite low considering that the MSI max value is 5.23.  
+> **Summary**: Loss entropy correlates with low similarity and mutual information, pointing to a clear intervention: reducing loss in traceability datasets improves link classification. Such refactorings are practical, since practitioners routinely complete and document artifacts throughout the software life cycle.
 
 <div align="center"><img src="assets/img/fig7_1.png" alt="AUC" width="50%"/></div>
 <div align="center"><img src="assets/img/fig7_2.png" alt="AUC" width="50%"/></div>
-
 <div class="caption">
-    Figure 7. Precision-Recall & AUC Performance
+    Figure 7. Precision-Recall & AUC Performance.
 </div>
 
-> __Summary__: The set of confirmed links and non-links are extremely imbalanced. Cosine and Soft-Cosine similarities behave better under AUC analysis, which means they identify non-links with a minimum effectiveness of 0.62. However, neural unsupervised techniques failed at identifying actual links since the data is not “naturally” partitioned or grouped (see EDA grouped by ground truth). 
+## 4. A Case Study in Industry
 
+This section presents four information-science cases derived from processing the Cisco testbed, an industrial corpus of pull requests and source code from a real-world Cisco engineering workflow. Each case is framed around an actionable insight that engineering teams can apply to assess and improve their traceability readiness.
 
-## Some Use Cases
-This section shows four information science cases from processing the _CSC_ system. The whole set of experiments and samples can be found in this link. 
-- __Case 0: Self-Information__. This study highlights the imbalance of information between the source and target artifacts.
-- __Case 1: Minimum and maximum loss__. This study presents edge cases for entropy loss. This is useful for detecting poorly documented target artifacts.  
-- __Case 2: Minimum and maximum noise__. This study presents edge cases for the entropy noise. This is useful for detecting poorly documented source artifacts.
-- __Case 3: Orphan informative links__. This study points out a set of informative links that are not found in the ground truth. 
+**Case 0 — Diagnosing Information Imbalance Between Pull Requests and Code.** Cisco pull request comments exhibit an average self-information of 3.42 bits, while the corresponding source files reach 5.91 bits: code carries substantially more information than the pull request intended to describe it. Artifacts with low entropy (terse PR titles, single-line tickets, boilerplate templates) fail to give unsupervised techniques the lexical density needed to recover trace links; disproportionately high-entropy artifacts introduce loss and noise that obscure engineering intent. This imbalance is a leading indicator that documentation conventions, PR templates, or commit hygiene need attention before model-centric investment pays off.
 
-Consider the following notation for this section. The down arrows 🠗 represent the minimum entropy value observed. Up arrows 🠕 depict the maximum entropy value observed. Entropy values are given in bit unit (B). Links with a value 1.0 are _confirmed-links_, whereas links with value 0.0 are _non-links_. 
+**Case 1 — Detecting Under-Documented Code via Loss Extremes.** At the upper extreme, a single-token pull request (e.g., a one-word commit message) is paired with one of the highest-entropy source files in the repository — a clear signal the change description fails to capture the implementation. At the lower extreme, a fully described pull request is paired with source code whose vocabulary does not reflect the PR content at all; even a human reviewer at the 99% loss quantile for positive links would struggle to justify the association. Both extremes are actionable: the first via stricter PR description standards, the second via inline code comments or naming conventions that mirror the requirement vocabulary.
 
-## Case Study 0: Self-Information
-- Case Study 0.1: Low Entropy Artifacts 
-In some cases, low amounts of information in source artifacts might indicate that pull requests (or requirements) are undocumented. For example, PR with the following IDs has a zero (or minimum) entropy value: PR-241, PR-168, PR-144, PR-128, PR-113, PR-101, and PR-41. Low amounts of information in target artifacts might suggest that the source code is repetitive, undocumented, or empty. For example, these files (<=0.05 quantile) have an entropy less than <= 4.74 B: webex_send_func.py, ipcReport.py, fireException.py, and (of course) \__init__.py. 
-- Case Study 0.2: High Entropy Artifacts 
-In some cases, high amounts of information in source (and target) artifacts might indicate that the inspected pull request (or source file) has a diverse set of tokens that describe or determine the content of the artifact. In other words, high entropy may indicate the relevance of the artifact. For instance, PR with the following IDs has a max entropy of 6.56: PR-256 and PR-56. While these files (>=0.97 quantile) have an entropy greater than 7.45 B: security_results_push_func.py, binary_scan_func.py, and run_ipcentral_automation.py
-- _Discussion_. Artifacts with low levels of entropy struggle to generate traceability links in view of the fact that unsupervised techniques rely on concise descriptions in natural language. By contrast, high levels of entropy struggle with other conditions like loss or noise. Refactoring operations need to be applied to source and target artifacts to combat the imbalance of information. At least, a semantic idea expressed as a clause is required in both artifacts to guarantee a link. When we preprocess the source code, we transform the code structure into a sequence structure to extract those clauses. In other words, source code is not treated as a structured language but as a regular text file. The amount of information lost by preprocessing source code as text has not been yet computed.    
+**Case 2 — Detecting Under-Documented Requirements via Noise Extremes.** In the maximum-noise scenario, a content-rich pull request is linked to an essentially empty target file, suggesting a trivial/generated implementation or a spurious link. In the minimum-noise scenario, the pull request content is repetitive and lexically narrow, providing little discriminative signal. These patterns highlight two distinct documentation debts: empty targets needing code-level comments, and repetitive PR narratives pointing to template fatigue or copy-paste change-management workflows.
 
-## Case Study 1: MaxMin Loss
-- Case Study 1.1: Max Case
-    - Pull Request ID (self-entropy 0.0🠗 B): 241 
-    - PR Content: “Reportbugs”
-    - Source Code ID (self-entropy 7.50🠕 B): “sacp-python-common/sacp_python_common/security_results_push/security_results_push_func.py”
-    - Loss: 7.5 B
-    - Trace Link: non-link
+**Case 3 — Surfacing Orphan Informative Links Missing From Ground Truth.** Some link candidates show strong information-theoretic alignment between source and target but are absent from the recorded ground truth. These orphan links are doubly valuable: they expose gaps in the trace matrix maintained by the engineering team (with implications for compliance, audit, and impact analysis), and they surface likely-true links independent of the unsupervised technique applied. Embedding this analysis into a CI pipeline would give release managers and compliance owners an early-warning signal for incomplete traceability records.
 
-- Case Study 1.2: Min Case
-    - Pull Request ID (self-entropy 6.56🠕 B): 256 
-    - PR Content: “'Parameterize corona hostname This is intended to be a backward-compatible addition of the ability to set the Corona hostname using a new `--corona-hostname` flag that is not required and defaults to corona.cisco.com.  The underlying Corona, Bom, Cve, and Triage classes are also updated in a backward-compatible way to add the ability to set the `corona_hostname` init parameter, also with a default value.  I tried to follow the pattern I saw in use for the `job_name` and `build_tag` parameters, assuming that this snippet is what will automagically set the `self.corona_hostname` attribute: ```     def create_argument_parser(self, **kwargs):         ...         parser.add_argument(             "--corona-hostname", type=str, help="Corona hostname", default="corona.cisco.com"         )         ...      def run(self):         # parse the command line arguments         arguments = self.create_argument_parser(description=__doc__).parse_args()         # populate the argument values into self         for arg in vars(arguments):             setattr(self, arg, vars(arguments)[arg])         ... ```  I think I got everything that needs to change, but this is my first work with the module so I\'d be happy to step through things on a WebEx with someone if you\'d like.  I\'m not going to document this feature as I don\'t want to give too many teams the idea to start pipelining builds to Corona staging, but as I\'ve mentioned we need this so we can integrate the `binaryScan` step into our staging sanity test stage so we can catch any API drift before it hits production.  Next steps will be to update the container\'s [entrypoint](https://wwwin-github.cisco.com/SACP/CSB-CICD-Containers/blob/master/entrypoints/run_3rd_party.sh#L6) so it knows how to call the binaryScan module with the new flag if it\'s provided, then to update the binaryScan Groovy to look for this parameter in the config map and pass to the [docker_run and venv_run closures](https://wwwin-github.cisco.com/SACP/sectools-jenkins-lib/blob/master/vars/binaryScan.groovy#L109-L207”
-    - Source Code ID (self-entropy 4.82 B): “sacp-python-common/sacp_python_common/third_party/cve.py”
-    - Loss: -0.01036
-    - Trace Link: confirmed-link
+## 5. Lessons Learned for Industry
 
-- Case Study 1.3: Quantile Loss (>=0.99) for Positive Links
-In this study, we are just observing the loss of 99% quantile for positive links. 
-    - Pull Request ID (self-entropy 5.09 B): 193
-    - PR-Content: “CIC-698: Git pre-commit hook for linting This PR adds pre-commit hooks for python file linting. It accomplishes this by using black, flake8, and isort.  Also added in this commit is Pipenv for dependency tracking and virtual environment for development.  The changes were ran through the HelloWorld demo build we have, linked [here](https://engci-jenkins-rtp.cisco.com/jenkins/job/team_SACP/job/DemoBuilds/job/Python3.7/).”
-    - Source Code ID (self-entropy 2.52🠗 B): sacp-python-common/sacp_python_common/template/\__init__.py
-    - Source Code Content: “import os\r\n\r\nTEMPLATE = os.path.dirname(os.path.realpath(\__file__))\r\n”
-    - Loss: 2.76🠕 B
+Our empirical study and industry-oriented case analysis yield three practical lessons for deploying unsupervised traceability in real-world settings, all supporting a shift from model-centric optimization toward data-centric practices:
 
-_Discussion_. Edge cases of loss are useful to detect starting points for general refactoring in the target documentation. The max case shows us the pull request content is composed of just one word. The tokens that represent this word were not found in the target security_results_push_func.py, which is one of the highest entropy files. Whereas, the min case shows us the pull request has a complete description that was not found in the target.  Now, let’s pay attention to the 99% quartile for positive links. The PR-Content cannot be easily found in the source code with low entropy. Even if a software engineer tries to do a manual extraction of links. The relationship is not evident. 
+1. **Traceability performance is primarily constrained by artifact informativeness and alignment, not model sophistication.** Word2vec and doc2vec fail across all configurations when artifacts lack sufficient or overlapping information. Improving requirements, pull requests, and documentation through clearer structure, consistent terminology, and completeness offers greater gains than further model tuning.
+2. **Information-theoretic discrepancies (loss and noise) provide actionable signals of misalignment.** High loss indicates missing propagation of source information; noise reflects undocumented or extraneous target behavior. Both correlate with weak traceability and can guide refactoring, documentation, and QA efforts.
+3. **Standard evaluation metrics alone are insufficient.** Precision, recall, and AUC can obscure limitations due to imbalance or low-information artifacts. Entropy and mutual information offer complementary insight into whether traceability is feasible at all, and help diagnose failure modes.
 
+## Acknowledgments
 
-## Case Study 2: MaxMin Noise
-- Case Study 2.1: Max Case
-    - Pull Request ID (self-entropy 6.56🠕): 256
-    - PR Content: see above
-    - Source Code ID (self-entropy 2.52🠗): “csc-python-common/csc_python_common/template/\__init__.py”
-    - Noise: 4.12 B
-    - Trace Link: non-link
-
-
-- Case Study 2.2: Min Case
-    - Pull Request ID (self-entropy 3.38): 213
-    - PR Content: “'Third Party refactor (#211) * folder  * first stage changes  * first stage changes  * first stage changes  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * stage two changes  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * bd fix + unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unused function  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * unittest  * 3rd party refactor  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bugfix  * bdfix  * bdfix  * bdfix  * conflict  * BD fusion  * bd fusion  * bd fusion  * bd fusion  * bd fusion  * Corona class  * Corona class  * Corona class  * Corona class  * Corona class  * Corona class  * Corona class  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * byos tests  * bugfix  * bugfix  * bugfix  * bugfix”
-    - Source Code ID (self-entropy 5.37): “csc-python-common/setup.py”
-    - Noise: -0.44 B
-    - Trace Links: non-link
-
-- Case Study 2.3: Quantile Noise (>=0.99) for Positive Links
-    - Pull Request ID (self-entropy 0.0🠗): 241
-    - PR-Content: “Reportbugs”
-    - Source Code ID (self-entropy 7.48): csc-python-common/csc_python_common/third_party/binary_scan_func.py
-    - Source Code Content: (large file)
-    - Noise: 7.48🠕
-
-
-_Discussion_. Edge cases of noise are useful to detect refactorings in documentation found in the source documentation. Let’s observe the max case, the PR content is really high, but the target artifact is the \_init_ file, which is empty. This suggests that the target is not well documented (but in this case makes sense). Something similar happens with the min case. However, this time the PR content is very repetitive and less expressive. Now, a useful case would be one with positive links in the 99% quantile. Here, we can detect that the PR-241 is poorly documented since the noise is around 7.48B, while the target is one of the highest entropy files.  
-
-## Case Study 3: Orphan Informative Links 
-This case study introduces orphan informative links or potential links with high mutual information but with negative ground truth. For instance, the following 3 links are negative links in the ground truth but they are in the 99% quantile of MI:
-> {PR-56 ➝ spotbugs/spotbugs.py}: 6.31 B 
->
-> {PR-56 ➝ third_party/binary_scan_func.py}: 6.38 B
->
-> {PR-256 ➝ spotbugs/spotbugs.py}: 6.31 B
-
-_Discussion_. Orphan links not only exhibit inconsistencies in the ground truth file but also suggest potential positive links independent of the employed unsupervised technique. The previous examples need to be further analyzed to decide if they are a link. Otherwise, we need to find an explanation of why they are sharing such an amount of information.  
+This research has been supported in part by NSF CCF-2346357, CCF-231146, and CCF-2423813 grants. We also acknowledge support from Cisco Systems.
 
 ## Citation
 
-```latex
+To cite the extended, industry-oriented study (in submission to ICSME'26):
+
+```bibtex
+@misc{rodriguezcardenas2026sensetraceability,
+      author={Rodriguez-Cardenas, Daniel and Fecko, Logan and Poshyvanyk, Denys and Palacio, David N. and Moran, Kevin},
+      title={{Sense-traceability}: A Library for Software Artifact Vectorization, Distance Computation, and Statistical Analysis on Vectors},
+      year={2026},
+      publisher={GitHub},
+      howpublished={\url{https://github.com/WM-SEMERU/Sense-traceability}},
+}
+```
+
+To cite the original pre-print this work extends:
+
+```bibtex
 @misc{palacio2024interpretingeffectivenessunsupervisedsoftware,
-      title={On Interpreting the Effectiveness of Unsupervised Software Traceability with Information Theory}, 
+      title={On Interpreting the Effectiveness of Unsupervised Software Traceability with Information Theory},
       author={David N. Palacio and Daniel Rodriguez-Cardenas and Denys Poshyvanyk and Kevin Moran},
       year={2024},
       eprint={2412.04704},
       archivePrefix={arXiv},
       primaryClass={cs.SE},
-      url={https://arxiv.org/abs/2412.04704}, 
+      url={https://arxiv.org/abs/2412.04704},
 }
 ```
