@@ -7,7 +7,7 @@
 
 Traceability remains a critical capability to ensure system reliability, maintainability, and compliance in modern software development. Although unsupervised Information Retrieval (IR) and Machine Learning (ML) techniques are widely adopted for automated trace link recovery, their effectiveness is often limited by the quality and structure of the underlying artifacts. In practice, these approaches assume that meaningful traceability signals are embedded in textual data, an assumption that rarely holds in industrial settings with sparse, inconsistent, or unbalanced documentation. Furthermore, conventional evaluation metrics (e.g., precision, recall, F1) can misrepresent performance when data characteristics are not explicitly considered.
 
-We introduce **SENSE**, an information-theoretic framework for evaluating the reliability and limits of unsupervised traceability. SENSE leverages *self-information* and *mutual information (MI)* to quantify the informativeness and alignment of source and target artifacts. Through a comprehensive empirical analysis of eight system testbeds, including a proprietary industrial dataset from Cisco Systems, we show that typical traceability corpora exhibit significant information imbalances, where the source code contains on average more information than the corresponding documentation. In addition, the observed levels of mutual information, loss, and noise reveal inherent constraints on the ability of unsupervised techniques to recover accurate trace links. These findings suggest that improving traceability in practice requires a shift toward data-centric engineering, focusing on artifact quality, consistency, and information alignment, rather than solely advancing model sophistication (or complexity). Our results provide insights for practitioners to better assess traceability readiness and guide improvements in documentation and development workflows.
+We introduce **TraceXplainer**, an information-theoretic framework for evaluating the reliability and limits of unsupervised traceability. TraceXplainer leverages *self-information* and *mutual information (MI)* to quantify the informativeness and alignment of source and target artifacts. Through a comprehensive empirical analysis of eight system testbeds, including a proprietary industrial dataset from Cisco Systems, we show that typical traceability corpora exhibit significant information imbalances, where the source code contains on average more information than the corresponding documentation. In addition, the observed levels of mutual information, loss, and noise reveal inherent constraints on the ability of unsupervised techniques to recover accurate trace links. These findings suggest that improving traceability in practice requires a shift toward data-centric engineering, focusing on artifact quality, consistency, and information alignment, rather than solely advancing model sophistication (or complexity). Our results provide insights for practitioners to better assess traceability readiness and guide improvements in documentation and development workflows.
 
 ## Introduction
 
@@ -23,9 +23,9 @@ For the Cisco testbed, an industrial dataset derived from a real Cisco engineeri
 
 ---------
 
-## 1. Sense Code Artifacts
+## 1. TraceXplainer Code Artifacts
 
-**Sense** comprises a set of steps for training and evaluating machine learning models for traceability link recovery. The table below maps each part of the pipeline to where it lives in the repository:
+**TraceXplainer** comprises a set of steps for training and evaluating machine learning models for traceability link recovery. The table below maps each part of the pipeline to where it lives in the repository:
 
 | **Artifact**             | **Repository Folder**                                                                              | **Description**                                                                                                 |
 |---------------------------|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
@@ -42,7 +42,7 @@ For the Cisco testbed, an industrial dataset derived from a real Cisco engineeri
 
 ### Documented Notebooks
 
-The folder `notebooks` contains several notebooks for Sense analysis, grouped by pipeline stage:
+The folder `notebooks` contains several notebooks for TraceXplainer analysis, grouped by pipeline stage:
 
 **Data Prep & Representation Learning**
 
@@ -124,14 +124,14 @@ Exploratory Data Analysis is an exhaustive search for patterns in data with a sp
 1. **Manifold of Information Measures ($AN_1$)** — characterizes the probability distribution of each entropy and similarity metric. We expect, for instance, similarity distributions to be bimodal (reflecting links vs. non-links); deviations from this assumption help us assess technique quality.
 2. **Manifold of Information Measures by Ground Truth ($AN_2$)** — partitions each entropy and similarity metric by ground-truth label, letting us interpret prediction quality and describe how well the ground truth captures information transmission between source and target artifacts.
 
-<div align="center"><img src="assets/img/paper/fig_overview.png" alt="Sense overview" width="70%"/></div>
+<div align="center"><img src="assets/img/paper/fig_overview.png" alt="TraceXplainer overview" width="70%"/></div>
 <div class="caption">
-    Figure 1. Sense: Using Information Theory to Interpret Unsupervised Traceability Models — software information transmission, the information space, and the semantic space.
+    Figure 1. TraceXplainer: Using Information Theory to Interpret Unsupervised Traceability Models — software information transmission, the information space, and the semantic space.
 </div>
 
 <div align="center"><img src="assets/img/paper/fig_metrics.png" alt="Information theory measures" width="50%"/></div>
 <div class="caption">
-    Figure 2. Information Theory Measures in Sense (self-information, mutual information, loss, and noise between source and target artifacts).
+    Figure 2. Information Theory Measures in TraceXplainer (self-information, mutual information, loss, and noise between source and target artifacts).
 </div>
 
 ### 3.1 RQ1: Traceability Effectiveness
